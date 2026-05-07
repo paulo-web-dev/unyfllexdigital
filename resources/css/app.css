@@ -1,0 +1,43 @@
+/* =====================================================
+   Unyflex Digital — app.css
+   Ordem: tokens → overrides Bootstrap → Bootstrap
+   ===================================================== */
+
+/* 1. Design tokens (cores, tipo, spacing, motion) */
+@import url('/css/unyflex/colors_and_type.css');
+
+/* 2. Estilos do AVA (layout, componentes, utilitários) */
+@import url('/css/unyflex/ava.css');
+
+/* 3. Override variáveis Bootstrap 5 com tokens Unyflex */
+:root {
+  --bs-primary:          var(--brand-500);
+  --bs-primary-rgb:      0, 163, 255;
+  --bs-secondary:        var(--bg-3);
+  --bs-success:          var(--success);
+  --bs-warning:          var(--warning);
+  --bs-danger:           var(--danger);
+  --bs-info:             var(--brand-400);
+
+  --bs-body-bg:          var(--bg-0);
+  --bs-body-color:       var(--fg-2);
+  --bs-border-color:     var(--line-2);
+  --bs-border-radius:    var(--r-md);
+  --bs-border-radius-sm: var(--r-sm);
+  --bs-border-radius-lg: var(--r-lg);
+  --bs-border-radius-xl: var(--r-xl);
+  --bs-border-radius-pill: var(--r-pill);
+
+  --bs-font-sans-serif:  var(--font-body);
+  --bs-font-monospace:   var(--font-mono);
+
+  --bs-link-color:       var(--brand-300);
+  --bs-link-hover-color: var(--brand-200);
+}
+
+/* Normalização mínima sobre o que o Bootstrap redefine */
+body {
+  background: var(--bg-0);
+  color: var(--fg-2);
+  -webkit-font-smoothing: antialiased;
+}
