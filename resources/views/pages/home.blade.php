@@ -30,19 +30,19 @@
         </p>
 
         <div class="hero-cta-group aos-fade aos-delay-3">
-          <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg">
+          <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Começar agora — R$ 998
+            Ver minisséries
           </a>
           <a href="{{ route('cursos') }}" class="btn-ux btn-ux-ghost btn-ux-lg">
-            Ver minisséries
+            Ver catálogo completo
           </a>
         </div>
 
         <div class="hero-proof aos-fade aos-delay-4">
           <div class="hero-proof-item">
             <i data-lucide="users" style="width:16px;height:16px;stroke:var(--brand-400);fill:none;stroke-width:1.75;"></i>
-            <span>+12.000 servidores capacitados</span>
+            <span>+49.000 servidores capacitados</span>
           </div>
           <div class="hero-proof-item">
             <i data-lucide="shield-check" style="width:16px;height:16px;stroke:var(--brand-400);fill:none;stroke-width:1.75;"></i>
@@ -58,8 +58,6 @@
       <div class="col-lg-6 aos-fade aos-delay-2">
         <div class="hero-visual">
           <div class="floating-badge floating-badge-1">
-            <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--success);margin-bottom:2px;">Concluído</div>
-            <div style="font-size:13px;font-weight:600;color:#fff;">Lei 14.133 na prática</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
               <div style="height:3px;width:80px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
                 <div style="height:100%;width:100%;background:var(--grad-brand);"></div>
@@ -75,36 +73,19 @@
               </div>
               <div style="position:absolute;bottom:12px;left:12px;right:12px;">
                 <div style="background:rgba(5,8,15,0.75);backdrop-filter:blur(8px);border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;">
-                  <div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-                    <div style="height:100%;width:42%;background:var(--grad-brand);"></div>
-                  </div>
-                  <span style="font-family:var(--font-mono);font-size:11px;color:var(--brand-200);">42%</span>
+                  <div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"></div>
                 </div>
               </div>
             </div>
 
-            <div style="margin-bottom:16px;">
-              <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--fg-4);margin-bottom:6px;">MINISSÉRIE · 12 CÁPSULAS</div>
-              <div style="font-family:var(--font-display);font-weight:700;font-size:17px;color:#fff;margin-bottom:4px;">Patrimônio e Frotas Públicas com I.A.</div>
-              <div style="font-size:13px;color:var(--fg-3);">Temporada 1 · Cápsula 4 de 12</div>
-            </div>
+            <div style="margin-bottom:16px;"></div>
 
             <div style="display:flex;gap:10px;">
-              <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary" style="flex:1;justify-content:center;">
+              <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary" style="flex:1;justify-content:center;">
                 <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-                Continuar
+                Ver minisséries
               </a>
-              <a href="{{ route('cursos') }}" class="btn-ux btn-ux-ghost">Ver cursos</a>
-            </div>
-          </div>
-
-          <div class="floating-badge floating-badge-2">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div style="width:32px;height:32px;border-radius:50%;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--fg-on-brand);">MA</div>
-              <div>
-                <div style="font-size:12px;font-weight:600;color:#fff;">Maria Aparecida</div>
-                <div style="font-size:10px;color:var(--brand-300);">Concluiu Pregão Avançado</div>
-              </div>
+              <a href="{{ route('cursos') }}" class="btn-ux btn-ux-ghost">Catálogo</a>
             </div>
           </div>
         </div>
@@ -123,7 +104,7 @@
       <div class="col-6 col-md-3 aos-fade">
         <div class="stat-item">
           <div class="stat-number">
-            <span data-stat-number data-target="12000" data-suffix="+">0</span>
+            <span data-stat-number data-target="49000" data-suffix="+">0</span>
           </div>
           <div class="stat-label">Servidores capacitados</div>
         </div>
@@ -132,7 +113,7 @@
       <div class="col-6 col-md-3 aos-fade aos-delay-1">
         <div class="stat-item">
           <div class="stat-number">
-            <span data-stat-number data-target="184" data-suffix="+">0</span>
+            <span data-stat-number data-target="300" data-suffix="+">0</span>
           </div>
           <div class="stat-label">Cápsulas disponíveis</div>
         </div>
@@ -150,7 +131,7 @@
       <div class="col-6 col-md-3 aos-fade aos-delay-3">
         <div class="stat-item">
           <div class="stat-number">
-            <span data-stat-number data-target="26" data-suffix="+">0</span>
+            <span data-stat-number data-target="10" data-suffix="+">0</span>
           </div>
           <div class="stat-label">Minisséries no catálogo</div>
         </div>
@@ -205,7 +186,7 @@
           </div>
           <div style="height:1px;background:var(--line-1);margin:24px 0;"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            @foreach([['50+','Especialistas no corpo docente'],['8 anos','De experiência em EaD pública'],['99%','Taxa de satisfação dos alunos'],['24h','Suporte pedagógico']] as [$num,$lbl])
+            @foreach([['100+','Especialistas no corpo docente'],['10 anos','De experiência em EaD pública'],['99%','Taxa de satisfação dos alunos'],['Especializado','Suporte pedagógico']] as [$num,$lbl])
             <div style="background:var(--bg-3);border-radius:var(--r-md);padding:16px;">
               <div style="font-family:var(--font-display);font-weight:800;font-size:24px;color:#fff;margin-bottom:4px;">{{ $num }}</div>
               <div style="font-size:12px;color:var(--fg-3);">{{ $lbl }}</div>
@@ -219,94 +200,7 @@
 </section>
 
 {{-- ================================================================
-     PROMOÇÃO COM COUNTDOWN
-     ================================================================ --}}
-<section class="promo-section" id="oferta">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-lg-10">
-        <div class="offer-card">
-          <div class="row g-5 align-items-center">
-            <div class="col-lg-6 aos-fade">
-              <div class="offer-badge">🔥 Promoção por tempo limitado</div>
-              <h2 style="font-family:var(--font-display);font-weight:800;font-size:clamp(26px,3vw,36px);color:#fff;letter-spacing:-0.025em;margin-bottom:12px;">
-                Trilha Completa de Gestão Pública
-              </h2>
-              <p style="font-size:16px;color:var(--fg-3);line-height:1.65;margin-bottom:20px;">
-                Acesso a <strong style="color:#fff;">todas as miniséries</strong> do catálogo por 1 ano.
-                Mais de 184 cápsulas, certificados válidos, materiais e suporte pedagógico.
-              </p>
-
-              <div style="margin-bottom:20px;">
-                @foreach(['Acesso a 26+ miniséries completas','184+ cápsulas de 10-20 minutos','Certificados com validade institucional','Materiais, mapas mentais e checklists','Versão em podcast de cada cápsula','Suporte pedagógico por 1 ano','Atualizações legislativas inclusas'] as $item)
-                <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-2);margin-bottom:10px;">
-                  <i data-lucide="check-circle" style="width:16px;height:16px;stroke:var(--success);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-                  {{ $item }}
-                </div>
-                @endforeach
-              </div>
-            </div>
-
-            <div class="col-lg-6 aos-fade aos-delay-2">
-              <div style="background:var(--bg-1);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:32px;">
-                <div class="offer-price-old">De R$ 1.990,00</div>
-                <div class="offer-price-new"><sup>R$</sup>998<span style="font-size:22px;color:var(--fg-3);font-weight:400;">,00</span></div>
-                <div class="offer-savings">Você economiza R$ 992 — 50% de desconto</div>
-
-                <div data-countdown class="countdown-wrap">
-                  <div class="countdown-label">Oferta encerra em:</div>
-                  <div class="countdown-timer">
-                    <div class="countdown-unit">
-                      <span class="countdown-num" data-cd-days>07</span>
-                      <div class="countdown-lbl">Dias</div>
-                    </div>
-                    <div class="countdown-sep">:</div>
-                    <div class="countdown-unit">
-                      <span class="countdown-num" data-cd-hours>00</span>
-                      <div class="countdown-lbl">Horas</div>
-                    </div>
-                    <div class="countdown-sep">:</div>
-                    <div class="countdown-unit">
-                      <span class="countdown-num" data-cd-mins>00</span>
-                      <div class="countdown-lbl">Min</div>
-                    </div>
-                    <div class="countdown-sep">:</div>
-                    <div class="countdown-unit">
-                      <span class="countdown-num" data-cd-secs>00</span>
-                      <div class="countdown-lbl">Seg</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="vagas-bar">
-                  <i data-lucide="alert-triangle" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-                  <span>Restam apenas <strong>23 vagas</strong> neste preço</span>
-                </div>
-
-                <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg" style="width:100%;justify-content:center;margin-top:20px;">
-                  <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-                  Garantir minha vaga agora
-                </a>
-
-                <div style="display:flex;justify-content:center;gap:20px;margin-top:14px;flex-wrap:wrap;">
-                  @foreach(['Pagamento seguro','Acesso imediato','Garantia 7 dias'] as $tag)
-                  <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--fg-4);">
-                    <i data-lucide="shield" style="width:12px;height:12px;stroke:var(--success);fill:none;stroke-width:1.75;"></i>
-                    {{ $tag }}
-                  </div>
-                  @endforeach
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{{-- ================================================================
-     MINISÉRIES EM DESTAQUE
+     MINISÉRIES EM DESTAQUE — COM CARRINHO
      ================================================================ --}}
 <section class="section-py" id="minisseries">
   <div class="container">
@@ -317,44 +211,88 @@
     </div>
 
     <div class="row g-4">
-      @foreach([
-        ['tone'=>1,'badge'=>'MAIS VENDIDO','badgeClass'=>'badge-destaque','dur'=>'2h 48min','eyebrow'=>'MINISSÉRIE · 12 CÁPSULAS','title'=>'Patrimônio e Frotas Públicas com I.A.','desc'=>'Levantamento, auditoria e controle de bens patrimoniais usando inteligência artificial para identificar inconsistências.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-1'],
-        ['tone'=>2,'badge'=>'NOVO','badgeClass'=>'badge-novo','dur'=>'1h 52min','eyebrow'=>'MINISSÉRIE · 8 CÁPSULAS','title'=>'Lei 14.133 na Prática','desc'=>'Como aplicar a Nova Lei de Licitações nos pregões eletrônicos do dia a dia da prefeitura, com exemplos reais.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-2'],
-        ['tone'=>3,'badge'=>'DESTAQUE','badgeClass'=>'badge-destaque','dur'=>'3h 04min','eyebrow'=>'MINISSÉRIE · 14 CÁPSULAS','title'=>'Pregão Eletrônico Avançado','desc'=>'Estratégias de condução, análise de propostas e diligências bem documentadas para pregoeiros experientes.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-3'],
-        ['tone'=>4,'badge'=>null,'badgeClass'=>'','dur'=>'1h 22min','eyebrow'=>'MINISSÉRIE · 6 CÁPSULAS','title'=>'Auditoria Contínua com Dashboards','desc'=>'Construa indicadores que apontam riscos antes que virem problema, com dashboard pronto para clonar.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-4'],
-        ['tone'=>1,'badge'=>null,'badgeClass'=>'','dur'=>'2h 10min','eyebrow'=>'MINISSÉRIE · 9 CÁPSULAS','title'=>'Gestão de Contratos Públicos','desc'=>'Do recebimento à fiscalização contínua, passando por aditivos e penalidades contratuais.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-5'],
-        ['tone'=>2,'badge'=>null,'badgeClass'=>'','dur'=>'46min','eyebrow'=>'CÁPSULA AVULSA','title'=>'LGPD para Servidores Municipais','desc'=>'Aplicação prática da Lei de Proteção de Dados nos processos administrativos da prefeitura.','progress'=>null,'cta'=>'Acessar curso','href'=>'curso-6'],
-      ] as $i => $curso)
-      <div class="col-lg-4 col-md-6 aos-fade" style="transition-delay:{{ $i * 0.08 }}s;">
-        <a href="{{ route('curso.show', $curso['href']) }}" class="course-card" style="display:flex;text-decoration:none;color:inherit;">
-          <div class="course-card-thumb course-thumb-t{{ $curso['tone'] }}">
-            @if($curso['badge'])
-            <span class="course-card-badge {{ $curso['badgeClass'] }}">{{ $curso['badge'] }}</span>
-            @endif
-            <span class="course-card-duration">{{ $curso['dur'] }}</span>
-            <div class="course-card-play">
-              <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.95);color:#0072FF;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px -8px rgba(0,163,255,0.6);">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;margin-left:2px;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+      @foreach($classes as $curso)
+      <div class="col-lg-4 col-md-6 aos-fade" style="transition-delay:{{ $loop->index * 0.08 }}s;">
+        <div class="course-card" style="display:flex;flex-direction:column;">
+
+          {{-- Thumb clicável leva para a página do curso --}}
+          <a href="{{ route('curso.show', $curso->slug) }}" style="display:block;text-decoration:none;">
+            <div class="course-card-thumb course-thumb-t"
+                 style="
+                    background-image:url('https://unyflex.com.br/storage/cursos/banner/{{$curso->photo}}');
+                    background-size:cover;
+                    background-position:center;
+                    background-repeat:no-repeat;
+                 ">
+              @if($curso['badge'])
+                <span class="course-card-badge novo">NOVO</span>
+              @endif
+              <span class="course-card-duration">{{$curso->workload}}H</span>
+              <div class="course-card-play">
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.95);color:#0072FF;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px -8px rgba(0,163,255,0.6);">
+                  <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;margin-left:2px;">
+                    <polygon points="6 4 20 12 6 20 6 4"/>
+                  </svg>
+                </div>
               </div>
             </div>
+          </a>
+
+          <div class="course-card-body" style="display:flex;flex-direction:column;flex:1;">
+            <div class="course-eyebrow">MINISSÉRIE · 70 CÁPSULAS</div>
+
+            <a href="{{ route('curso.show', $curso->slug) }}" style="text-decoration:none;color:inherit;">
+              <div class="course-title">{{ $curso->title }}</div>
+            </a>
+
+            {{-- Preço --}}
+            @if(isset($curso->price) && $curso->price)
+            <div class="course-price-wrap" style="margin-top:auto;padding-top:12px;">
+              @if(isset($curso->price_original) && $curso->price_original)
+              <div style="font-size:12px;color:var(--fg-4);text-decoration:line-through;">
+                R$ {{ number_format($curso->price_original, 2, ',', '.') }}
+              </div>
+              @endif
+              <div style="font-size:20px;font-weight:800;color:#fff;font-family:var(--font-display);">
+                R$ {{ number_format($curso->price, 2, ',', '.') }}
+              </div>
+            </div>
+            @endif
+
+            {{-- Botões: Ver detalhes + Adicionar ao carrinho --}}
+            <div style="display:flex;gap:8px;margin-top:16px;">
+              <a href="{{ route('curso.show', $curso->slug) }}"
+                 class="btn-ux btn-ux-ghost btn-ux-sm"
+                 style="flex:0 0 auto;">
+                Ver detalhes
+              </a>
+
+              <button
+                class="btn-ux btn-ux-primary btn-ux-sm btn-add-to-cart"
+                style="flex:1;justify-content:center;"
+                data-course-id="{{ $curso->id }}"
+                data-course-title="{{ $curso->title }}"
+                data-course-price="{{ $curso->price ?? 0 }}"
+                data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $curso->photo }}"
+                data-course-slug="{{ $curso->slug }}"
+                aria-label="Adicionar {{ $curso->title }} ao carrinho">
+
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                <span class="btn-cart-label">Adicionar</span>
+              </button>
+            </div>
           </div>
-          <div class="course-card-body">
-            <div class="course-eyebrow">{{ $curso['eyebrow'] }}</div>
-            <div class="course-title">{{ $curso['title'] }}</div>
-            <p class="course-desc">{{ $curso['desc'] }}</p>
-            <button class="course-card-cta">
-              {{ $curso['cta'] }}
-              <i data-lucide="arrow-right" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"></i>
-            </button>
-          </div>
-        </a>
+        </div>
       </div>
-      @endforeach
+      @endforeach 
     </div>
 
     <div class="text-center mt-5 aos-fade">
       <a href="{{ route('cursos') }}" class="btn-ux btn-ux-secondary btn-ux-lg">
-        Ver catálogo completo — 26 miniséries
+        Ver catálogo completo 
         <i data-lucide="arrow-right" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"></i>
       </a>
     </div>
@@ -407,8 +345,8 @@
         <p style="font-size:16px;color:var(--fg-3);line-height:1.65;margin-bottom:36px;">
           Do acesso até a aplicação no seu setor, o caminho é direto. Sem burocracia, sem enrolação.
         </p>
-        <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg">
-          Começar agora
+        <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary btn-ux-lg">
+          Escolher minha minisérie
           <i data-lucide="arrow-right" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"></i>
         </a>
       </div>
@@ -416,15 +354,15 @@
         <div class="how-step">
           <div class="how-step-number">1</div>
           <div class="how-step-content">
-            <h4>Acesso imediato após o pagamento</h4>
-            <p>Em menos de 5 minutos após confirmar o pagamento, você já tem acesso a todo o catálogo na plataforma. Sem burocracia.</p>
+            <h4>Escolha as miniséries do seu interesse</h4>
+            <p>Navegue pelo catálogo, adicione ao carrinho as miniséries que se encaixam na sua realidade e necessidade atual.</p>
           </div>
         </div>
         <div class="how-step">
           <div class="how-step-number">2</div>
           <div class="how-step-content">
-            <h4>Escolha a minisérie pelo seu desafio atual</h4>
-            <p>Está preparando um pregão? Com uma auditoria chegando? Vai assinar um contrato? Há uma minisérie específica para cada situação.</p>
+            <h4>Revise o carrinho e finalize o pagamento</h4>
+            <p>Confira os itens selecionados, escolha a forma de pagamento e finalize com segurança. Acesso liberado em menos de 5 minutos.</p>
           </div>
         </div>
         <div class="how-step">
@@ -434,15 +372,8 @@
             <p>Cada cápsula é densa e direta ao ponto. Sem enrolação, sem papo de professor. Só o que você precisa para agir.</p>
           </div>
         </div>
-        <div class="how-step">
-          <div class="how-step-number">4</div>
-          <div class="how-step-content">
-            <h4>Aplique com o checklist no mesmo dia</h4>
-            <p>Cada cápsula vem com um checklist preenchível e materiais prontos. Você termina a aula e já tem o que precisa para executar.</p>
-          </div>
-        </div>
         <div class="how-step" style="margin-bottom:0;">
-          <div class="how-step-number">5</div>
+          <div class="how-step-number">4</div>
           <div class="how-step-content">
             <h4>Emita o certificado ao concluir</h4>
             <p>Ao finalizar a minisérie, o certificado da Faculdade Unypublica é gerado automaticamente e fica disponível para download.</p>
@@ -466,12 +397,9 @@
 
     <div class="row g-4">
       @foreach([
-        ['init'=>'MA','name'=>'Maria Aparecida S.','role'=>'Pregoeira · Prefeitura de Campinas/SP','stars'=>5,'text'=>'Fiz a minisérie de Pregão Eletrônico Avançado antes de uma licitação complexa. No dia da sessão, sabia exatamente o que fazer com cada fase. O conteúdo é diferente de tudo que estudei antes — aplicável de verdade.'],
-        ['init'=>'RO','name'=>'Roberto Oliveira','role'=>'Gestor de Contratos · Câmara Municipal','stars'=>5,'text'=>'A cápsula sobre aditivos contratuais valeu mais do que uma pós-graduação inteira. Em 18 minutos aprendi o que precisava para revisar três contratos que estavam com problemas. Recomendo para qualquer servidor de compras.'],
-        ['init'=>'CL','name'=>'Claudia Lima','role'=>'Auditora · TCE-PR','stars'=>5,'text'=>'O conteúdo sobre documentação auditável é o melhor que já encontrei sobre o tema. Apliquei os três princípios da cápsula e consegui estruturar um fluxo que antes era um caos. A equipe adorou.'],
-        ['init'=>'JS','name'=>'João Silva','role'=>'Contador · Secretaria Municipal de Finanças','stars'=>5,'text'=>'Estava com uma auditoria chegando e precisava de conteúdo rápido. A minisérie de Auditoria com Dashboards me deu o que precisava. O dashboard que eles deram de modelo está em uso no meu setor até hoje.'],
-        ['init'=>'AN','name'=>'Ana Nascimento','role'=>'Chefe de Patrimônio · Pref. de Guarulhos','stars'=>5,'text'=>'A questão do patrimônio com I.A. é exatamente o que precisávamos. Implementamos o processo de levantamento da cápsula 1.3 e reduzimos o tempo de inventário em 60%. Impressionante para um conteúdo de 15 minutos.'],
-        ['init'=>'FM','name'=>'Felipe Martins','role'=>'Pregoeiro · Governo do Estado do Paraná','stars'=>5,'text'=>'Formato perfeito para quem trabalha com demanda alta. Assisto uma cápsula por dia antes do trabalho. Em um mês de plataforma já me sinto mais seguro em todas as fases do pregão. Valeu cada centavo.'],
+        ['init'=>'FP','name'=>'Fernanda Pereira','role'=>'','stars'=>5,'text'=>'Uma excelente experiência que vai auxiliar no meu crescimento profissional.'],
+        ['init'=>'SP','name'=>'Sonia Petrini','role'=>'','stars'=>5,'text'=>'Muito bom. Organização incrível cursos ótimos e muito valiosos'],
+        ['init'=>'BR','name'=>'Beatriz Rossini','role'=>'','stars'=>5,'text'=>'Os cursos são maravilhosos, didáticos, excelentes Professores e Profissionais sempre dispostos a sanar as dúvidas. Muito conhecimento adquirido'],
       ] as $i => $t)
       <div class="col-lg-4 col-md-6 aos-fade" style="transition-delay:{{ $i * 0.08 }}s;">
         <div class="testimonial-card">
@@ -506,9 +434,9 @@
         @foreach([
           ['q'=>'Para quem são as miniséries?','a'=>'Para servidores municipais, estaduais e federais que trabalham com compras, contratos, patrimônio, auditoria e gestão. O conteúdo é aplicável a qualquer esfera e porte de município.'],
           ['q'=>'Preciso ter formação específica para acompanhar?','a'=>'Não. As miniséries são desenvolvidas para diferentes níveis de experiência. Há conteúdo introdutório e avançado. Você escolhe pela sua realidade atual.'],
+          ['q'=>'Posso comprar mais de uma minisérie de uma vez?','a'=>'Sim! Basta adicionar ao carrinho todas as miniséries que desejar e finalizar o pagamento em um único checkout. Quanto mais miniséries, maior o valor investido no seu desenvolvimento.'],
           ['q'=>'Os certificados têm validade?','a'=>'Sim. Os certificados são emitidos pela Faculdade Unypublica, instituição reconhecida pelo MEC, com validade para progressão funcional, concursos e comprovação de capacitação.'],
           ['q'=>'Posso assistir pelo celular?','a'=>'Sim. A plataforma é 100% responsiva. Funciona em celular, tablet e computador. Muitos alunos assistem no transporte público ou durante o almoço.'],
-          ['q'=>'O que acontece depois de 1 ano?','a'=>'Você pode renovar o acesso com condições especiais para alunos ativos. As miniséries concluídas e certificados permanecem disponíveis independentemente da renovação.'],
           ['q'=>'Tem garantia de reembolso?','a'=>'Sim. Você tem 7 dias após a compra para solicitar reembolso integral sem precisar justificar. Basta enviar um e-mail para nossa equipe.'],
           ['q'=>'Posso comprar para minha equipe inteira?','a'=>'Sim. Temos planos para equipes e secretarias municipais com desconto progressivo. Entre em contato pelo WhatsApp para um orçamento personalizado.'],
         ] as $faq)
@@ -530,7 +458,7 @@
 </section>
 
 {{-- ================================================================
-     FINAL CTA
+     FINAL CTA — orientado ao carrinho
      ================================================================ --}}
 <section class="final-cta-section">
   <div class="container position-relative">
@@ -538,43 +466,28 @@
       <div class="col-lg-8 text-center aos-fade">
         <div class="hero-eyebrow" style="justify-content:center;">
           <span class="dot"></span>
-          <span>Oferta ativa · Vagas limitadas</span>
+          <span>Escolha sua minisérie · Acesso imediato</span>
         </div>
         <h2 class="section-title" style="font-size:clamp(32px,4vw,52px);margin-bottom:16px;">
           Sua próxima licitação pode ser<br><span class="text-brand-gradient">a mais segura da sua carreira</span>
         </h2>
         <p style="font-size:18px;color:var(--fg-3);line-height:1.65;margin-bottom:36px;max-width:580px;margin-left:auto;margin-right:auto;">
-          Junte-se a mais de 12.000 servidores que já transformaram sua atuação profissional.
-          Acesso imediato, certificado válido, risco zero com garantia de 7 dias.
+          Junte-se a mais de 49.000 servidores. Escolha as miniséries, adicione ao carrinho
+          e tenha acesso imediato com certificado válido e garantia de 7 dias.
         </p>
 
-        <div style="background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:32px;max-width:480px;margin:0 auto 32px;">
-          <div class="offer-price-old">De R$ 1.990,00</div>
-          <div class="offer-price-new" style="font-size:48px;"><sup>R$</sup>998<span style="font-size:20px;color:var(--fg-3);font-weight:400;">,00</span></div>
-          <div class="offer-savings">50% de desconto · Acesso por 1 ano</div>
-
-          <div data-countdown class="countdown-wrap" style="margin:20px 0;">
-            <div class="countdown-label">Oferta expira em:</div>
-            <div class="countdown-timer">
-              <div class="countdown-unit"><span class="countdown-num" data-cd-days>07</span><div class="countdown-lbl">Dias</div></div>
-              <div class="countdown-sep">:</div>
-              <div class="countdown-unit"><span class="countdown-num" data-cd-hours>00</span><div class="countdown-lbl">Horas</div></div>
-              <div class="countdown-sep">:</div>
-              <div class="countdown-unit"><span class="countdown-num" data-cd-mins>00</span><div class="countdown-lbl">Min</div></div>
-              <div class="countdown-sep">:</div>
-              <div class="countdown-unit"><span class="countdown-num" data-cd-secs>00</span><div class="countdown-lbl">Seg</div></div>
-            </div>
-          </div>
-
-          <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg" style="width:100%;justify-content:center;">
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:28px;">
+          <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Garantir minha vaga agora
+            Explorar catálogo
           </a>
-
-          <div class="vagas-bar" style="margin-top:14px;">
-            <i data-lucide="alert-triangle" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-            <span>Restam apenas <strong>23 vagas</strong> neste preço</span>
-          </div>
+          <a href="#" class="btn-ux btn-ux-ghost btn-ux-lg">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            Ver meu carrinho
+          </a>
         </div>
 
         <div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap;">
@@ -589,5 +502,152 @@
     </div>
   </div>
 </section>
+
+{{-- ================================================================
+     TOAST NOTIFICATION DO CARRINHO
+     Adicione o CSS abaixo ao seu site.css
+     ================================================================ --}}
+{{--
+/* Cart Toast */
+.cart-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-left: 3px solid var(--success);
+  border-radius: var(--r-lg);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  max-width: 360px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(.16,1,.3,1), opacity 0.3s ease;
+  pointer-events: none;
+}
+.cart-toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.cart-toast-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,200,120,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--success);
+}
+.cart-toast-body { flex: 1; }
+.cart-toast-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+.cart-toast-sub { font-size: 12px; color: var(--fg-3); }
+.cart-toast-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-300);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cart-toast-action:hover { color: var(--brand-200); }
+
+/* Estado "no carrinho" do botão */
+.btn-add-to-cart.in-cart {
+  background: rgba(0,200,120,0.15);
+  border-color: rgba(0,200,120,0.4);
+  color: var(--success);
+  pointer-events: none;
+}
+--}}
+
+{{-- Toast HTML --}}
+<div class="cart-toast" id="cartToast" role="status" aria-live="polite">
+  <div class="cart-toast-icon">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </div>
+  <div class="cart-toast-body">
+    <div class="cart-toast-title">Adicionado ao carrinho!</div>
+    <div class="cart-toast-sub" id="cartToastSub">Minisérie adicionada com sucesso.</div>
+  </div>
+  <a href="#" class="cart-toast-action">Ver carrinho →</a>
+</div>
+
+{{-- ================================================================
+     SCRIPT: Lógica do botão "Adicionar ao carrinho"
+     ================================================================ --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // Marca botões já no carrinho ao carregar a página
+  const cart = UnyCart.getCart();
+  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+    const id = String(btn.dataset.courseId);
+    if (cart.find(i => String(i.id) === id)) {
+      setInCart(btn);
+    }
+  });
+
+  // Listener nos botões
+  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      const item = {
+        id:    this.dataset.courseId,
+        title: this.dataset.courseTitle,
+        price: parseFloat(this.dataset.coursePrice) || 0,
+        thumb: this.dataset.courseThumb,
+        slug:  this.dataset.courseSlug,
+      };
+
+      const result = UnyCart.addItem(item);
+
+      if (result.added) {
+        setInCart(this);
+        showCartToast(item.title);
+      } else {
+        // Já está no carrinho — redireciona
+        window.location.href = '';
+      }
+    });
+  });
+
+  function setInCart(btn) {
+    btn.classList.add('in-cart');
+    btn.querySelector('.btn-cart-label').textContent = 'No carrinho';
+    btn.setAttribute('aria-label', btn.dataset.courseTitle + ' — já no carrinho');
+  }
+
+  // Toast
+  let toastTimer;
+  function showCartToast(title) {
+    const toast = document.getElementById('cartToast');
+    const sub   = document.getElementById('cartToastSub');
+    sub.textContent = title;
+    toast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+  }
+
+  // Ouve evento de atualização do carrinho (ex: quando removido de outra aba)
+  document.addEventListener('cart:updated', function (e) {
+    const ids = e.detail.cart.map(i => String(i.id));
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+      if (!ids.includes(String(btn.dataset.courseId))) {
+        btn.classList.remove('in-cart');
+        btn.querySelector('.btn-cart-label').textContent = 'Adicionar';
+      }
+    });
+  });
+});
+</script>
 
 @endsection

@@ -10,7 +10,7 @@
           </div>
           <div>
             <div class="navbar-brand-text">UNYFLEX <span>DIGITAL</span></div>
-            <span class="navbar-brand-sub">Faculdade Unypublica · MEC</span>
+            <span class="navbar-brand-sub">By Faculdade Unypublica · MEC</span>
           </div>
         </a>
         <p class="footer-brand-desc">
@@ -61,15 +61,15 @@
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-3);">
             <i data-lucide="mail" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-            <span>contato@unyflexdigital.com.br</span>
+            <span>atendimento@unyflex.com.br</span>
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-3);">
             <i data-lucide="message-circle" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-            <span>WhatsApp: (11) 9 9999-0000</span>
+            <span>WhatsApp: (41) 9 9758-7226</span>
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-3);">
             <i data-lucide="map-pin" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-            <span>São Paulo, SP — Brasil</span>
+            <span>Curitiba, PR — Brasil</span>
           </div>
         </div>
 
