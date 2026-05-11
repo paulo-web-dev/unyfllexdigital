@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,34 +11,90 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    /*
+    |----------------------------------------------------------------------
+    | Tabela: users
+    | Campos reais conforme banco de dados do projeto
+    |----------------------------------------------------------------------
+    | id, name, cpf, power, teacher_id, student_id, embaixador_id,
+    | corporativo_id, email, telefone, setor, funcao, photo, avatar,
+    | meta, email_verified_at, password, two_factor_secret,
+    | two_factor_recovery_codes, ...
+    |----------------------------------------------------------------------
+    */
+
     protected $fillable = [
         'name',
+        'cpf',
         'email',
         'password',
+        'telefone',
+        'setor',
+        'funcao',
+        'photo',
+        'avatar',
+        'power',
+        'teacher_id',
+        'student_id',
+        'embaixador_id',
+        'corporativo_id',
+        'meta',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password'          => 'hashed',
+        'meta'              => 'integer',
+        'power'             => 'integer',
     ];
+
+    /*
+    |----------------------------------------------------------------------
+    | Helpers de perfil
+    |----------------------------------------------------------------------
+    */
+
+    /**
+     * Retorna as iniciais do nome para o avatar (ex: "MA").
+     */
+    public function getInitialsAttribute(): string
+    {
+        $parts = explode(' ', trim($this->name));
+        $first = strtoupper(substr($parts[0] ?? 'U', 0, 1));
+        $last  = strtoupper(substr(end($parts) ?? 'X', 0, 1));
+        return $first === $last ? $first : $first . $last;
+    }
+
+    /**
+     * Primeiro nome para saudações ("Olá, Maria").
+     */
+    public function getFirstNameAttribute(): string
+    {
+        return explode(' ', trim($this->name))[0] ?? 'Usuário';
+    }
+
+    /**
+     * Cargo/função formatado para o chip do topbar.
+     */
+    public function getRoleAttribute(): string
+    {
+        return $this->funcao ?? $this->setor ?? 'Servidor público';
+    }
+
+    /**
+     * URL do avatar — usa photo se disponível, senão as iniciais.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->photo
+            ? 'https://unyflex.com.br/storage/usuarios/' . $this->photo
+            : null;
+    }
 }

@@ -13,6 +13,7 @@
     {{-- Design System: tokens + componentes AVA --}}
     <link rel="stylesheet" href="{{ asset('css/unyflex/colors_and_type.css') }}">
     <link rel="stylesheet" href="{{ asset('css/unyflex/ava.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ava-extras.css') }}">
 
     {{-- Bootstrap override (variáveis Unyflex sobre BS5) --}}
     <style>
@@ -58,14 +59,14 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('cursos') }}"
-           class="nav-item {{ request()->routeIs('cursos*') ? 'active' : '' }}">
+        <a href="{{ route('ava.cursos') }}"
+           class="nav-item {{ request()->routeIs('ava.cursos*') ? 'active' : '' }}">
             <i data-lucide="film" class="ico"></i>
             <span>Minisséries</span>
         </a>
 
         <a href="{{ route('perfil') }}"
-           class="nav-item {{ request()->routeIs('perfil') ? 'active' : '' }}">
+           class="nav-item {{ request()->routeIs('perfil*') ? 'active' : '' }}">
             <i data-lucide="user" class="ico"></i>
             <span>Perfil</span>
         </a>
@@ -133,7 +134,7 @@
                 {{-- Chip do usuário --}}
                 <div class="user-chip">
                     <div class="avatar">
-                        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}{{ strtoupper(substr(explode(' ', auth()->user()->name ?? 'X')[1] ?? 'X', 0, 1)) }}
+                        {{ auth()->user()->initials ?? 'U' }}
                     </div>
                     <div>
                         <div class="name">{{ auth()->user()->name ?? 'Usuário' }}</div>
