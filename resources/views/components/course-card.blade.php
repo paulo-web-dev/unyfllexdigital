@@ -21,18 +21,21 @@
     'progress' => null,
     'cta'      => null,
     'href'     => '#',
+    'photo'    => null,  
+
 ])
 
 <a href="{{ $href }}" class="cc" style="text-decoration:none; color:inherit;">
 
     {{-- Thumb --}}
-    <div class="cc-thumb tone-{{ $tone }}">
+    <div class="cc-thumb tone-{{ $tone }}"  @if($photo) style="background-image:url('{{ $photo }}'); background-size:cover; background-position:center;" @endif>
         @if($badge)
             <span class="badge">{{ $badge }}</span>
         @endif
         @if($duration)
             <span class="duration">{{ $duration }}</span>
         @endif
+       
     </div>
 
     {{-- Corpo --}}

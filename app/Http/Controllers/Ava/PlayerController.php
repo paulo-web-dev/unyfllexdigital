@@ -3,84 +3,197 @@
 namespace App\Http\Controllers\Ava;
 
 use App\Http\Controllers\Controller;
+use App\Models\Classes;
+use App\Models\Panel;
+use App\Models\ViewsMinisserie;
 use Illuminate\Http\Request;
 
 class PlayerController extends Controller
 {
-    public function show($id = 1)
+    /**
+     * Exibe o player de uma videoaula.
+     *
+     * Rota: GET /dashboard/player/{slug}/{videoId?}
+     *
+     * @param string   $slug    — slug da Classes
+     * @param int|null $videoId — ID do video_lesson a exibir (opcional; padrão = primeiro)
+     */
+    public function show(string $slug, ?int $videoId = null)
     {
-        // TODO: buscar dados reais
-        // $capsula = Panel::with('video_lesson','material')->findOrFail($id);
+        $user   = auth()->user();
+        $idUser = $user->id;
 
-        $curso = ['titulo' => 'Patrimônio e Frotas Públicas com I.A.'];
+        // ── 1. Carrega a minissérie com todos os painéis e vídeos ──────────
+        $classes = Classes::where('slug', $slug)
+            ->with([
+                'panels' => fn ($q) => $q
+                    ->where('status', 'able')
+                    ->with(['video_lesson', 'material'])
+                    ->orderBy('start_time')
+                    ->orderByRaw("CAST(horario AS TIME)")
+            ])
+            ->firstOrFail();
 
-        $capsula = [
-            'numero'         => '1.4',
-            'titulo'         => 'Controles Preventivos e Documentação',
-            'trecho'         => 'Trecho 1 — Controles Preventivos e Documentação',
-            'descricao'      => 'Nesta cápsula você vai estruturar pontos de controle internos para o setor de patrimônio e gerar documentação auditável a partir dos modelos prontos da minissérie.',
-            'duracao'        => '14:32',
-            'posicaoAtual'   => '05:31',
-            'progressoVideo' => 38,
-            'qtdMateriais'   => 3,
-            'qtdMapas'       => 1,
-            'meta'           => 'Temporada 1 · cápsula 4 de 12',
-            'atualizadoEm'   => '06/05/2026',
-            'resumo'         => '<p class="tp-p">Controles preventivos são pontos do processo onde a probabilidade de um erro virar problema é alta. Identificá-los exige mapear o fluxo do bem patrimonial — da entrada à baixa — e marcar os momentos em que falta documentação ou confirmação humana.</p>
-                                 <p class="tp-p">A documentação auditável segue três princípios: <strong style="color:#fff">rastreabilidade</strong> (quem, quando, com base em quê), <strong style="color:#fff">imutabilidade</strong> (não se edita, se anexa correção) e <strong style="color:#fff">recuperação</strong> (qualquer auditor encontra em menos de 5 min).</p>',
-            'mapaConceitos'  => ['Rastreabilidade', 'Imutabilidade', 'Recuperação'],
-            'progressoPodcast'  => 22,
-            'duracaoPodcast'    => '22:30',
-            'posicaoPodcast'    => '04:48',
-            'checklist' => [
-                ['id' => 1, 'texto' => 'Mapeei o fluxo do bem patrimonial da entrada à baixa',           'feito' => true],
-                ['id' => 2, 'texto' => 'Identifiquei os 3 pontos críticos do meu setor',                  'feito' => true],
-                ['id' => 3, 'texto' => 'Adicionei rastreabilidade (quem / quando / base) em cada ponto',  'feito' => false],
-                ['id' => 4, 'texto' => 'Defini formato imutável de registro (anexo, não edição)',          'feito' => false],
-                ['id' => 5, 'texto' => 'Testei recuperação: auditor encontra documento em menos de 5 min', 'feito' => false],
-            ],
-        ];
+        $panels = $classes->panels;
 
-        $temporada = [
-            'label'      => 'Temporada 1',
-            'titulo'     => 'Levantamento de Infraestrutura e Recursos',
-            'concluidas' => 3,
-            'total'      => 10,
-            'progresso'  => 30,
-        ];
-
-        $capsulas = [
-            ['n' => '1.1',  'id' => 1,  'titulo' => 'Introdução e Apresentação do Curso',    'duracao' => '12:48', 'feita' => true],
-            ['n' => '1.2',  'id' => 2,  'titulo' => 'Fundamentos da Auditoria Automatizada', 'duracao' => '15:20', 'feita' => true],
-            ['n' => '1.3',  'id' => 3,  'titulo' => 'Gestão por Riscos e Priorização',       'duracao' => '18:04', 'feita' => true],
-            ['n' => '1.4',  'id' => 4,  'titulo' => 'Controles Preventivos e Documentação',  'duracao' => '14:32', 'feita' => false],
-            ['n' => '1.5',  'id' => 5,  'titulo' => 'Cruzamento de Dados entre Setores',     'duracao' => '17:11', 'feita' => false],
-            ['n' => '1.6',  'id' => 6,  'titulo' => 'Gestão de Pessoas e Desafios',          'duracao' => '13:45', 'feita' => false],
-            ['n' => '1.7',  'id' => 7,  'titulo' => 'Integração com Sistemas de TI',         'duracao' => '16:08', 'feita' => false],
-            ['n' => '1.8',  'id' => 8,  'titulo' => 'Indicadores de Performance',            'duracao' => '11:50', 'feita' => false],
-            ['n' => '1.9',  'id' => 9,  'titulo' => 'Painéis e Visualização de Dados',       'duracao' => '19:22', 'feita' => false],
-            ['n' => '1.10', 'id' => 10, 'titulo' => 'Revisão e Próximos Passos',             'duracao' => '09:36', 'feita' => false],
-        ];
-
-        // Navegação anterior/próxima baseada no $id
-        $idsOrdenados   = array_column($capsulas, 'id');
-        $posicao        = array_search((int) $id, $idsOrdenados);
-        $idAnterior     = $posicao > 0 ? $idsOrdenados[$posicao - 1] : null;
-        $idProximo      = ($posicao !== false && $posicao < count($idsOrdenados) - 1) ? $idsOrdenados[$posicao + 1] : null;
-
-        // Marca a cápsula ativa
-        foreach ($capsulas as &$c) {
-            $c['ativa'] = $c['id'] === (int) $id;
+        // ── 2. Monta lista flat de todos os vídeos com contexto ───────────
+        // [ ['panel' => Panel, 'video' => VideoLesson, 'panelIndex' => int, 'videoIndex' => int] ]
+        $todosVideos = collect();
+        foreach ($panels as $pIdx => $panel) {
+            foreach ($panel->video_lesson as $vIdx => $video) {
+                $todosVideos->push([
+                    'panel'      => $panel,
+                    'video'      => $video,
+                    'panelIndex' => $pIdx,
+                    'videoIndex' => $vIdx,
+                ]);
+            }
         }
 
+        // ── 3. Determina qual vídeo está ativo ────────────────────────────
+        // Se vier $videoId, usa ele; senão pega o primeiro
+        $ativoIndex = 0;
+        if ($videoId) {
+            $found = $todosVideos->search(fn ($v) => $v['video']->id === $videoId);
+            if ($found !== false) $ativoIndex = $found;
+        }
+
+        $ativo      = $todosVideos->get($ativoIndex);
+        $videoAtivo = $ativo['video'];
+        $panelAtivo = $ativo['panel'];
+
+        // ── 4. Registra a visualização ────────────────────────────────────
+        ViewsMinisserie::updateOrCreate(
+            [
+                'id_user'    => $idUser,
+                'video_id'   => $videoAtivo->id,
+            ],
+            [
+                'classes_id' => $classes->id,
+                'panel_id'   => $panelAtivo->id,
+            ]
+        );
+
+        // ── 5. Visualizações do aluno nesta minissérie ────────────────────
+        $videosVistos = ViewsMinisserie::where('id_user', $idUser)
+            ->where('classes_id', $classes->id)
+            ->pluck('video_id')
+            ->unique();
+
+        $totalVideos    = $todosVideos->count();
+        $totalAssistidos = $videosVistos->count();
+        $progresso      = $totalVideos > 0
+            ? (int) round(($totalAssistidos / $totalVideos) * 100)
+            : 0;
+
+        // ── 6. Variável $curso (breadcrumb) ───────────────────────────────
+        $curso = [
+            'titulo' => $classes->title,
+            'slug'   => $classes->slug,
+        ];
+
+        // ── 7. Variável $capsula (coluna esquerda) ────────────────────────
+        $panelNumero = $ativo['panelIndex'] + 1;
+        $videoNumero = $ativo['videoIndex'] + 1;
+
+        // Materiais do painel ativo
+        $materiais   = $panelAtivo->material ?? collect();
+
+        $capsula = [
+            'video_id'       => $videoAtivo->id,
+            'numero'         => "{$panelNumero}.{$videoNumero}",
+            'titulo'         => $videoAtivo->titulo ?? 'Sem título',
+            'trecho'         => $panelAtivo->title ?? "Temporada {$panelNumero}",
+            'descricao'      => $videoAtivo->subtitle ?? $panelAtivo->content ?? '',
+            'link'           => $videoAtivo->link ?? '',
+            'duracao'        => '~12 min',
+            'posicaoAtual'   => '00:00',
+            'progressoVideo' => 0,
+            'qtdMateriais'   => $materiais->count(),
+            'qtdMapas'       => 0,
+            'meta'           => "Temporada {$panelNumero} · cápsula {$videoNumero} de " . $panelAtivo->video_lesson->count(),
+            'atualizadoEm'   => optional($videoAtivo->updated_at)->format('d/m/Y') ?? '',
+            'resumo'         => $panelAtivo->content
+                ? '<p class="tp-p">' . e($panelAtivo->content) . '</p>'
+                : '<p class="tp-p">Resumo não disponível para esta cápsula.</p>',
+            'mapaConceitos'  => [],
+            'progressoPodcast'  => 0,
+            'duracaoPodcast'    => '~12 min',
+            'posicaoPodcast'    => '00:00',
+            'checklist'      => [],
+        ];
+
+        // ── 8. Temporada (cabeçalho da sidebar) ───────────────────────────
+        $temporada = [
+            'label'      => "Temporada {$panelNumero}",
+            'titulo'     => $panelAtivo->title,
+            'concluidas' => $videosVistos->count(),
+            'total'      => $totalVideos,
+            'progresso'  => $progresso,
+        ];
+
+        // ── 9. Lista de cápsulas (sidebar) ───────────────────────────────
+        $capsulas = $todosVideos->map(function ($item, $idx) use ($videoAtivo, $videosVistos, $classes) {
+            $p = $item['panel'];
+            $v = $item['video'];
+            $pN = $item['panelIndex'] + 1;
+            $vN = $item['videoIndex'] + 1;
+
+            return [
+                'id'     => $v->id,
+                'n'      => "{$pN}.{$vN}",
+                'titulo' => $v->titulo ?? 'Sem título',
+                'duracao'=> '~12 min',
+                'feita'  => $videosVistos->contains($v->id),
+                'ativa'  => $v->id === $videoAtivo->id,
+                'slug'   => $classes->slug,
+            ];
+        });
+
+        // ── 10. Navegação anterior/próxima ────────────────────────────────
+        $idAnterior = $ativoIndex > 0
+            ? $todosVideos->get($ativoIndex - 1)['video']->id
+            : null;
+
+        $idProximo = $ativoIndex < $todosVideos->count() - 1
+            ? $todosVideos->get($ativoIndex + 1)['video']->id
+            : null;
+
+        // ── 11. Materiais para a aba (passados à view) ────────────────────
+        $materiaisAtivos = $materiais;
+
         return view('pages.ava.player', compact(
-            'curso', 'capsula', 'temporada', 'capsulas', 'idAnterior', 'idProximo'
+            'classes',
+            'panels',
+            'curso',
+            'capsula',
+            'temporada',
+            'capsulas',
+            'idAnterior',
+            'idProximo',
+            'materiaisAtivos',
+            'progresso',
+            'totalVideos',
+            'totalAssistidos',
         ));
     }
 
-    public function concluir(Request $request, $id)
+    /**
+     * Marca cápsula como concluída via AJAX.
+     * POST /dashboard/player/{slug}/{videoId}/concluir
+     */
+    public function concluir(Request $request, string $slug, int $videoId)
     {
-        // TODO: Progresso::updateOrCreate(['user_id' => auth()->id(), 'capsula_id' => $id], ['concluida' => true]);
+        ViewsMinisserie::updateOrCreate(
+            [
+                'id_user'  => auth()->id(),
+                'video_id' => $videoId,
+            ],
+            [
+                'classes_id' => Classes::where('slug', $slug)->value('id'),
+            ]
+        );
+
         return response()->json(['ok' => true]);
     }
 }

@@ -21,7 +21,7 @@
                 @endif
             </p>
         </div>
-        <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="btn btn-primary">
+        <a href="{{ route('player', $ultimaCapsula['slug']) }}" class="btn btn-primary">
             <i data-lucide="play" class="ico"></i>
             <span>{{ $ultimaCapsula['progresso'] > 0 ? 'Continuar assistindo' : 'Começar agora' }}</span>
         </a>
@@ -98,7 +98,7 @@
                 </span>
             </div>
             <div class="actions">
-                <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="btn btn-primary">
+                <a href="{{ route('player', $ultimaCapsula['slug']) }}" class="btn btn-primary">
                     <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;">
                         <polygon points="6 4 20 12 6 20 6 4"/>
                     </svg>
@@ -112,7 +112,7 @@
         </div>
 
         <div class="hero-thumb">
-            <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="play">
+            <a href="{{ route('player', $ultimaCapsula['slug']) }}" class="play">
                 <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>
             </a>
             <div class="progress-pill">
@@ -160,51 +160,14 @@
                         :title="$curso['titulo']"
                         :desc="$curso['descricao']"
                         :progress="$curso['progresso']"
-                        :href="route('player', $curso['player_id'])"
+                        :photo="$curso['photo'] ?? null"
+                        :href="route('player', $curso['slug'])"
                     />
                 @endforeach
             </div>
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════
-         RECOMENDADOS
-    ═══════════════════════════════════════════════════════ --}}
-    <div class="section">
-        <div class="section-head">
-            <h3>Recomendados para você</h3>
-            <a href="{{ route('ava.cursos') }}">Catálogo completo →</a>
-        </div>
-
-        @if($cursosRecomendados->isEmpty())
-            <div style="
-                padding: 32px 24px;
-                text-align: center;
-                background: var(--bg-2);
-                border: 1px dashed var(--line-2);
-                border-radius: var(--r-lg);
-                color: var(--fg-3);
-                font-size: 14px;
-            ">
-                Você já está matriculado em todas as minisséries disponíveis. Parabéns! 🎉
-            </div>
-        @else
-            <div class="grid-cards">
-                @foreach($cursosRecomendados as $curso)
-                    <x-course-card
-                        :tone="$curso['tone']"
-                        :badge="$curso['badge'] ?? null"
-                        :duration="$curso['duracao']"
-                        :eyebrow="$curso['eyebrow']"
-                        :title="$curso['titulo']"
-                        :desc="$curso['descricao']"
-                        cta="Acessar"
-                        :href="route('ava.cursos')"
-                    />
-                @endforeach
-            </div>
-        @endif
-    </div>
-
+   
 </div>
 @endsection

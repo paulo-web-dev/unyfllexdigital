@@ -10,6 +10,7 @@ use App\Http\Controllers\Ava\CursosAvaController;
 use App\Http\Controllers\Ava\PlayerController;
 use App\Http\Controllers\Ava\PerfilController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\SearchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,11 +48,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard',               [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/cursos',        [CursosAvaController::class, 'index'])->name('ava.cursos');
-    Route::get('/dashboard/player/{id?}',  [PlayerController::class, 'show'])->name('player');
+    Route::get('/dashboard/player/{slug}',  [PlayerController::class, 'show'])->name('player');
     Route::post('/dashboard/player/{id}/concluir', [PlayerController::class, 'concluir'])->name('player.concluir');
     Route::get('/dashboard/perfil',        [PerfilController::class, 'index'])->name('perfil');
     Route::post('/dashboard/perfil',       [PerfilController::class, 'update'])->name('perfil.update');
 });
+Route::get('/busca', [SearchController::class, 'index'])->name('busca');
 
 /*
 |--------------------------------------------------------------------------

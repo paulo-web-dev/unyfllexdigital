@@ -3,47 +3,150 @@
 namespace App\Http\Controllers\Ava;
 
 use App\Http\Controllers\Controller;
+use App\Models\Classes;
+use App\Models\Enrollment;
+use App\Models\ViewsMinisserie;
 use Illuminate\Http\Request;
 
 class CursosAvaController extends Controller
 {
     public function index(Request $request)
     {
-        // TODO: substituir por Classes::where('express', 1)->get() com filtro por categoria
+        $user    = auth()->user();
+        $idAluno = $user->student_id;
+        $idUser  = $user->id;
 
+        // ── 1. Matrículas do aluno ────────────────────────────────────────
+        $matriculas = Enrollment::where('student_id', $idAluno)
+            ->where('modality', 'minisserie')
+            ->with([
+                'classes' => fn ($q) => $q->with([
+                    'panels' => fn ($q) => $q
+                        ->where('status', 'able')
+                        ->with('video_lesson')
+                ])
+            ])
+            ->get();
+
+        $classesMatriculadasIds = $matriculas->pluck('classes_id')->filter()->values();
+
+        // ── 2. Visualizações do aluno (todas de uma vez) ──────────────────
+        $views = ViewsMinisserie::where('id_user', $idUser)
+            ->select('classes_id', 'video_id')
+            ->get();
+
+        // ── 3. Filtros disponíveis ────────────────────────────────────────
         $filtros = [
             ['valor' => 'todos',        'label' => 'Todos'],
             ['valor' => 'em-andamento', 'label' => 'Em andamento'],
-            ['valor' => 'pregao',       'label' => 'Pregão'],
-            ['valor' => 'patrimonio',   'label' => 'Patrimônio'],
-            ['valor' => 'contratos',    'label' => 'Contratos'],
-            ['valor' => 'lgpd',         'label' => 'LGPD'],
-            ['valor' => 'ia-aplicada',  'label' => 'I.A. aplicada'],
+            ['valor' => 'concluido',    'label' => 'Concluídos'],
+            ['valor' => 'nao-iniciado', 'label' => 'Não iniciados'],
         ];
 
-        $categoriaAtiva   = $request->get('categoria', 'todos');
-        $totalMinisseries = 26;
-        $totalCapsulas    = 184;
+        $categoriaAtiva = $request->get('categoria', 'todos');
 
-        $spotlight = [
-            'titulo'    => 'Auditoria contínua com dashboards',
-            'descricao' => 'Aprenda a montar indicadores que apontam riscos antes que virem problema, com 6 cápsulas curtas e um dashboard pronto para clonar.',
-            'player_id' => 4,
-        ];
+        // ── 4. Spotlight — minissérie mais recente com matrícula ──────────
+        $spotlightClasse = $matriculas
+            ->sortByDesc('created_at')
+            ->first()?->classes;
 
-        $cursos = [
-            ['tone' => 1, 'badge' => 'EM ANDAMENTO', 'duracao' => '2h 48min', 'eyebrow' => 'MINISSÉRIE · 12 CÁPSULAS', 'titulo' => 'Patrimônio e Frotas Públicas com I.A.',         'descricao' => 'Levantamento, auditoria e controle de bens patrimoniais com apoio de I.A.',         'progresso' => 42, 'player_id' => 1],
-            ['tone' => 2, 'badge' => 'EM ANDAMENTO', 'duracao' => '1h 52min', 'eyebrow' => 'MINISSÉRIE · 8 CÁPSULAS',  'titulo' => 'Lei 14.133 na prática',                          'descricao' => 'Como aplicar a Nova Lei de Licitações nos pregões do dia a dia.',                  'progresso' => 18, 'player_id' => 2],
-            ['tone' => 3, 'badge' => 'NOVO',          'duracao' => '1h 22min', 'eyebrow' => 'MINISSÉRIE · 6 CÁPSULAS',  'titulo' => 'Auditoria contínua com dashboards',              'descricao' => 'Indicadores que apontam riscos antes que virem problema.',                         'player_id' => 4],
-            ['tone' => 4,                             'duracao' => '2h 10min', 'eyebrow' => 'MINISSÉRIE · 9 CÁPSULAS',  'titulo' => 'Gestão de contratos públicos',                   'descricao' => 'Do recebimento à fiscalização contínua, passando por aditivos.',                   'player_id' => 5],
-            ['tone' => 1,                             'duracao' => '58min',    'eyebrow' => 'CÁPSULA AVULSA',            'titulo' => 'Como redigir um Termo de Referência sem retrabalho', 'descricao' => 'Modelo comentado + checklist final.',                                         'player_id' => 6],
-            ['tone' => 2,                             'duracao' => '46min',    'eyebrow' => 'CÁPSULA AVULSA',            'titulo' => 'LGPD para servidores municipais',                'descricao' => 'Aplicação prática nos processos administrativos.',                                 'player_id' => 7],
-            ['tone' => 3, 'badge' => 'QUASE LÁ',     'duracao' => '3h 04min', 'eyebrow' => 'MINISSÉRIE · 14 CÁPSULAS', 'titulo' => 'Pregão eletrônico avançado',                     'descricao' => 'Estratégias de condução, análise e diligências bem documentadas.',               'progresso' => 88, 'player_id' => 3],
-            ['tone' => 4,                             'duracao' => '1h 18min', 'eyebrow' => 'MINISSÉRIE · 5 CÁPSULAS',  'titulo' => 'Pesquisa de preços com inteligência',            'descricao' => 'Como construir preços de referência defensáveis em 4 fontes.',                    'player_id' => 8],
-        ];
+        $spotlight = $spotlightClasse ? [
+            'titulo'    => $spotlightClasse->title,
+            'descricao' => $spotlightClasse->subtitle ?? $spotlightClasse->title,
+            'slug'      => $spotlightClasse->slug,
+            'photo'     => $spotlightClasse->photo ?? null,
+        ] : null;
+
+        // ── 5. Monta cards de cursos matriculados ─────────────────────────
+        $tones = [1, 2, 3, 4];
+
+        $cursos = $matriculas
+            ->filter(fn ($m) => $m->classes !== null)
+            ->map(function ($matricula, $i) use ($views, $tones, $categoriaAtiva) {
+                $classe  = $matricula->classes;
+                $panels  = $classe->panels ?? collect();
+
+                // Total de vídeos da minissérie
+                $todosVideos = $panels->flatMap(fn ($p) => $p->video_lesson)->pluck('id');
+                $total       = $todosVideos->count();
+
+                // Quantos o aluno assistiu
+                $assistidos = $views
+                    ->where('classes_id', $classe->id)
+                    ->pluck('video_id')
+                    ->unique()
+                    ->intersect($todosVideos)
+                    ->count();
+
+                $progresso = $total > 0 ? (int) round(($assistidos / $total) * 100) : 0;
+
+                // Badge inteligente
+                $badge = match (true) {
+                    $progresso === 0  => null,
+                    $progresso <= 30  => 'INICIANDO',
+                    $progresso <= 80  => 'EM ANDAMENTO',
+                    $progresso < 100  => 'QUASE LÁ',
+                    default           => 'CONCLUÍDO',
+                };
+
+                // Duração estimada
+                $duracao = $this->formatarTempo($total * 12);
+
+                // Primeiro vídeo para o player
+                $primeiroVideo = $panels->first()?->video_lesson->first();
+
+                // Filtro por categoria
+                if ($categoriaAtiva !== 'todos') {
+                    $passaFiltro = match ($categoriaAtiva) {
+                        'em-andamento' => $progresso > 0 && $progresso < 100,
+                        'concluido'    => $progresso === 100,
+                        'nao-iniciado' => $progresso === 0,
+                        default        => true,
+                    };
+                    if (!$passaFiltro) return null;
+                }
+
+                return [
+                    'tone'      => $tones[$i % 4],
+                    'badge'     => $badge,
+                    'duracao'   => $duracao ?: '~12 min',
+                    'eyebrow'   => 'MINISSÉRIE · ' . $total . ' ' . ($total === 1 ? 'CÁPSULA' : 'CÁPSULAS'),
+                    'titulo'    => $classe->title,
+                    'descricao' => $classe->subtitle ?? $classe->title,
+                    'progresso' => $progresso > 0 ? $progresso : null,
+                    'photo'     => 'https://unyflex.com.br/storage/cursos/banner/'.$classe->photo,
+                    'slug'      => $classe->slug,
+                    'player_id' => optional($primeiroVideo)->id,
+                ];
+            })
+            ->filter() // remove os nulls (filtro de categoria)
+            ->values();
+
+        // ── 6. Totais para o cabeçalho ────────────────────────────────────
+        $totalMinisseries = $cursos->count();
+        $totalCapsulas    = $matriculas->sum(function ($m) {
+            return optional($m->classes)->panels
+                ->flatMap(fn ($p) => $p->video_lesson)
+                ->count() ?? 0;
+        });
 
         return view('pages.ava.cursos', compact(
-            'filtros', 'categoriaAtiva', 'totalMinisseries', 'totalCapsulas', 'spotlight', 'cursos'
+            'filtros',
+            'categoriaAtiva',
+            'totalMinisseries',
+            'totalCapsulas',
+            'spotlight',
+            'cursos',
         ));
+    }
+
+    private function formatarTempo(int $minutos): string
+    {
+        if ($minutos <= 0) return '0 min';
+        $h = intdiv($minutos, 60);
+        $m = $minutos % 60;
+        if ($h > 0 && $m > 0) return "{$h}h {$m}min";
+        if ($h > 0)            return "{$h}h";
+        return "{$m}min";
     }
 }

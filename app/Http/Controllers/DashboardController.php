@@ -107,12 +107,14 @@ class DashboardController extends Controller
                 'meta'          => optional($classe)->title ?? 'Minissérie',
                 'progresso'     => $progressoCurso,
                 'player_id'     => $ultimaView->video_id,
+                'slug'          => $classe->slug ?? 'Slug',
             ];
         } else {
             // Fallback elegante — sem histórico
             $primeiroCurso  = $matriculas->first();
-            $primeiroVideo  = optional(optional($primeiroCurso?->classes)->panels->first())
-                                ->video_lesson->first();
+            $primeiroVideo = optional(
+                optional(optional($primeiroCurso?->classes)->panels)->first()
+            )->video_lesson?->first();
 
             $ultimaCapsula = [
                 'video_id'      => optional($primeiroVideo)->id ?? 1,
@@ -127,6 +129,7 @@ class DashboardController extends Controller
                 'meta'          => optional($primeiroCurso?->classes)->title ?? 'Explore o catálogo',
                 'progresso'     => 0,
                 'player_id'     => optional($primeiroVideo)->id ?? 1,
+                'slug'          => optional($primeiroCurso?->classes)->slug ?? 'slug',
             ];
         }
 
@@ -179,11 +182,13 @@ class DashboardController extends Controller
                     'progresso' => $progresso,
                     'player_id' => $primeiroVideoId,
                     'classes_id'=> $classe->id,
+                    'slug'      => $classe->slug,
+                    'photo'    => 'https://unyflex.com.br/storage/cursos/banner/'.$classe->photo,
                 ];
             })
             ->filter(fn ($c) => $c['progresso'] < 100) // remove concluídos
             ->values()
-            ->take(4); // máx 4 cards
+            ->take(10); // máx 4 cards
 
         // ══════════════════════════════════════════════════════════════
         // 6. CURSOS RECOMENDADOS
