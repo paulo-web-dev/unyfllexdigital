@@ -4,23 +4,32 @@
 @section('content')
 <div class="scroll">
 
-    {{-- Cabeçalho --}}
+    {{-- ═══════════════════════════════════════════════════════
+         CABEÇALHO
+    ═══════════════════════════════════════════════════════ --}}
     <div class="page-head">
         <div>
-            <div class="eyebrow">Bem-vinda de volta</div>
-            <h1>Olá, {{ $nomeAluno }}</h1>
+            <div class="eyebrow">Bem-vindo{{ auth()->user()->gender === 'F' ? 'a' : '' }} de volta</div>
+            <h1>Olá, {{ $nomeAluno }} 👋</h1>
             <p>
-                Você está em uma sequência de <strong style="color:#fff;">{{ $stats['sequencia'] }}</strong>.
-                Continue de onde parou e mantenha o ritmo das cápsulas.
+                @if($stats['sequencia'] !== '—')
+                    Você está em uma sequência de <strong style="color:#fff;">{{ $stats['sequencia'] }}</strong>.
+                    Continue de onde parou e mantenha o ritmo.
+                @else
+                    Que tal assistir sua primeira cápsula hoje?
+                    Cada aula é um passo a mais na sua carreira.
+                @endif
             </p>
         </div>
-        <a href="{{ route('player', 1) }}" class="btn btn-primary">
+        <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="btn btn-primary">
             <i data-lucide="play" class="ico"></i>
-            <span>Continuar assistindo</span>
+            <span>{{ $ultimaCapsula['progresso'] > 0 ? 'Continuar assistindo' : 'Começar agora' }}</span>
         </a>
     </div>
 
-    {{-- Estatísticas --}}
+    {{-- ═══════════════════════════════════════════════════════
+         ESTATÍSTICAS
+    ═══════════════════════════════════════════════════════ --}}
     <div class="stats">
         <div class="stat">
             <div class="icon-tag">
@@ -32,6 +41,7 @@
             <div class="value">{{ $stats['sequencia'] }}</div>
             <div class="delta">{{ $stats['sequenciaDelta'] }}</div>
         </div>
+
         <div class="stat">
             <div class="icon-tag">
                 <i data-lucide="clock" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
@@ -40,6 +50,7 @@
             <div class="value">{{ $stats['tempoAssistido'] }}</div>
             <div class="delta">{{ $stats['tempoDelta'] }}</div>
         </div>
+
         <div class="stat">
             <div class="icon-tag">
                 <i data-lucide="check-circle" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
@@ -48,6 +59,7 @@
             <div class="value">{{ $stats['capsulasConcluidas'] }}</div>
             <div class="delta">{{ $stats['capsulasDelta'] }}</div>
         </div>
+
         <div class="stat">
             <div class="icon-tag">
                 <i data-lucide="award" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
@@ -58,26 +70,39 @@
         </div>
     </div>
 
-    {{-- Hero — Continue de onde parou --}}
+    {{-- ═══════════════════════════════════════════════════════
+         HERO — CONTINUE DE ONDE PAROU
+    ═══════════════════════════════════════════════════════ --}}
     <div class="hero">
         <div>
-            <div class="eyebrow">Continue de onde parou</div>
-            <h2>{{ $ultimaCapsula['numero'] }} {{ $ultimaCapsula['titulo'] }}</h2>
+            <div class="eyebrow">
+                {{ $ultimaCapsula['progresso'] > 0 ? 'Continue de onde parou' : 'Comece agora' }}
+            </div>
+            <h2>{{ $ultimaCapsula['numero'] }} — {{ $ultimaCapsula['titulo'] }}</h2>
             <p>{{ $ultimaCapsula['descricao'] }}</p>
             <div class="meta">
                 <span>
-                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
                     <span>{{ $ultimaCapsula['tempoRestante'] }} restantes</span>
                 </span>
                 <span>
-                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="2.18"/>
+                        <line x1="7" y1="2" x2="7" y2="22"/>
+                        <line x1="17" y1="2" x2="17" y2="22"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                    </svg>
                     <span>{{ $ultimaCapsula['meta'] }}</span>
                 </span>
             </div>
             <div class="actions">
-                <a href="{{ route('player', 1) }}" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-                    <span>Retomar agora</span>
+                <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;">
+                        <polygon points="6 4 20 12 6 20 6 4"/>
+                    </svg>
+                    <span>{{ $ultimaCapsula['progresso'] > 0 ? 'Retomar agora' : 'Assistir agora' }}</span>
                 </a>
                 <button class="btn btn-ghost" type="button">
                     <i data-lucide="bookmark" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
@@ -85,59 +110,100 @@
                 </button>
             </div>
         </div>
+
         <div class="hero-thumb">
-            <a href="{{ route('player', 1) }}" class="play">
+            <a href="{{ route('player', $ultimaCapsula['player_id']) }}" class="play">
                 <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>
             </a>
             <div class="progress-pill">
-                <div class="bar"><i style="width: {{ $ultimaCapsula['progresso'] }}%;"></i></div>
+                <div class="bar">
+                    <i style="width: {{ $ultimaCapsula['progresso'] }}%;"></i>
+                </div>
                 <div class="pct">{{ $ultimaCapsula['progresso'] }}%</div>
             </div>
         </div>
     </div>
 
-    {{-- Em andamento --}}
+    {{-- ═══════════════════════════════════════════════════════
+         CURSOS EM ANDAMENTO
+    ═══════════════════════════════════════════════════════ --}}
     <div class="section">
         <div class="section-head">
             <h3>Em andamento</h3>
             <a href="{{ route('ava.cursos') }}">Ver tudo →</a>
         </div>
-        <div class="grid-cards">
-            @foreach($cursosEmAndamento as $curso)
-                <x-course-card
-                    :tone="$curso['tone']"
-                    :badge="$curso['badge'] ?? null"
-                    :duration="$curso['duracao']"
-                    :eyebrow="$curso['eyebrow']"
-                    :title="$curso['titulo']"
-                    :desc="$curso['descricao']"
-                    :progress="$curso['progresso']"
-                    :href="route('player', $curso['player_id'])"
-                />
-            @endforeach
-        </div>
+
+        @if($cursosEmAndamento->isEmpty())
+            {{-- Estado vazio elegante --}}
+            <div style="
+                padding: 40px 24px;
+                text-align: center;
+                background: var(--bg-2);
+                border: 1px dashed var(--line-2);
+                border-radius: var(--r-lg);
+                color: var(--fg-3);
+            ">
+                <i data-lucide="film" style="width:32px;height:32px;stroke:var(--brand-300);fill:none;stroke-width:1.5;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"></i>
+                <p style="margin:0;font-size:14px;">Você ainda não iniciou nenhuma minissérie.</p>
+                <a href="{{ route('ava.cursos') }}" class="btn btn-primary" style="margin-top:14px;display:inline-flex;">
+                    Explorar catálogo
+                </a>
+            </div>
+        @else
+            <div class="grid-cards">
+                @foreach($cursosEmAndamento as $curso)
+                    <x-course-card
+                        :tone="$curso['tone']"
+                        :badge="$curso['badge'] ?? null"
+                        :duration="$curso['duracao']"
+                        :eyebrow="$curso['eyebrow']"
+                        :title="$curso['titulo']"
+                        :desc="$curso['descricao']"
+                        :progress="$curso['progresso']"
+                        :href="route('player', $curso['player_id'])"
+                    />
+                @endforeach
+            </div>
+        @endif
     </div>
 
-    {{-- Recomendados --}}
+    {{-- ═══════════════════════════════════════════════════════
+         RECOMENDADOS
+    ═══════════════════════════════════════════════════════ --}}
     <div class="section">
         <div class="section-head">
             <h3>Recomendados para você</h3>
             <a href="{{ route('ava.cursos') }}">Catálogo completo →</a>
         </div>
-        <div class="grid-cards">
-            @foreach($cursosRecomendados as $curso)
-                <x-course-card
-                    :tone="$curso['tone']"
-                    :badge="$curso['badge'] ?? null"
-                    :duration="$curso['duracao']"
-                    :eyebrow="$curso['eyebrow']"
-                    :title="$curso['titulo']"
-                    :desc="$curso['descricao']"
-                    cta="Acessar"
-                    :href="route('ava.cursos')"
-                />
-            @endforeach
-        </div>
+
+        @if($cursosRecomendados->isEmpty())
+            <div style="
+                padding: 32px 24px;
+                text-align: center;
+                background: var(--bg-2);
+                border: 1px dashed var(--line-2);
+                border-radius: var(--r-lg);
+                color: var(--fg-3);
+                font-size: 14px;
+            ">
+                Você já está matriculado em todas as minisséries disponíveis. Parabéns! 🎉
+            </div>
+        @else
+            <div class="grid-cards">
+                @foreach($cursosRecomendados as $curso)
+                    <x-course-card
+                        :tone="$curso['tone']"
+                        :badge="$curso['badge'] ?? null"
+                        :duration="$curso['duracao']"
+                        :eyebrow="$curso['eyebrow']"
+                        :title="$curso['titulo']"
+                        :desc="$curso['descricao']"
+                        cta="Acessar"
+                        :href="route('ava.cursos')"
+                    />
+                @endforeach
+            </div>
+        @endif
     </div>
 
 </div>
