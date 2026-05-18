@@ -4,48 +4,56 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+
 class Student extends Model
 {
     use HasFactory;
 
     protected $table = 'students';
 
-    protected static $defaultLogValue = null;
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::updating(function ($model) {
-            $model->log = Auth::check() ? Auth::user()->name : '';
-        });
-
-        static::creating(function ($model) {
-            $model->log = Auth::check() ? Auth::user()->name : '';
-        });
-    }
-
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'created_at',
-        'updated_at',
+    protected $fillable = [
+        'name',
+        'fingerprint',
+        'cpf',
+        'password',
+        'email',
+        'phone',
+        'cnpj',
+        'cep',
+        'street',
+        'house_number',
+        'district',
+        'city',
+        'state',
+        'photo',
+        'status',
+        'nascimento',
+        'cargo',
+        'entidade',
+        'pos',
+        'minisserie',
+        'instagram',
+        'avaliacao',
+        'log',
     ];
 
-    public function enrollment()
+    protected $hidden = ['password', 'fingerprint', 'created_at', 'updated_at'];
+
+    protected $casts = [
+        'nascimento' => 'date',
+        'minisserie' => 'string',
+        'avaliacao'  => 'string',
+    ];
+
+    // ── Relacionamentos ───────────────────────────────────────────────────
+
+    public function user()
     {
-        return $this->hasMany(Enrollment::class, 'student_id', 'id')->with('classes')->with('enrollmentobservations');
+        return $this->hasOne(User::class, 'student_id', 'id');
     }
 
-
-
-    public function user()   
+    public function enrollments()
     {
-        return $this->hasOne(User::class, 'student_id', 'id')->with('loginava');
+        return $this->hasMany(Enrollment::class, 'student_id', 'id');
     }
 }
