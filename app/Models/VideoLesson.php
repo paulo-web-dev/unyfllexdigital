@@ -12,25 +12,20 @@ class VideoLesson extends Model
     protected $table = 'video_lessons';
 
     protected $fillable = [
+        'titulo',
         'link',
         'tasting_link',
+        'bkp_link',
         'source',
         'subtitle',
-        'status'
+        'status',
+        'panel_id',
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-    ];
+    protected $hidden = ['created_at', 'updated_at'];
 
     public function panels()
     {
-        return $this->belongsToMany(Panel::class, 'video_lessons_panels', 'id', 'panel_id');
+        return $this->belongsTo(Panel::class, 'panel_id', 'id');
     }
 }

@@ -42,22 +42,22 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 /*
 |--------------------------------------------------------------------------
-| AVA — Área do Aluno  (auth)
+| AVA
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard',                           [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard/cursos',                    [CursosAvaController::class, 'index'])->name('ava.cursos');
-    Route::get('/dashboard/player/{slug}',             [PlayerController::class, 'show'])->name('player');
-    Route::post('/dashboard/player/{id}/concluir',     [PlayerController::class, 'concluir'])->name('player.concluir');
-    Route::get('/dashboard/perfil',                    [PerfilController::class, 'index'])->name('perfil');
-    Route::post('/dashboard/perfil',                   [PerfilController::class, 'update'])->name('perfil.update');
+    Route::get('/dashboard',                       [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/cursos',                [CursosAvaController::class, 'index'])->name('ava.cursos');
+    Route::get('/dashboard/player/{slug}',         [PlayerController::class, 'show'])->name('player');
+    Route::post('/dashboard/player/{id}/concluir', [PlayerController::class, 'concluir'])->name('player.concluir');
+    Route::get('/dashboard/perfil',                [PerfilController::class, 'index'])->name('perfil');
+    Route::post('/dashboard/perfil',               [PerfilController::class, 'update'])->name('perfil.update');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
 
 /*
 |--------------------------------------------------------------------------
-| Admin — Painel Gerencial  (auth + power > 10)
+| Admin
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')
@@ -66,6 +66,7 @@ Route::prefix('admin')
     ->group(function () {
 
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
+
         Route::get('/dashboard',  [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/alunos',     [AdminController::class, 'alunos'])->name('alunos');
         Route::get('/matriculas', [AdminController::class, 'matriculas'])->name('matriculas');
@@ -83,15 +84,29 @@ Route::prefix('admin')
         Route::get('/config',     [AdminController::class, 'config'])->name('config');
 
         // ── Cursos ────────────────────────────────────────────────────────
-        Route::get('/cursos',            [AdminController::class, 'cursos'])->name('cursos');
-        Route::get('/cursos/{id}',       [AdminController::class, 'cursoShow'])->name('cursos.show');
-        Route::get('/cursos/{id}/editar',[AdminController::class, 'cursoEdit'])->name('cursos.edit');
-        Route::put('/cursos/{id}',       [AdminController::class, 'cursoUpdate'])->name('cursos.update');
+        Route::get('/cursos',             [AdminController::class, 'cursos'])->name('cursos');
+        Route::get('/cursos/criar',       [AdminController::class, 'cursoCreate'])->name('cursos.create');
+        Route::post('/cursos',            [AdminController::class, 'cursoStore'])->name('cursos.store');
+        Route::get('/cursos/{id}',        [AdminController::class, 'cursoShow'])->name('cursos.show');
+        Route::get('/cursos/{id}/editar', [AdminController::class, 'cursoEdit'])->name('cursos.edit');
+        Route::put('/cursos/{id}',        [AdminController::class, 'cursoUpdate'])->name('cursos.update');
 
         // ── Panels ────────────────────────────────────────────────────────
-        Route::get('/panels/{id}/editar',[AdminController::class, 'panelEdit'])->name('panels.edit');
-        Route::put('/panels/{id}',       [AdminController::class, 'panelUpdate'])->name('panels.update');
+        Route::get('/cursos/{classeId}/panels/criar', [AdminController::class, 'panelCreate'])->name('panels.create');
+        Route::post('/cursos/{classeId}/panels',      [AdminController::class, 'panelStore'])->name('panels.store');
+        Route::get('/panels/{id}/editar',             [AdminController::class, 'panelEdit'])->name('panels.edit');
+        Route::put('/panels/{id}',                    [AdminController::class, 'panelUpdate'])->name('panels.update');
 
-        // ── Video Lessons ─────────────────────────────────────────────────
-        Route::put('/videos/{id}',       [AdminController::class, 'videoUpdate'])->name('videos.update');
+        // ── Vídeos ────────────────────────────────────────────────────────
+        Route::put('/videos/{id}', [AdminController::class, 'videoUpdate'])->name('videos.update');
+
+        // ── Materiais ─────────────────────────────────────────────────────
+        Route::get('/materiais',              [AdminController::class, 'materiais'])->name('materiais');
+        Route::get('/materiais/criar',        [AdminController::class, 'materialCreate'])->name('materiais.create');
+        Route::post('/materiais',             [AdminController::class, 'materialStore'])->name('materiais.store');
+        Route::get('/materiais/{id}/editar',  [AdminController::class, 'materialEdit'])->name('materiais.edit');
+        Route::put('/materiais/{id}',         [AdminController::class, 'materialUpdate'])->name('materiais.update');
+        Route::delete('/materiais/{id}',      [AdminController::class, 'materialDestroy'])->name('materiais.destroy');
+        Route::post('/materiais/{materialId}/vincular/{panelId}',      [AdminController::class, 'materialVincular'])->name('materiais.vincular');
+        Route::delete('/materiais/{materialId}/desvincular/{panelId}', [AdminController::class, 'materialDesvincular'])->name('materiais.desvincular');
     });

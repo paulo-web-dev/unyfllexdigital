@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', 'Editar — ' . $classe->title)
+@section('title', 'Nova Minissérie')
 @section('section', 'Cursos')
 
 @section('content')
@@ -7,18 +7,11 @@
 
   {{-- Breadcrumb --}}
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:12px;color:var(--fg-4);">
-    <a href="{{ route('admin.cursos') }}" style="color:var(--fg-4);text-decoration:none;" onmouseover="this.style.color='var(--brand-300)'" onmouseout="this.style.color='var(--fg-4)'">Cursos</a>
+    <a href="{{ route('admin.cursos') }}" style="color:var(--fg-4);text-decoration:none;"
+       onmouseover="this.style.color='var(--brand-300)'" onmouseout="this.style.color='var(--fg-4)'">Cursos</a>
     <span>/</span>
-    <a href="{{ route('admin.cursos.show', $classe->id) }}" style="color:var(--fg-4);text-decoration:none;" onmouseover="this.style.color='var(--brand-300)'" onmouseout="this.style.color='var(--fg-4)'">{{ Str::limit($classe->title, 40) }}</a>
-    <span>/</span>
-    <span style="color:var(--fg-2);">Editar</span>
+    <span style="color:var(--fg-2);">Nova minissérie</span>
   </div>
-
-  @if(session('success'))
-    <div style="padding:12px 16px;background:rgba(43,217,161,0.10);border:1px solid rgba(43,217,161,0.35);border-radius:var(--r-md);color:#6FE6BD;font-size:13px;font-weight:500;margin-bottom:20px;">
-      ✓ {{ session('success') }}
-    </div>
-  @endif
 
   @if($errors->any())
     <div style="padding:12px 16px;background:rgba(255,92,122,0.10);border:1px solid rgba(255,92,122,0.35);border-radius:var(--r-md);color:#FF5C7A;font-size:13px;margin-bottom:20px;">
@@ -29,9 +22,8 @@
     </div>
   @endif
 
-  <form action="{{ route('admin.cursos.update', $classe->id) }}" method="POST">
+  <form action="{{ route('admin.cursos.store') }}" method="POST">
     @csrf
-    @method('PUT')
 
     <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
 
@@ -48,7 +40,8 @@
             <div>
               <label class="field-label">Título *</label>
               <input type="text" name="title" id="input-title" class="field-input"
-                     value="{{ old('title', $classe->title) }}" required
+                     value="{{ old('title') }}" required
+                     placeholder="Ex: Patrimônio e Frotas Públicas com I.A."
                      oninput="gerarSlug()">
               @error('title')<span class="field-error">{{ $message }}</span>@enderror
             </div>
@@ -56,7 +49,8 @@
             <div>
               <label class="field-label">Subtítulo</label>
               <input type="text" name="subtitle" class="field-input"
-                     value="{{ old('subtitle', $classe->subtitle) }}">
+                     value="{{ old('subtitle') }}"
+                     placeholder="Frase curta exibida nos cards">
             </div>
 
             <div>
@@ -64,15 +58,17 @@
               <div style="display:flex;align-items:center;">
                 <span style="padding:10px 12px;background:var(--bg-3);border:1px solid var(--line-2);border-right:none;border-radius:var(--r-sm) 0 0 var(--r-sm);font-size:11px;color:var(--fg-4);white-space:nowrap;">/dashboard/player/</span>
                 <input type="text" name="slug" id="input-slug" class="field-input"
-                       value="{{ old('slug', $classe->slug) }}"
+                       value="{{ old('slug') }}"
                        style="border-radius:0 var(--r-sm) var(--r-sm) 0;" required>
               </div>
+              @error('slug')<span class="field-error">{{ $message }}</span>@enderror
             </div>
 
             <div>
               <label class="field-label">Informações adicionais (info)</label>
               <input type="text" name="info" class="field-input"
-                     value="{{ old('info', $classe->info) }}">
+                     value="{{ old('info') }}"
+                     placeholder="Texto livre de apoio">
             </div>
 
           </div>
@@ -89,33 +85,32 @@
               <div>
                 <label class="field-label">Carga horária</label>
                 <input type="text" name="workload" class="field-input"
-                       value="{{ old('workload', $classe->workload) }}"
+                       value="{{ old('workload') }}"
                        placeholder="Ex: 10h 30min">
               </div>
               <div>
                 <label class="field-label">Valor (R$)</label>
                 <input type="number" name="valor" class="field-input"
-                       value="{{ old('valor', $classe->valor) }}" min="0">
+                       value="{{ old('valor', 0) }}"
+                       min="0" placeholder="0">
               </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
               <div>
                 <label class="field-label">Data de início</label>
-                <input type="date" name="start_date" class="field-input"
-                       value="{{ old('start_date', $classe->start_date) }}">
+                <input type="date" name="start_date" class="field-input" value="{{ old('start_date') }}">
               </div>
               <div>
                 <label class="field-label">Data de término</label>
-                <input type="date" name="end_date" class="field-input"
-                       value="{{ old('end_date', $classe->end_date) }}">
+                <input type="date" name="end_date" class="field-input" value="{{ old('end_date') }}">
               </div>
             </div>
 
             <div>
               <label class="field-label">Polo</label>
               <input type="text" name="polo" class="field-input"
-                     value="{{ old('polo', $classe->polo) }}"
+                     value="{{ old('polo') }}"
                      placeholder="Nome do polo ou região">
             </div>
 
@@ -130,58 +125,16 @@
           <div style="padding:20px;">
             <label class="field-label">Nome do arquivo</label>
             <input type="text" name="photo" id="input-photo" class="field-input"
-                   value="{{ old('photo', $classe->photo) }}"
+                   value="{{ old('photo') }}"
+                   placeholder="nome-do-arquivo.png"
                    oninput="previewFoto()">
             <p style="font-size:11px;color:var(--fg-4);margin-top:4px;">
-              Arquivo em <code>unyflex.com.br/storage/cursos/banner/</code>
+              Arquivo deve estar em <code>unyflex.com.br/storage/cursos/banner/</code>
             </p>
-            <div id="foto-preview" style="{{ $classe->photo ? '' : 'display:none;' }}margin-top:12px;">
-              <img id="foto-img"
-                   src="{{ $classe->photo ? 'https://unyflex.com.br/storage/cursos/banner/'.$classe->photo : '' }}"
+            <div id="foto-preview" style="display:none;margin-top:12px;">
+              <img id="foto-img" src=""
                    style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--line-2);">
             </div>
-          </div>
-        </div>
-
-        {{-- Temporadas --}}
-        <div class="card" style="padding:0;">
-          <div style="padding:14px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;">
-            <h2 style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#fff;margin:0;">
-              Temporadas
-            </h2>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:12px;color:var(--fg-4);">{{ $classe->panels->count() }} painéis</span>
-              <a href="{{ route('admin.panels.create', $classe->id) }}"
-                 class="btn btn-primary" style="font-size:12px;padding:8px 14px;text-decoration:none;">
-                <svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Nova temporada
-              </a>
-            </div>
-          </div>
-          <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
-            @forelse($classe->panels as $panel)
-              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-1);border:1px solid var(--line-1);border-radius:10px;">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--brand-300);margin-bottom:2px;">
-                    Temporada {{ $loop->iteration }}
-                  </div>
-                  <div style="font-size:13px;font-weight:500;color:var(--fg-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    {{ $panel->title }}
-                  </div>
-                  <div style="font-size:11px;color:var(--fg-4);margin-top:2px;">
-                    {{ $panel->video_lesson->count() }} vídeos · {{ $panel->material->count() }} materiais
-                  </div>
-                </div>
-                <a href="{{ route('admin.panels.edit', $panel->id) }}"
-                   class="btn btn-sm" style="font-size:11px;padding:5px 12px;text-decoration:none;flex-shrink:0;">
-                  Editar
-                </a>
-              </div>
-            @empty
-              <p style="text-align:center;color:var(--fg-4);font-size:13px;padding:20px 0;">
-                Nenhuma temporada cadastrada.
-              </p>
-            @endforelse
           </div>
         </div>
 
@@ -199,8 +152,8 @@
             <div>
               <label class="field-label">Status</label>
               <select name="status" class="field-input">
-                <option value="able"     {{ old('status', $classe->status) === 'able'     ? 'selected' : '' }}>✓ Publicada</option>
-                <option value="disabled" {{ old('status', $classe->status) === 'disabled' ? 'selected' : '' }}>✗ Desativada</option>
+                <option value="able"     {{ old('status','able') === 'able'     ? 'selected' : '' }}>✓ Publicada</option>
+                <option value="disabled" {{ old('status','able') === 'disabled' ? 'selected' : '' }}>✗ Desativada</option>
               </select>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
@@ -209,16 +162,11 @@
                 <polyline points="17 21 17 13 7 13 7 21"/>
                 <polyline points="7 3 7 8 15 8"/>
               </svg>
-              Salvar alterações
+              Criar minissérie
             </button>
-            <div style="display:flex;gap:8px;">
-              <a href="{{ route('admin.cursos.show', $classe->id) }}" class="btn btn-ghost" style="text-decoration:none;flex:1;justify-content:center;display:flex;">
-                Cancelar
-              </a>
-              <a href="{{ route('player', $classe->slug) }}" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Ver como aluno">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-              </a>
-            </div>
+            <a href="{{ route('admin.cursos') }}" class="btn btn-ghost" style="text-decoration:none;width:100%;justify-content:center;display:flex;">
+              Cancelar
+            </a>
           </div>
         </div>
 
@@ -229,7 +177,7 @@
           </div>
           <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
 
-            {{-- Express — fixo --}}
+            {{-- Express — FIXO 1 para minisséries, só informativo --}}
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(43,217,161,0.06);border:1px solid rgba(43,217,161,0.25);border-radius:10px;">
               <div>
                 <div style="font-size:12px;font-weight:600;color:#6FE6BD;">Express</div>
@@ -239,10 +187,10 @@
             </div>
 
             @foreach([
-              ['live',      'Live',       (bool)$classe->live,      'Aula ao vivo agendada'],
-              ['novidade',  'Novidade',   (bool)$classe->novidade,  'Destaque de lançamento'],
-              ['incompany', 'In company', (bool)$classe->incompany, 'Turma fechada para empresa'],
-            ] as [$field, $label, $value, $desc])
+              ['live',      'Live',      'Aula ao vivo agendada'],
+              ['novidade',  'Novidade',  'Destaque de lançamento'],
+              ['incompany', 'In company','Turma fechada para empresa'],
+            ] as [$field, $label, $desc])
               <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:10px;cursor:pointer;transition:border-color .15s;"
                      onmouseover="this.style.borderColor='rgba(0,163,255,0.35)'"
                      onmouseout="this.style.borderColor='var(--line-2)'">
@@ -251,7 +199,7 @@
                   <div style="font-size:11px;color:var(--fg-4);">{{ $desc }}</div>
                 </div>
                 <input type="checkbox" name="{{ $field }}" value="1"
-                       {{ old($field, $value) ? 'checked' : '' }}
+                       {{ old($field) ? 'checked' : '' }}
                        style="width:16px;height:16px;accent-color:var(--brand-500);cursor:pointer;">
               </label>
             @endforeach
@@ -259,21 +207,15 @@
           </div>
         </div>
 
-        {{-- Info do registro --}}
-        <div class="card" style="padding:14px 18px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-4);margin-bottom:10px;">Registro</div>
-          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
-            <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--fg-4);">ID</span>
-              <span style="font-family:var(--font-mono);color:var(--fg-2);">#{{ $classe->id }}</span>
-            </div>
-            @if($classe->log)
-              <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--fg-4);">Última edição</span>
-                <span style="color:var(--fg-2);">{{ $classe->log }}</span>
-              </div>
-            @endif
+        {{-- Dica --}}
+        <div style="padding:14px 16px;background:rgba(0,163,255,0.06);border:1px solid rgba(0,163,255,0.2);border-radius:var(--r-lg);">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-300);margin-bottom:6px;">
+            Próximo passo
           </div>
+          <p style="font-size:12px;color:var(--fg-3);margin:0;line-height:1.6;">
+            Após criar, acesse o detalhe da minissérie e clique em
+            <strong style="color:#fff;">"Editar temporada"</strong> para adicionar painéis, vídeos e materiais.
+          </p>
         </div>
 
       </div>
@@ -295,17 +237,7 @@ select.field-input { appearance:none;-webkit-appearance:none;cursor:pointer; }
 
 @push('scripts')
 <script>
-// Só regenera slug se ele ainda está igual ao slug original
-// (evita sobrescrever slug editado manualmente)
-const slugOriginal = {{ Js::from($classe->slug) }};
-let slugEditadoManualmente = false;
-
-document.getElementById('input-slug').addEventListener('input', () => {
-  slugEditadoManualmente = true;
-});
-
 function gerarSlug() {
-  if (slugEditadoManualmente) return;
   const titulo = document.getElementById('input-title').value;
   const slug = titulo.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')

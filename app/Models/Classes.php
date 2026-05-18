@@ -5,13 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+
 class Classes extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'classes';
-     
-    protected static $defaultLogValue = null;
 
     protected static function boot()
     {
@@ -25,32 +24,62 @@ class Classes extends Model
             $model->log = Auth::check() ? Auth::user()->name : '';
         });
     }
+
     protected $fillable = [
         'course_id',
+        'presencial_id',
+        'unyflex',
+        'title',
+        'subtitle',
+        'slug',
+        'valor',
+        'photo',
         'start_date',
         'end_date',
         'type',
+        'workload',
+        'live',
         'status',
         'confirmed',
-        'workload',
-        'live'
+        'id_polo',
+        'polo',
+        'incompany',
+        'novidade',
+        'cc',
+        'mc',
+        'cv',
+        'express',
+        'seminario',
+        'brinde_modular',
+        'info',
+        'agenda',
+        'cnpj',
+        'log',
+        'id_antiga',
     ];
 
-
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
     protected $hidden = [
         'created_at',
         'updated_at',
-
     ];
-    
+
+    protected $casts = [
+        'live'      => 'boolean',
+        'express'   => 'boolean',
+        'novidade'  => 'boolean',
+        'incompany' => 'boolean',
+        'cc'        => 'boolean',
+        'mc'        => 'boolean',
+        'cv'        => 'boolean',
+        'seminario' => 'boolean',
+        'confirmed' => 'boolean',
+    ];
+
     public function panels()
     {
-        return $this->hasMany(Panel::class, 'classes_id', 'id')->with('video_lesson', 'material', 'questions', 'teachers')->orderBy('start_time')->orderBy('horario');
+        return $this->hasMany(Panel::class, 'classes_id', 'id')
+            ->with('video_lesson', 'material', 'questions', 'teachers')
+            ->orderBy('start_time')
+            ->orderBy('horario');
     }
-
 }
