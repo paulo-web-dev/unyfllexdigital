@@ -18,6 +18,10 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+
+        \App\Events\PagamentoAprovado::class => [
+            \App\Listeners\EnviarAcessoListener::class,
+        ],
     ];
 
     /**
@@ -35,4 +39,6 @@ class EventServiceProvider extends ServiceProvider
     {
         return false;
     }
+
+    
 }

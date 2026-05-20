@@ -11,14 +11,23 @@ use App\Http\Controllers\Ava\PlayerController;
 use App\Http\Controllers\Ava\PerfilController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\WebhookController;
+
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
 Route::get('/minisseries/{slug}', [CursoController::class, 'show'])->name('curso.show');
-Route::get('/checkout', [PageController::class, 'checkout'])->name('checkout');
+// Route::get('/checkout', [PageController::class, 'checkout'])->name('checkout');
 Route::get('/sobre',    [PageController::class, 'sobre'])->name('sobre');
 Route::get('/contato',  [PageController::class, 'contato'])->name('contato');
 Route::post('/contato', [PageController::class, 'contatoEnviar'])->name('contato.enviar');
+Route::get('/checkout',         [CheckoutController::class, 'index'])->name('checkout');
+Route::post('/checkout',        [CheckoutController::class, 'processar'])->name('checkout.processar');
+Route::get('/checkout/sucesso', [CheckoutController::class, 'sucesso'])->name('checkout.sucesso');
+
+// ── Webhook Asaas (excluir do CSRF middleware) ────────────────────────────
+Route::post('/webhooks/asaas', [WebhookController::class, 'asaas'])->name('webhooks.asaas');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
