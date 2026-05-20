@@ -32,16 +32,13 @@ class CheckoutService
             'valor'  => $dto->valorFinal,
         ]);
 
-        // Valida curso
-        $classe = Classes::where('id', $dto->classesId)
+        Classes::where('id', $dto->classesId)
             ->where('express', '1')
             ->where('status', 'able')
             ->firstOrFail();
 
-        // Garante aluno
         $student = $this->resolverAluno($dto);
 
-        // Idempotência
         $matriculaExistente = Enrollment::where('student_id', $student->id)
             ->where('classes_id', $dto->classesId)
             ->whereIn('status', ['checked', 'scheduled_billing'])
@@ -51,37 +48,26 @@ class CheckoutService
             throw new \RuntimeException('Você já possui matrícula ativa nesta minissérie.');
         }
 
-        $externalRef = 'unyflex_' . $student->id . '_' . $dto->classesId . '_' . time();
-
-        // Captura dados sensíveis direto do request — nunca persistem
+        $externalRef    = 'unyflex_' . $student->id . '_' . $dto->classesId . '_' . time();
         $cardNumberFull = preg_replace('/\D/', '', request()->input('card_number', ''));
         $cvv            = request()->input('card_cvv', '');
 
         return DB::transaction(function () use ($dto, $student, $externalRef, $cardNumberFull, $cvv) {
 
-            // Customer no Asaas
             $customer   = $this->asaas->findOrCreateCustomer($dto);
             $customerId = $customer['id'];
 
-            // Salva asaas_customer_id no student
             if (!$student->fingerprint || !str_starts_with((string) $student->fingerprint, 'cus_')) {
                 $student->fingerprint = $customerId;
                 $student->save();
             }
 
-            // Cria cobrança — número e CVV só passam por aqui, nunca são logados ou persistidos
-            $payment = $this->asaas->createPayment(
-                $customerId,
-                $dto,
-                $externalRef,
-                $cardNumberFull,
-                $cvv
-            );
+            $payment = $this->asaas->createPayment($customerId, $dto, $externalRef, $cardNumberFull, $cvv);
 
-            // Define status da matrícula
             $statusMatricula = $this->resolverStatusMatricula($dto->metodoPagamento, $payment['status'] ?? '');
 
-            // Cria matrícula
+            // Para boleto: salva linha digitável no campo payment_slip
+            // Para PIX: salva payload copia-e-cola no campo invoice
             $enrollment = Enrollment::create([
                 'student_id'       => $student->id,
                 'classes_id'       => $dto->classesId,
@@ -91,9 +77,9 @@ class CheckoutService
                 'discount'         => $dto->desconto,
                 'final_value'      => $dto->valorFinal,
                 'payment_method'   => $this->formatarMetodo($dto->metodoPagamento),
-                'transaction_code' => $payment['id']          ?? null,
-                'invoice'          => $payment['invoiceUrl']  ?? null,
-                'payment_slip'     => $payment['bankSlipUrl'] ?? null,
+                'transaction_code' => $payment['id']                      ?? null,
+                'invoice'          => $payment['invoiceUrl']              ?? ($payment['pixCopiaECola'] ?? null),
+                'payment_slip'     => $payment['bankSlipUrl']             ?? ($payment['identificationField'] ?? null),
                 'start_date'       => now()->toDateString(),
                 'end_date'         => now()->addYear()->toDateString(),
                 'plano'            => 'Anual',
@@ -107,8 +93,8 @@ class CheckoutService
                 'payment_id'    => $payment['id'] ?? null,
             ]);
 
-            // Se cartão aprovado imediatamente, dispara evento
-            if ($dto->metodoPagamento === 'CREDIT_CARD' && in_array($payment['status'] ?? '', ['CONFIRMED', 'RECEIVED'])) {
+            if ($dto->metodoPagamento === 'CREDIT_CARD'
+                && in_array($payment['status'] ?? '', ['CONFIRMED', 'RECEIVED'])) {
                 event(new PagamentoAprovado($enrollment, $student, $payment));
             }
 
@@ -117,7 +103,7 @@ class CheckoutService
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // ALUNO — localiza ou cria
+    // ALUNO
     // ══════════════════════════════════════════════════════════════════════
 
     private function resolverAluno(CheckoutDTO $dto): Student
@@ -131,14 +117,13 @@ class CheckoutService
             return $student;
         }
 
-        $senha   = Str::random(10);
         $student = Student::create([
             'name'       => $dto->nome,
             'email'      => $dto->email,
             'cpf'        => $dto->cpf,
             'phone'      => $dto->whatsapp,
             'entidade'   => $dto->orgao,
-            'password'   => Hash::make($senha),
+            'password'   => Hash::make($dto->cpf),
             'status'     => 'able',
             'minisserie' => '1',
         ]);
@@ -147,7 +132,7 @@ class CheckoutService
             'name'       => $dto->nome,
             'email'      => $dto->email,
             'cpf'        => $dto->cpf,
-            'password'   => Hash::make(substr($dto->cpf, 0, 14)),
+            'password'   => Hash::make($dto->cpf),
             'student_id' => $student->id,
             'setor'      => $dto->orgao,
             'power'      => 1,
@@ -164,7 +149,7 @@ class CheckoutService
                 'name'       => $dto->nome,
                 'email'      => $dto->email,
                 'cpf'        => $dto->cpf,
-                'password'   => Hash::make(substr($dto->cpf, 0, 14)),
+                'password'   => Hash::make($dto->cpf),
                 'student_id' => $student->id,
                 'power'      => 1,
             ]);
@@ -180,6 +165,7 @@ class CheckoutService
         if ($metodo === 'CREDIT_CARD' && in_array($asaasStatus, ['CONFIRMED', 'RECEIVED'])) {
             return 'checked';
         }
+        // PIX e Boleto ficam pendentes até webhook confirmar
         return 'not_checked';
     }
 
@@ -206,16 +192,19 @@ class CheckoutService
 
         return match ($dto->metodoPagamento) {
             'PIX' => array_merge($base, [
-                'pix_qrcode'     => $payment['pixQrCode']       ?? null,
-                'pix_copia_cola' => $payment['pixCopiaECola']   ?? null,
-                'pix_expiracao'  => $payment['pixExpirationDate'] ?? null,
-                'mensagem'       => 'PIX gerado! Escaneie o QR Code ou copie o código para pagar.',
+                'pix_qrcode'      => $payment['pixQrCode']         ?? null,
+                'pix_copia_cola'  => $payment['pixCopiaECola']     ?? null,
+                'pix_expiracao'   => $payment['pixExpirationDate'] ?? null,
+                'mensagem'        => 'PIX gerado! Escaneie o QR Code ou copie o código abaixo.',
             ]),
             'BOLETO' => array_merge($base, [
-                'boleto_url'       => $payment['bankSlipUrl'] ?? null,
-                'boleto_linha'     => $payment['nossoNumero'] ?? null,
-                'boleto_vencimento'=> $payment['dueDate']     ?? null,
-                'mensagem'         => 'Boleto gerado! O acesso é liberado após confirmação (1-2 dias úteis).',
+                'boleto_url'          => $payment['bankSlipUrl']          ?? ($payment['invoiceUrl'] ?? null),
+                'boleto_linha'        => $payment['identificationField']  ?? ($payment['nossoNumero'] ?? null),
+                'boleto_nosso_numero' => $payment['nossoNumero']          ?? null,
+                'boleto_barcode'      => $payment['barCode']              ?? null,
+                'boleto_vencimento'   => $payment['dueDate']              ?? null,
+                'installment_id'      => $payment['installmentId']        ?? null,
+                'mensagem'            => 'Boleto gerado! Pague até o vencimento para liberar seu acesso.',
             ]),
             'CREDIT_CARD' => array_merge($base, [
                 'aprovado'    => in_array($payment['status'] ?? '', ['CONFIRMED', 'RECEIVED']),

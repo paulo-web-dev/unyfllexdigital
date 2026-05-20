@@ -17,6 +17,8 @@ class AsaasService
         $this->apiKey  = config('asaas.api_key');
     }
 
+    // ── HTTP base ──────────────────────────────────────────────────────────
+
     private function http()
     {
         return Http::withHeaders([
@@ -76,12 +78,12 @@ class AsaasService
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // PIX
+    // PIX  — usa /v3/lean/payments
     // ══════════════════════════════════════════════════════════════════════
 
     public function createPixPayment(string $customerId, CheckoutDTO $dto, string $externalRef): array
     {
-        $response = $this->http()->post("{$this->baseUrl}/v3/payments", [
+        $response = $this->http()->post("{$this->baseUrl}/v3/lean/payments", [
             'customer'          => $customerId,
             'billingType'       => 'PIX',
             'value'             => $dto->valorFinal,
@@ -91,15 +93,20 @@ class AsaasService
         ]);
 
         if ($response->failed()) {
-            Log::error('[Asaas] Falha PIX', ['status' => $response->status(), 'body' => $response->body()]);
-            throw new \RuntimeException('Falha ao gerar PIX.');
+            Log::error('[Asaas] Falha PIX', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \RuntimeException('Falha ao gerar PIX: ' . ($response->json('errors.0.description') ?? $response->body()));
         }
 
-        $payment             = $response->json();
-        $qr                  = $this->getPixQrCode($payment['id']);
-        $payment['pixQrCode']          = $qr['encodedImage']   ?? null;
-        $payment['pixCopiaECola']      = $qr['payload']        ?? null;
-        $payment['pixExpirationDate']  = $qr['expirationDate'] ?? null;
+        $payment = $response->json();
+
+        // Busca QR Code
+        $qr = $this->getPixQrCode($payment['id']);
+        $payment['pixQrCode']         = $qr['encodedImage']   ?? null;
+        $payment['pixCopiaECola']     = $qr['payload']        ?? null;
+        $payment['pixExpirationDate'] = $qr['expirationDate'] ?? null;
 
         Log::info('[Asaas] PIX criado', ['id' => $payment['id']]);
         return $payment;
@@ -107,37 +114,141 @@ class AsaasService
 
     public function getPixQrCode(string $paymentId): array
     {
+        // Tenta primeiro com /v3/payments (funciona mesmo para lean)
         $response = $this->http()->get("{$this->baseUrl}/v3/payments/{$paymentId}/pixQrCode");
-        return $response->successful() ? $response->json() : [];
+
+        Log::info('[Asaas] getPixQrCode', [
+            'payment_id' => $paymentId,
+            'status'     => $response->status(),
+            'keys'       => array_keys($response->json() ?? []),
+            'body_raw'   => substr($response->body(), 0, 300),
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            // Sandbox retorna encodedImage, produção pode retornar encoded
+            if (!isset($data['encodedImage']) && isset($data['encoded'])) {
+                $data['encodedImage'] = $data['encoded'];
+            }
+            return $data;
+        }
+
+        Log::warning('[Asaas] getPixQrCode falhou', [
+            'payment_id' => $paymentId,
+            'status'     => $response->status(),
+            'body'       => $response->body(),
+        ]);
+
+        return [];
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // BOLETO
+    // BOLETO  — usa /v3/lean/payments + busca linha digitável
     // ══════════════════════════════════════════════════════════════════════
 
     public function createBoletoPayment(string $customerId, CheckoutDTO $dto, string $externalRef): array
     {
-        $response = $this->http()->post("{$this->baseUrl}/v3/payments", [
+        $payload = [
             'customer'          => $customerId,
             'billingType'       => 'BOLETO',
             'value'             => $dto->valorFinal,
             'dueDate'           => now()->addDays(3)->format('Y-m-d'),
             'description'       => "Unyflex Digital — Minissérie #{$dto->classesId}",
             'externalReference' => $externalRef,
-        ]);
+        ];
 
-        if ($response->failed()) {
-            Log::error('[Asaas] Falha Boleto', ['status' => $response->status(), 'body' => $response->body()]);
-            throw new \RuntimeException('Falha ao gerar boleto.');
+        if ($dto->parcelas > 1) {
+            $payload['installmentCount'] = $dto->parcelas;
+            $payload['installmentValue'] = round($dto->valorFinal / $dto->parcelas, 2);
         }
 
-        Log::info('[Asaas] Boleto criado', ['id' => $response->json('id')]);
-        return $response->json();
+        $response = $this->http()->post("{$this->baseUrl}/v3/lean/payments", $payload);
+
+        if ($response->failed()) {
+            Log::error('[Asaas] Falha Boleto', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \RuntimeException('Falha ao gerar boleto: ' . ($response->json('errors.0.description') ?? $response->body()));
+        }
+
+        $payment = $response->json();
+
+        // Busca payment completo (tem mais campos que o lean)
+        $full = $this->getPaymentFull($payment['id']);
+        if (!empty($full)) {
+            // Sobrescreve com dados completos
+            $payment = array_merge($payment, $full);
+        }
+
+        // Busca linha digitável se não veio no payload
+        if (empty($payment['nossoNumero']) || empty($payment['bankSlipUrl'])) {
+            $ident = $this->getBoletoIdentificationField($payment['id']);
+            $payment['identificationField'] = $ident['identificationField'] ?? ($payment['nossoNumero'] ?? null);
+            $payment['barCode']             = $ident['barCode']             ?? null;
+        } else {
+            $payment['identificationField'] = $payment['nossoNumero'] ?? null;
+        }
+
+        if (isset($payment['installment'])) {
+            $payment['installmentId'] = $payment['installment'];
+        }
+
+        Log::info('[Asaas] Boleto criado', [
+            'id'          => $payment['id'],
+            'parcelas'    => $dto->parcelas,
+            'bankSlipUrl' => $payment['bankSlipUrl'] ?? null,
+            'ident'       => $payment['identificationField'] ?? null,
+        ]);
+
+        return $payment;
+    }
+
+    // Busca payment completo — retorna mais campos que o lean
+    public function getPaymentFull(string $paymentId): array
+    {
+        $response = $this->http()->get("{$this->baseUrl}/v3/payments/{$paymentId}");
+
+        Log::info('[Asaas] getPaymentFull', [
+            'payment_id'  => $paymentId,
+            'status'      => $response->status(),
+            'bankSlipUrl' => $response->json('bankSlipUrl'),
+            'nossoNumero' => $response->json('nossoNumero'),
+        ]);
+
+        return $response->successful() ? $response->json() : [];
+    }
+
+    public function getBoletoIdentificationField(string $paymentId): array
+    {
+        // Tenta lean primeiro
+        $response = $this->http()->get("{$this->baseUrl}/v3/lean/payments/{$paymentId}/identificationField");
+
+        Log::info('[Asaas] getBoletoIdentField', [
+            'payment_id' => $paymentId,
+            'status'     => $response->status(),
+            'keys'       => array_keys($response->json() ?? []),
+            'body_raw'   => substr($response->body(), 0, 300),
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        // Fallback: tenta sem lean
+        $response2 = $this->http()->get("{$this->baseUrl}/v3/payments/{$paymentId}/identificationField");
+
+        Log::info('[Asaas] getBoletoIdentField fallback', [
+            'status'   => $response2->status(),
+            'body_raw' => substr($response2->body(), 0, 300),
+        ]);
+
+        return $response2->successful() ? $response2->json() : [];
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // CARTÃO DE CRÉDITO
-    // número e CVV chegam apenas em memória — nunca persistidos
+    // CARTÃO DE CRÉDITO — usa /v3/payments
+    // número e CVV apenas em memória, nunca persistidos
     // ══════════════════════════════════════════════════════════════════════
 
     public function createCreditCardPayment(
@@ -164,13 +275,13 @@ class AsaasService
                 'ccv'         => $cvv,
             ],
             'creditCardHolderInfo' => [
-                'name'          => $dto->nome,
-                'email'         => $dto->email,
-                'cpfCnpj'       => $dto->cpf,
-                'mobilePhone'   => $dto->whatsapp,
-                'postalCode'    => $dto->cardHolderCep,
-                'addressNumber' => $dto->cardHolderNum,
-                'address'       => $dto->cardHolderEnd,
+                'name'              => $dto->nome,
+                'email'             => $dto->email,
+                'cpfCnpj'           => $dto->cpf,
+                'mobilePhone'       => $dto->whatsapp,
+                'postalCode'        => $dto->cardHolderCep,
+                'addressNumber'     => $dto->cardHolderNum,
+                'address'           => $dto->cardHolderEnd,
                 'addressComplement' => null,
             ],
         ];
@@ -192,7 +303,33 @@ class AsaasService
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // DISPATCHER
+    // STATUS — consulta polling pelo frontend
+    // ══════════════════════════════════════════════════════════════════════
+
+    public function getPaymentStatus(string $paymentId): array
+    {
+        $response = $this->http()->get("{$this->baseUrl}/v3/payments/{$paymentId}");
+
+        if ($response->failed()) {
+            Log::warning('[Asaas] getPaymentStatus falhou', [
+                'id'     => $paymentId,
+                'status' => $response->status(),
+            ]);
+            return ['status' => 'UNKNOWN'];
+        }
+
+        $data = $response->json();
+
+        Log::info('[Asaas] Status consultado', [
+            'id'     => $paymentId,
+            'status' => $data['status'] ?? 'UNKNOWN',
+        ]);
+
+        return $data;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // DISPATCHER central
     // ══════════════════════════════════════════════════════════════════════
 
     public function createPayment(
@@ -209,6 +346,10 @@ class AsaasService
             default       => throw new \InvalidArgumentException("Método inválido: {$dto->metodoPagamento}"),
         };
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CANCELAR
+    // ══════════════════════════════════════════════════════════════════════
 
     public function cancelPayment(string $paymentId): bool
     {

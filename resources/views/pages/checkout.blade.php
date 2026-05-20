@@ -222,36 +222,110 @@
                 </div>
 
                 {{-- ══ PIX ═════════════════════════════════════════════════ --}}
-                <div id="pay-PIX" style="display:none;text-align:center;padding:20px;">
-                  <div id="pixContainer" style="display:none;background:var(--bg-1);border:1px solid var(--line-2);border-radius:var(--r-lg);padding:28px;display:inline-block;">
-                    <img id="pixQrImg" src="" alt="QR Code PIX" style="width:160px;height:160px;border-radius:8px;margin:0 auto 16px;display:block;">
-                    <div style="font-size:13px;color:var(--fg-3);margin-bottom:10px;">Copie o código PIX abaixo:</div>
-                    <div id="pixCopiaCola" style="background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--brand-200);word-break:break-all;text-align:left;margin-bottom:12px;"></div>
-                    <button onclick="copiarPix()" class="btn-ux btn-ux-ghost btn-ux-sm" style="width:100%;justify-content:center;">Copiar código PIX</button>
-                  </div>
-                  <div id="pixPlaceholder">
+                <div id="pay-PIX" style="display:none;padding:8px 0;">
+
+                  {{-- Placeholder antes de gerar --}}
+                  <div id="pixPlaceholder" style="text-align:center;padding:20px;">
                     <div style="width:160px;height:160px;background:rgba(0,163,255,0.08);border:2px dashed rgba(0,163,255,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
-                      <span style="font-size:13px;color:var(--fg-4);">QR Code PIX</span>
+                      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1" style="color:rgba(0,163,255,0.4);"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                     </div>
-                    <p style="color:var(--fg-3);font-size:14px;">O QR Code será gerado após confirmar o pedido.</p>
+                    <p style="color:var(--fg-3);font-size:14px;margin-bottom:6px;">O QR Code será gerado após confirmar o pedido.</p>
+                    <p style="color:var(--success);font-size:13px;font-weight:600;">✓ Acesso liberado automaticamente após o pagamento</p>
                   </div>
-                  <p style="color:var(--success);font-size:14px;margin-top:14px;font-weight:600;">Acesso liberado em até 5 minutos após o pagamento</p>
+
+                  {{-- Resultado PIX gerado --}}
+                  <div id="pixContainer" style="display:none;">
+                    <div style="background:var(--bg-1);border:1px solid rgba(0,163,255,0.25);border-radius:var(--r-lg);padding:24px;text-align:center;">
+
+                      {{-- Status badge --}}
+                      <div id="pixStatusBadge"
+                           style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:rgba(255,181,71,0.12);border:1px solid rgba(255,181,71,0.3);color:var(--warning);font-size:12px;font-weight:600;margin-bottom:16px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+                        Aguardando pagamento
+                      </div>
+
+                      {{-- QR Code --}}
+                      <img id="pixQrImg" src="" alt="QR Code PIX"
+                           style="width:180px;height:180px;border-radius:12px;border:4px solid var(--bg-3);margin:0 auto 16px;display:block;">
+
+                      {{-- Countdown expiração --}}
+                      <div id="pixCountdown" style="margin-bottom:16px;">
+                        <div style="font-size:11px;color:var(--fg-4);margin-bottom:4px;">Expira em:</div>
+                        <div id="pixCountdownTimer"
+                             style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:#fff;letter-spacing:0.05em;">--:--</div>
+                      </div>
+
+                      {{-- Copia e cola --}}
+                      <div style="font-size:12px;color:var(--fg-3);margin-bottom:8px;">PIX Copia e Cola:</div>
+                      <div id="pixCopiaCola"
+                           style="background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--brand-200);word-break:break-all;text-align:left;margin-bottom:12px;max-height:60px;overflow:hidden;cursor:pointer;"
+                           onclick="copiarPix()"></div>
+
+                      <button onclick="copiarPix()" id="btnCopiarPix"
+                              class="btn-ux btn-ux-ghost btn-ux-sm" style="width:100%;justify-content:center;margin-bottom:10px;">
+                        <i data-lucide="copy" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
+                        Copiar código PIX
+                      </button>
+
+                      <p style="font-size:11px;color:var(--fg-4);">
+                        O acesso é liberado automaticamente após a confirmação do pagamento.
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
 
                 {{-- ══ BOLETO ══════════════════════════════════════════════ --}}
-                <div id="pay-BOLETO" style="display:none;text-align:center;padding:20px;">
-                  <div id="boletoContainer" style="display:none;">
-                    <a id="boletoUrl" href="#" target="_blank" class="btn-ux btn-ux-primary" style="margin-bottom:14px;display:inline-flex;">
-                      <i data-lucide="download" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
-                      Baixar boleto
-                    </a>
-                    <div id="boletoLinha" style="background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--fg-2);word-break:break-all;margin-bottom:12px;"></div>
+                <div id="pay-BOLETO" style="display:none;padding:8px 0;">
+
+                  {{-- Placeholder antes de gerar --}}
+                  <div id="boletoPlaceholder" style="text-align:center;padding:20px;">
+                    <i data-lucide="file-text" style="width:48px;height:48px;stroke:var(--fg-4);fill:none;stroke-width:1;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;"></i>
+                    <p style="color:var(--fg-3);font-size:15px;margin-bottom:12px;">Seu boleto será gerado após confirmar o pedido.<br>Vencimento: 3 dias úteis.</p>
+                    <div style="background:rgba(255,181,71,0.10);border:1px solid rgba(255,181,71,0.25);border-radius:10px;padding:12px;font-size:13px;color:var(--warning);">
+                      ⚠️ O acesso é liberado após confirmação do pagamento (1–2 dias úteis).
+                    </div>
                   </div>
-                  <i data-lucide="file-text" style="width:48px;height:48px;stroke:var(--fg-4);fill:none;stroke-width:1;margin-bottom:16px;"></i>
-                  <p style="color:var(--fg-3);font-size:15px;margin-bottom:16px;">Seu boleto será gerado após confirmar o pedido.<br>Vencimento: 3 dias úteis.</p>
-                  <p style="background:rgba(255,181,71,0.10);border:1px solid rgba(255,181,71,0.25);border-radius:10px;padding:12px;font-size:13px;color:var(--warning);">
-                    O acesso é liberado após a confirmação do pagamento pelo banco (1–2 dias úteis).
-                  </p>
+
+                  {{-- Resultado Boleto gerado --}}
+                  <div id="boletoContainer" style="display:none;">
+                    <div style="background:var(--bg-1);border:1px solid rgba(255,181,71,0.25);border-radius:var(--r-lg);padding:24px;">
+
+                      {{-- Status --}}
+                      <div style="display:flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:rgba(255,181,71,0.12);border:1px solid rgba(255,181,71,0.3);color:var(--warning);font-size:12px;font-weight:600;margin-bottom:18px;width:fit-content;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+                        Aguardando pagamento
+                      </div>
+
+                      {{-- Botão download --}}
+                      <a id="boletoUrl" href="#" target="_blank"
+                         class="btn-ux btn-ux-primary" style="display:inline-flex;margin-bottom:16px;width:100%;justify-content:center;">
+                        <i data-lucide="download" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
+                        Abrir / Baixar boleto
+                      </a>
+
+                      {{-- Linha digitável --}}
+                      {{-- <div style="margin-bottom:8px;">
+                        <div style="font-size:11px;color:var(--fg-4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Linha digitável:</div>
+                        <div id="boletoLinha"
+                             style="background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--fg-1);word-break:break-all;margin-bottom:10px;cursor:pointer;"
+                             onclick="copiarBoleto()"></div>
+                        <button onclick="copiarBoleto()" id="btnCopiarBoleto"
+                                class="btn-ux btn-ux-ghost btn-ux-sm" style="width:100%;justify-content:center;">
+                          <i data-lucide="copy" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
+                          Copiar linha digitável
+                        </button>
+                      </div> --}}
+
+                      {{-- Vencimento --}}
+                      <div id="boletoVencimento" style="font-size:12px;color:var(--fg-4);text-align:center;margin-top:12px;"></div>
+
+                      <div style="margin-top:14px;padding:10px;background:rgba(255,181,71,0.06);border-radius:8px;font-size:12px;color:var(--fg-3);text-align:center;">
+                        Após o pagamento, seu acesso é liberado automaticamente em até 2 dias úteis.
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
                 {{-- Alerta geral --}}
@@ -382,6 +456,11 @@ const CSRF    = document.querySelector('meta[name="csrf-token"]')?.content ?? ''
 const CATALOG = JSON.parse(document.getElementById('minisseries-data').textContent);
 
 let metodoPagamento = 'CREDIT_CARD';
+let _pixCopiaECola  = '';
+let _boletoCodigo   = '';
+let _pollingTimer   = null;
+let _countdownTimer = null;
+let _currentPaymentId = null;
 
 function fmt(val) {
   return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -503,7 +582,95 @@ function mostrarAlerta(msg) {
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// ── Finalizar pedido ───────────────────────────────────────────────────────
+// ── Copiar PIX ────────────────────────────────────────────────────────────
+function copiarPix() {
+  if (!_pixCopiaECola) return;
+  navigator.clipboard.writeText(_pixCopiaECola).then(() => {
+    const btn = document.getElementById('btnCopiarPix');
+    if (btn) { btn.textContent = '✓ Copiado!'; setTimeout(() => btn.textContent = 'Copiar código PIX', 2000); }
+  }).catch(() => {});
+}
+
+// ── Copiar Boleto ─────────────────────────────────────────────────────────
+function copiarBoleto() {
+  if (!_boletoCodigo) return;
+  navigator.clipboard.writeText(_boletoCodigo).then(() => {
+    const btn = document.getElementById('btnCopiarBoleto');
+    if (btn) { btn.textContent = '✓ Copiado!'; setTimeout(() => btn.textContent = 'Copiar linha digitável', 2000); }
+  }).catch(() => {});
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// POLLING — verifica status a cada 5s
+// ══════════════════════════════════════════════════════════════════════════
+function iniciarPolling(paymentId) {
+  _currentPaymentId = paymentId;
+  stopPolling();
+  _pollingTimer = setInterval(() => verificarStatus(paymentId), 5000);
+}
+
+function stopPolling() {
+  if (_pollingTimer) { clearInterval(_pollingTimer); _pollingTimer = null; }
+}
+
+async function verificarStatus(paymentId) {
+  try {
+    const res  = await fetch(`{{ url('/checkout/status') }}/${paymentId}`, {
+      headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+
+    if (data.approved) {
+      stopPolling();
+      stopCountdown();
+
+      // Atualiza badge de status
+      const badge = document.getElementById('pixStatusBadge');
+      if (badge) {
+        badge.style.background = 'rgba(43,217,161,0.15)';
+        badge.style.borderColor = 'rgba(43,217,161,0.4)';
+        badge.style.color = '#6FE6BD';
+        badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span> Pagamento confirmado!';
+      }
+
+      if (window.UnyCart) UnyCart.clear?.();
+      mostrarModal('Pagamento confirmado! 🎉', 'Seu acesso foi liberado. Redirecionando...');
+      setTimeout(() => { window.location.href = data.redirect ?? '{{ route('dashboard') }}'; }, 2500);
+    }
+  } catch (e) {}
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// COUNTDOWN — expiração do PIX
+// ══════════════════════════════════════════════════════════════════════════
+function iniciarCountdown(expiracaoISO) {
+  stopCountdown();
+  if (!expiracaoISO) return;
+
+  const expTime = new Date(expiracaoISO).getTime();
+  const el      = document.getElementById('pixCountdownTimer');
+
+  _countdownTimer = setInterval(() => {
+    const diff = expTime - Date.now();
+    if (diff <= 0) {
+      stopCountdown();
+      if (el) { el.textContent = 'EXPIRADO'; el.style.color = '#ff6b6b'; }
+      stopPolling();
+      return;
+    }
+    const m = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
+    const s = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
+    if (el) el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FINALIZAR PEDIDO
+// ══════════════════════════════════════════════════════════════════════════
 async function finalizarPedido() {
   limparErros();
 
@@ -528,15 +695,15 @@ async function finalizarPedido() {
     valor_final:      valor,
     parcelas,
     ...(metodoPagamento === 'CREDIT_CARD' && {
-      card_holder_name: document.getElementById('inputCardName')?.value.trim()                                   ?? '',
+      card_holder_name: document.getElementById('inputCardName')?.value.trim()                  ?? '',
       card_number:      (document.getElementById('inputCardNum')?.value ?? '').replace(/\s+/g, ''),
-      card_expiry:      document.getElementById('inputCardVal')?.value.trim()                                    ?? '',
-      card_cvv:         document.getElementById('inputCardCvv')?.value.trim()                                    ?? '',
+      card_expiry:      document.getElementById('inputCardVal')?.value.trim()                   ?? '',
+      card_cvv:         document.getElementById('inputCardCvv')?.value.trim()                   ?? '',
       card_cep:         (document.getElementById('inputCardCep')?.value ?? '').replace(/\D/g, ''),
-      card_endereco:    document.getElementById('inputCardEnd')?.value.trim()                                    ?? '',
-      card_numero:      document.getElementById('inputCardNumEnd')?.value.trim()                                 ?? '',
-      card_bairro:      document.getElementById('inputCardBairro')?.value.trim()                                 ?? '',
-      card_cidade:      document.getElementById('inputCardCidade')?.value.trim()                                 ?? '',
+      card_endereco:    document.getElementById('inputCardEnd')?.value.trim()                   ?? '',
+      card_numero:      document.getElementById('inputCardNumEnd')?.value.trim()                ?? '',
+      card_bairro:      document.getElementById('inputCardBairro')?.value.trim()                ?? '',
+      card_cidade:      document.getElementById('inputCardCidade')?.value.trim()                ?? '',
       card_uf:          (document.getElementById('inputCardUf')?.value.trim() ?? '').toUpperCase(),
     }),
   };
@@ -563,22 +730,81 @@ async function finalizarPedido() {
       return;
     }
 
-    // Sucesso por método
-    if (metodoPagamento === 'PIX' && data.pix_copia_cola) {
+    // ── Sucesso PIX ──────────────────────────────────────────────────────
+    if (metodoPagamento === 'PIX') {
+      _pixCopiaECola = data.pix_copia_cola ?? '';
+
       document.getElementById('pixPlaceholder').style.display = 'none';
       document.getElementById('pixContainer').style.display   = 'block';
-      if (data.pix_qrcode) document.getElementById('pixQrImg').src = 'data:image/png;base64,' + data.pix_qrcode;
-      document.getElementById('pixCopiaCola').textContent = data.pix_copia_cola;
-      window._pixCopiaECola = data.pix_copia_cola;
-      mostrarModal('PIX gerado!', data.mensagem ?? 'Escaneie o QR Code para pagar.');
-    } else if (metodoPagamento === 'BOLETO' && data.boleto_url) {
-      document.getElementById('boletoContainer').style.display = 'block';
-      document.getElementById('boletoUrl').href = data.boleto_url;
-      if (data.boleto_linha) document.getElementById('boletoLinha').textContent = data.boleto_linha;
-      mostrarModal('Boleto gerado!', data.mensagem ?? 'Clique para baixar.');
-    } else if (metodoPagamento === 'CREDIT_CARD') {
+
+      if (data.pix_qrcode) {
+        document.getElementById('pixQrImg').src = 'data:image/png;base64,' + data.pix_qrcode;
+      }
+
+      document.getElementById('pixCopiaCola').textContent = _pixCopiaECola;
+
+      // Countdown
+      if (data.pix_expiracao) iniciarCountdown(data.pix_expiracao);
+
+      // Polling de status
+      if (data.payment_id) iniciarPolling(data.payment_id);
+
+      // Esconde botão e scroll até o QR
+      btn.style.display = 'none';
+      document.getElementById('pixContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // ── Sucesso BOLETO ───────────────────────────────────────────────────
+    else if (metodoPagamento === 'BOLETO') {
+      _boletoCodigo = data.boleto_linha ?? data.boleto_nosso_numero ?? '';
+
+      document.getElementById('boletoPlaceholder').style.display = 'none';
+      document.getElementById('boletoContainer').style.display   = 'block';
+
+      // URL do boleto — pode ser bankSlipUrl ou invoiceUrl
+      const boletoUrl = data.boleto_url ?? null;
+      const urlBtn    = document.getElementById('boletoUrl');
+      if (boletoUrl) {
+        urlBtn.href = boletoUrl;
+      } else {
+        // Sandbox: boleto ainda processando, desabilita botão
+        urlBtn.style.opacity      = '0.5';
+        urlBtn.style.pointerEvents= 'none';
+        urlBtn.innerHTML = urlBtn.innerHTML.replace('Abrir / Baixar boleto', 'Processando boleto…');
+      }
+
+      // Linha digitável
+      const linhaEl = document.getElementById('boletoLinha');
+      if (_boletoCodigo) {
+        linhaEl.textContent = _boletoCodigo;
+      } else {
+        linhaEl.textContent   = 'Linha digitável em processamento…';
+        linhaEl.style.color   = 'var(--fg-4)';
+        linhaEl.style.cursor  = 'default';
+        document.getElementById('btnCopiarBoleto').style.display = 'none';
+      }
+
+      if (data.boleto_vencimento) {
+        const dt = new Date(data.boleto_vencimento + 'T12:00:00');
+        document.getElementById('boletoVencimento').textContent =
+          'Vencimento: ' + dt.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+      }
+
+      // Polling para confirmar quando boleto for pago
+      if (data.payment_id) iniciarPolling(data.payment_id);
+
+      btn.style.display = 'none';
+      document.getElementById('boletoContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // ── Sucesso CARTÃO ───────────────────────────────────────────────────
+    else if (metodoPagamento === 'CREDIT_CARD') {
       if (window.UnyCart) UnyCart.clear?.();
-      mostrarModal('Pagamento aprovado! 🎉', data.mensagem ?? 'Acesso liberado.');
+      mostrarModal('Pagamento aprovado! 🎉', data.mensagem ?? 'Seu acesso já está liberado.');
       setTimeout(() => { window.location.href = data.redirect ?? '{{ route('dashboard') }}'; }, 2000);
     }
 
@@ -596,11 +822,6 @@ function mostrarModal(titulo, msg) {
   if (window.lucide) lucide.createIcons();
 }
 
-function copiarPix() {
-  if (!window._pixCopiaECola) return;
-  navigator.clipboard.writeText(window._pixCopiaECola).then(() => alert('Código PIX copiado!')).catch(() => {});
-}
-
 // ── Máscaras ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
   renderCheckout();
@@ -614,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function () {
     this.value = v;
   });
 
-  // Cartão
+  // Número do cartão
   const card = document.getElementById('inputCardNum');
   if (card) card.addEventListener('input', function () {
     let v = this.value.replace(/\D/g,'').slice(0,16);
@@ -638,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function () {
     this.value = v;
   });
 
-  // UF uppercase
+  // UF
   const uf = document.getElementById('inputCardUf');
   if (uf) uf.addEventListener('input', function () {
     this.value = this.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2);

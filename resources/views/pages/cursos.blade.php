@@ -17,10 +17,10 @@
         </p>
       </div>
       <div class="col-lg-auto text-lg-end mt-3 mt-lg-0">
-        <a href="#minisseries-section" class="btn-ux btn-ux-primary btn-ux-lg">
+        <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg">
           <i data-lucide="zap" style="width:16px;height:16px;fill:currentColor;stroke:none;"></i>
           Explorar Minisséries — R$ 998
-        </a>  
+        </a>
       </div>
     </div>
 
@@ -35,7 +35,18 @@
             <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
             Começar agora
           </a>
-          <a href="#" class="btn-ux btn-ux-ghost">Adicionar ao Carrinho</a>
+          <button class="btn-ux btn-ux-ghost btn-add-to-cart"
+                  data-course-id="spotlight"
+                  data-course-title="Assessoria de Imprensa Com Mídias Sociais"
+                  data-course-price="998"
+                  data-course-thumb="{{ asset('img/logo-unyflex.png') }}"
+                  data-course-slug="Assessoria-de-Imprensa-Com-Midias-Sociais-Janeiro-express">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <span class="btn-cart-label">Adicionar ao Carrinho</span>
+          </button>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:center;">
@@ -45,101 +56,112 @@
       </div>
     </div>
 
-    {{-- Filtros --}}
-    <div class="filter-chip-group aos-fade" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:28px;">
-     {{-- Filtros --}}
-<div class="d-flex flex-wrap gap-2 align-items-center mb-4" id="minisseries-section" > 
+    {{-- Filtros + contagem --}}
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-4" id="minisseries-section">
 
-  @foreach([
-      'todos' => 'Todos',
-      'minisserie' => 'Minisséries'
-  ] as $val => $label)
-
-      <button class="filter-chip {{ $val === 'todos' ? 'active' : '' }}"
-              data-filter="{{ $val }}"
-              style="font-size:13px;font-weight:500;color:var(--fg-2);background:var(--bg-2);border:1px solid var(--line-2);padding:9px 16px;border-radius:var(--r-pill);cursor:pointer;transition:all 0.2s;">
+      @foreach(['todos' => 'Todos', 'minisserie' => 'Minisséries'] as $val => $label)
+        <button class="filter-chip {{ $val === 'todos' ? 'active' : '' }}"
+                data-filter="{{ $val }}"
+                style="font-size:13px;font-weight:500;color:var(--fg-2);background:var(--bg-2);border:1px solid var(--line-2);padding:9px 16px;border-radius:var(--r-pill);cursor:pointer;transition:all 0.2s;">
           {{ $label }}
-      </button>
+        </button>
+      @endforeach
 
-  @endforeach
+      <span style="margin-left:auto;font-size:13px;color:var(--fg-3);">
+        {{ $classes->count() }} {{ $classes->count() === 1 ? 'curso' : 'cursos' }}
+      </span>
 
-  <span style="margin-left:auto;font-size:13px;color:var(--fg-3);">
-      {{ $classes->count() }} cursos
-  </span>
+    </div>
 
-</div>
+    {{-- Grid de cursos --}}
+    <div class="row g-4" id="coursesGrid">
 
-{{-- Grid de cursos --}}
-<div class="row g-4" id="coursesGrid">
+      @foreach($classes as $curso)
+        <div class="col-lg-4 col-md-6 course-col" data-category="minisserie">
 
-  @foreach($classes as $curso)
+          <div class="course-card" style="display:flex;flex-direction:column;">
 
-      <div class="col-lg-4 col-md-6 course-col"
-           data-category="minisserie">
-
-          <a href="{{ route('curso.show', $curso->slug) }}"
-             class="course-card"
-             data-category="minisserie"
-             style="display:flex;text-decoration:none;color:inherit;">
-
+            {{-- Thumb --}}
+            <a href="{{ route('curso.show', $curso->slug) }}" style="display:block;text-decoration:none;">
               <div class="course-card-thumb course-thumb-t"
-                   style="
-                      background-image:url('https://unyflex.com.br/storage/cursos/banner/{{$curso->photo}}');
-                      background-size:cover;
-                      background-position:center;
-                      background-repeat:no-repeat;
-                   ">
+                   style="background-image:url('https://unyflex.com.br/storage/cursos/banner/{{ $curso->photo }}');background-size:cover;background-position:center;background-repeat:no-repeat;">
 
-                  @if($curso->badge)
-                      <span class="course-card-badge novo">
-                          NOVO
-                      </span>
-                  @endif
+                @if($curso->novidade)
+                  <span class="course-card-badge novo">NOVO</span>
+                @endif
 
-                  <span class="course-card-duration">
-                      {{$curso->workload}}H
-                  </span>
+                @if($curso->workload)
+                  <span class="course-card-duration">{{ $curso->workload }}</span>
+                @endif
 
-                  <div class="course-card-play">
-                      <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.95);color:#0072FF;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px -8px rgba(0,163,255,0.6);">
-                          <svg viewBox="0 0 24 24"
-                               style="width:20px;height:20px;fill:currentColor;margin-left:2px;">
-                              <polygon points="6 4 20 12 6 20 6 4"/>
-                          </svg>
-                      </div>
+                <div class="course-card-play">
+                  <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.95);color:#0072FF;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px -8px rgba(0,163,255,0.6);">
+                    <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;margin-left:2px;">
+                      <polygon points="6 4 20 12 6 20 6 4"/>
+                    </svg>
                   </div>
+                </div>
+              </div>
+            </a>
+
+            {{-- Corpo --}}
+            <div class="course-card-body" style="flex:1;display:flex;flex-direction:column;">
+
+              <div class="course-eyebrow">MINISSÉRIE</div>
+
+              <a href="{{ route('curso.show', $curso->slug) }}" style="text-decoration:none;color:inherit;">
+                <div class="course-title">{{ $curso->title }}</div>
+              </a>
+
+              {{-- Botões --}}
+              <div style="display:flex;gap:8px;margin-top:auto;padding-top:14px;">
+
+                <a href="{{ route('curso.show', $curso->slug) }}"
+                   class="btn-ux btn-ux-ghost btn-ux-sm"
+                   style="flex:0 0 auto;">
+                  Ver detalhes
+                </a>
+
+                <button
+                  class="btn-ux btn-ux-primary btn-ux-sm btn-add-to-cart"
+                  style="flex:1;justify-content:center;"
+                  data-course-id="{{ $curso->id }}"
+                  data-course-title="{{ $curso->title }}"
+                  data-course-price="{{ $curso->valor ?? 998 }}"
+                  data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $curso->photo }}"
+                  data-course-slug="{{ $curso->slug }}"
+                  aria-label="Adicionar {{ $curso->title }} ao carrinho">
+
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  </svg>
+                  <span class="btn-cart-label">Adicionar</span>
+                </button>
 
               </div>
+            </div>
+          </div>
+        </div>
+      @endforeach
 
-              <div class="course-card-body">
-
-                  <div class="course-eyebrow">
-                      MINISSÉRIE · 70 CÁPSULAS
-                  </div>
-
-                  <div class="course-title">
-                      {{ $curso->title }}
-                  </div>
-
-                  <button class="course-card-cta">
-                      Acessar!
-                      <i data-lucide="arrow-right"
-                         style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;">
-                      </i>
-                  </button>
-
-              </div>
-
-          </a>
-
-      </div>
-
-  @endforeach
-
-</div>
     </div>
 
   </div>
+</div>
+
+{{-- Toast --}}
+<div class="cart-toast" id="cartToast" role="status" aria-live="polite">
+  <div class="cart-toast-icon">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </div>
+  <div class="cart-toast-body">
+    <div class="cart-toast-title">Adicionado ao carrinho!</div>
+    <div class="cart-toast-sub" id="cartToastSub">Minisérie adicionada com sucesso.</div>
+  </div>
+  <a href="{{ route('checkout') }}" class="cart-toast-action">Ver carrinho →</a>
 </div>
 
 @push('styles')
@@ -151,7 +173,86 @@
   box-shadow: 0 0 14px -4px rgba(0,163,255,0.45);
 }
 .filter-chip:hover { background: var(--bg-3); color: #fff; }
+
+.btn-add-to-cart.in-cart {
+  background: rgba(0,200,120,0.15) !important;
+  border-color: rgba(0,200,120,0.4) !important;
+  color: var(--success) !important;
+  pointer-events: none;
+}
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // Marca botões já no carrinho ao carregar
+  const cart = UnyCart.getCart();
+  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+    if (cart.find(i => String(i.id) === String(btn.dataset.courseId))) {
+      setInCart(btn);
+    }
+  });
+
+  // Listener nos botões
+  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+
+      const item = {
+        id:    this.dataset.courseId,
+        title: this.dataset.courseTitle,
+        price: parseFloat(this.dataset.coursePrice) || 998,
+        thumb: this.dataset.courseThumb,
+        slug:  this.dataset.courseSlug,
+      };
+
+      const result = UnyCart.addItem(item);
+
+      if (result.added) {
+        setInCart(this);
+        showCartToast(item.title);
+      } else {
+        // Já está no carrinho — vai para o checkout
+        window.location.href = '{{ route('checkout') }}';
+      }
+    });
+  });
+
+  function setInCart(btn) {
+    btn.classList.add('in-cart');
+    const lbl = btn.querySelector('.btn-cart-label');
+    if (lbl) lbl.textContent = 'No carrinho';
+    btn.setAttribute('aria-label', (btn.dataset.courseTitle ?? '') + ' — já no carrinho');
+  }
+
+  // Toast
+  let toastTimer;
+  function showCartToast(title) {
+    const toast = document.getElementById('cartToast');
+    const sub   = document.getElementById('cartToastSub');
+    if (!toast) return;
+    sub.textContent = title;
+    toast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+  }
+
+  // Ouve evento de atualização do carrinho
+  document.addEventListener('cart:updated', function (e) {
+    const ids = (e.detail?.cart ?? []).map(i => String(i.id));
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+      if (!ids.includes(String(btn.dataset.courseId))) {
+        btn.classList.remove('in-cart');
+        const lbl = btn.querySelector('.btn-cart-label');
+        if (lbl) lbl.textContent = 'Adicionar';
+      }
+    });
+  });
+
+});
+</script>
 @endpush
 
 @endsection

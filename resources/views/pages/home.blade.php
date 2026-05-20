@@ -17,18 +17,18 @@
           <span class="dot"></span>
           <span>Miniséries para gestão pública · MEC</span>
         </div>
-
+      
         <h1 class="hero-title aos-fade aos-delay-1">
           Domine a gestão pública em
           <span class="highlight">cápsulas de 20 minutos</span>
         </h1>
-
+      
         <p class="hero-subtitle aos-fade aos-delay-2">
           Treinamentos de alta performance para servidores municipais, pregoeiros,
           gestores e auditores que precisam de resultados — não de teoria.
           Aplicável no dia seguinte ao trabalho.
         </p>
-
+      
         <div class="hero-cta-group aos-fade aos-delay-3">
           <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
@@ -38,7 +38,7 @@
             Ver catálogo completo
           </a>
         </div>
-
+      
         <div class="hero-proof aos-fade aos-delay-4">
           <div class="hero-proof-item">
             <i data-lucide="users" style="width:16px;height:16px;stroke:var(--brand-400);fill:none;stroke-width:1.75;"></i>
@@ -54,40 +54,99 @@
           </div>
         </div>
       </div>
+      
+      {{-- COLUNA DO VÍDEO --}}
+      <div class="col-lg-6 aos-fade aos-delay-2">
+        <div style="
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #0a0f1e;
+          border: 1px solid rgba(59,130,246,0.25);
+          box-shadow: 0 0 40px rgba(59,130,246,0.12);
+          aspect-ratio: 16/9;
+          width: 100%;
+        ">
+          <video
+            id="heroVideo"
+            src="https://unyflex.com.br/storage/fav/IMG_1902.mp4"
+            preload="metadata"
+            playsinline
+            controls
+            style="width:100%; height:100%; object-fit:cover; display:block;"
+          ></video>
+      
+          <div id="heroVideoOverlay" onclick="playHeroVideo()" style="
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(5,10,30,0.72) 0%, rgba(10,20,50,0.55) 100%);
+            cursor: pointer;
+            transition: background 0.3s ease;
+          "
+          onmouseover="this.style.background='linear-gradient(135deg,rgba(5,10,30,0.45) 0%,rgba(10,20,50,0.3) 100%)'"
+          onmouseout="this.style.background='linear-gradient(135deg,rgba(5,10,30,0.72) 0%,rgba(10,20,50,0.55) 100%)'"
+          >
+            <div style="
+              width:72px; height:72px;
+              border-radius:50%;
+              background:rgba(255,255,255,0.95);
+              display:flex; align-items:center; justify-content:center;
+              animation: pulsePlay 2s infinite;
+            ">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1d4ed8" width="32" height="32">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
+          </div>
+      
+          <div style="
+            position:absolute; bottom:0; left:0; right:0;
+            height:3px;
+            background: linear-gradient(90deg, #2563eb, #38bdf8, #2563eb);
+            background-size:200% 100%;
+            animation: shimmer 2.5s linear infinite;
+          "></div>
+        </div>
+      
+        <div style="display:flex; gap:12px; margin-top:16px;">
+          <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary btn-ux-lg" style="flex:1; justify-content:center;">
+            <i data-lucide="play" style="width:16px;height:16px;fill:currentColor;stroke:none;"></i>
+            Ver minisséries
+          </a>
+          <a href="{{ route('cursos') }}" class="btn-ux btn-ux-ghost btn-ux-lg">
+            Catálogo
+          </a>
+        </div>
+      </div>
+      
+      @once
+      <style>
+      @keyframes pulsePlay {
+        0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); }
+        70%  { box-shadow: 0 0 0 18px rgba(59,130,246,0); }
+        100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+      }
+      @keyframes shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      </style>
+      
+      <script>
+      function playHeroVideo() {
+        document.getElementById('heroVideoOverlay').style.display = 'none';
+        document.getElementById('heroVideo').play();
+      }
+      </script>
+      @endonce
 
       <div class="col-lg-6 aos-fade aos-delay-2">
         <div class="hero-visual">
-          <div class="floating-badge floating-badge-1">
-            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-              <div style="height:3px;width:80px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-                <div style="height:100%;width:100%;background:var(--grad-brand);"></div>
-              </div>
-              <span style="font-family:var(--font-mono);font-size:10px;color:var(--success);">100%</span>
-            </div>
-          </div>
+     
 
-          <div class="hero-card">
-            <div class="hero-card-thumb">
-              <div class="hero-play-btn">
-                <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:currentColor;margin-left:3px;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-              </div>
-              <div style="position:absolute;bottom:12px;left:12px;right:12px;">
-                <div style="background:rgba(5,8,15,0.75);backdrop-filter:blur(8px);border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;">
-                  <div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"></div>
-                </div>
-              </div>
-            </div>
-
-            <div style="margin-bottom:16px;"></div>
-
-            <div style="display:flex;gap:10px;">
-              <a href="{{ route('cursos') }}" class="btn-ux btn-ux-primary" style="flex:1;justify-content:center;">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-                Ver minisséries
-              </a>
-              <a href="{{ route('cursos') }}" class="btn-ux btn-ux-ghost">Catálogo</a>
-            </div>
-          </div>
         </div>
       </div>
 
