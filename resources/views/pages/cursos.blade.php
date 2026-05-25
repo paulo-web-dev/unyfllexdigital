@@ -185,74 +185,104 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-
-  // Marca botões já no carrinho ao carregar
-  const cart = UnyCart.getCart();
-  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
-    if (cart.find(i => String(i.id) === String(btn.dataset.courseId))) {
-      setInCart(btn);
-    }
-  });
-
-  // Listener nos botões
-  document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-
-      const item = {
-        id:    this.dataset.courseId,
-        title: this.dataset.courseTitle,
-        price: parseFloat(this.dataset.coursePrice) || 998,
-        thumb: this.dataset.courseThumb,
-        slug:  this.dataset.courseSlug,
-      };
-
-      const result = UnyCart.addItem(item);
-
-      if (result.added) {
-        setInCart(this);
-        showCartToast(item.title);
-      } else {
-        // Já está no carrinho — vai para o checkout
-        window.location.href = '{{ route('checkout') }}';
-      }
-    });
-  });
-
-  function setInCart(btn) {
-    btn.classList.add('in-cart');
-    const lbl = btn.querySelector('.btn-cart-label');
-    if (lbl) lbl.textContent = 'No carrinho';
-    btn.setAttribute('aria-label', (btn.dataset.courseTitle ?? '') + ' — já no carrinho');
-  }
-
-  // Toast
-  let toastTimer;
-  function showCartToast(title) {
-    const toast = document.getElementById('cartToast');
-    const sub   = document.getElementById('cartToastSub');
-    if (!toast) return;
-    sub.textContent = title;
-    toast.classList.add('visible');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
-  }
-
-  // Ouve evento de atualização do carrinho
-  document.addEventListener('cart:updated', function (e) {
-    const ids = (e.detail?.cart ?? []).map(i => String(i.id));
+  document.addEventListener('DOMContentLoaded', function () {
+  
+    // Marca botões já no carrinho ao carregar a página
+    const cart = UnyCart.getCart();
+  
     document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
-      if (!ids.includes(String(btn.dataset.courseId))) {
-        btn.classList.remove('in-cart');
-        const lbl = btn.querySelector('.btn-cart-label');
-        if (lbl) lbl.textContent = 'Adicionar';
+      const id = String(btn.dataset.courseId);
+  
+      if (cart.find(i => String(i.id) === id)) {
+        setInCart(btn);
       }
     });
+  
+    // Listener nos botões
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+  
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+  
+        const item = {
+          id:    this.dataset.courseId,
+          title: this.dataset.courseTitle,
+          price: parseFloat(this.dataset.coursePrice) || 0,
+          thumb: this.dataset.courseThumb,
+          slug:  this.dataset.courseSlug,
+        };
+  
+        const result = UnyCart.addItem(item);
+  
+        // Adicionou ou já existia → vai para checkout
+        if (result.added) {
+          setInCart(this);
+        }
+  
+        window.location.href = '/checkout';
+      });
+  
+    });
+  
+    function setInCart(btn) {
+      btn.classList.add('in-cart');
+  
+      const label = btn.querySelector('.btn-cart-label');
+  
+      if (label) {
+        label.textContent = 'No carrinho';
+      }
+  
+      btn.setAttribute(
+        'aria-label',
+        btn.dataset.courseTitle + ' — já no carrinho'
+      );
+    }
+  
+    // Toast
+    let toastTimer;
+  
+    function showCartToast(title) {
+      const toast = document.getElementById('cartToast');
+      const sub   = document.getElementById('cartToastSub');
+  
+      if (!toast || !sub) return;
+  
+      sub.textContent = title;
+  
+      toast.classList.add('visible');
+  
+      clearTimeout(toastTimer);
+  
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 4000);
+    }
+  
+    // Atualização do carrinho
+    document.addEventListener('cart:updated', function (e) {
+  
+      const ids = e.detail.cart.map(i => String(i.id));
+  
+      document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+  
+        if (!ids.includes(String(btn.dataset.courseId))) {
+  
+          btn.classList.remove('in-cart');
+  
+          const label = btn.querySelector('.btn-cart-label');
+  
+          if (label) {
+            label.textContent = 'Adicionar';
+          }
+        }
+  
+      });
+  
+    });
+  
   });
-
-});
-</script>
+  </script>
 @endpush
 
 @endsection

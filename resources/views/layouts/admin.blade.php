@@ -136,21 +136,36 @@
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       <span>Dashboard</span>
     </a>
+
+    {{-- Analytics: apenas super admin --}}
+    @can('admin.analytics')
     <a href="{{ route('admin.analytics') }}" class="nav-item {{ request()->routeIs('admin.analytics') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>Analytics</span>
       <span class="nav-badge" style="background:rgba(43,217,161,0.15);color:#6FE6BD;">LIVE</span>
     </a>
+    @endcan
 
     <div class="sidebar-section-label">Operacional</div>
+
+    {{-- Alunos: super admin e comercial --}}
+    @can('admin.alunos')
     <a href="{{ route('admin.alunos') }}" class="nav-item {{ request()->routeIs('admin.alunos*') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Alunos</span>
     </a>
+    @endcan
+
+    {{-- Matrículas: super admin e comercial --}}
+    @can('admin.matriculas')
     <a href="{{ route('admin.matriculas') }}" class="nav-item {{ request()->routeIs('admin.matriculas*') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
       <span>Matrículas</span>
     </a>
+    @endcan
+
+    {{-- Cursos / Materiais: apenas super admin --}}
+    @can('admin.cursos')
     <a href="{{ route('admin.cursos') }}" class="nav-item {{ request()->routeIs('admin.cursos*') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
       <span>Cursos</span>
@@ -167,21 +182,31 @@
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
       <span>Cupons</span>
     </a>
+    @endcan
+
     <a href="{{ route('admin.certif') }}" class="nav-item {{ request()->routeIs('admin.certif') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
       <span>Certificados</span>
     </a>
 
+    {{-- Financeiro / Relatórios: apenas super admin --}}
+    @can('admin.financeiro')
     <div class="sidebar-section-label">Financeiro</div>
     <a href="{{ route('admin.financeiro') }}" class="nav-item {{ request()->routeIs('admin.financeiro') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       <span>Financeiro</span>
     </a>
+    @endcan
+
+    @can('admin.relatorios')
     <a href="{{ route('admin.relatorios') }}" class="nav-item {{ request()->routeIs('admin.relatorios') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <span>Relatórios</span>
     </a>
+    @endcan
 
+    {{-- Sistema: apenas super admin --}}
+    @can('admin.super')
     <div class="sidebar-section-label">Sistema</div>
     <a href="{{ route('admin.suporte') }}"   class="nav-item {{ request()->routeIs('admin.suporte')   ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
@@ -207,6 +232,15 @@
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Configurações</span>
     </a>
+    @endcan
+
+    {{-- Badge de role do usuário logado --}}
+    @if(auth()->user()->power == 13)
+    <div style="margin:12px 16px 0;padding:10px 14px;background:rgba(232,183,101,0.08);border:1px solid rgba(232,183,101,0.25);border-radius:var(--r-md);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-400);margin-bottom:3px;">Acesso Comercial</div>
+      <div style="font-size:11px;color:var(--fg-4);">Carteira: <strong style="color:var(--fg-2);">{{ auth()->user()->name }}</strong></div>
+    </div>
+    @endif
 
     <div class="sidebar-spacer"></div>
 

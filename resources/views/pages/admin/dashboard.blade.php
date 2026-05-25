@@ -134,6 +134,146 @@
 
   </div>
 </div>
+{{-- ══ Ranking de carteiras — apenas super admin ══════════════════════ --}}
+@can('admin.super')
+@if($rankingCarteiras->isNotEmpty())
+<div style="margin-top:18px;">
+  <div class="card" style="padding:0;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h3 style="margin:0;font-size:15px;">Ranking de vendedores</h3>
+        <div style="font-size:11.5px;color:var(--fg-4);margin-top:2px;">Faturamento por carteira · acumulado</div>
+      </div>
+      <div style="display:flex;gap:20px;font-size:12px;color:var(--fg-4);">
+        <span>{{ $rankingCarteiras->count() }} vendedor(es)</span>
+        <span>Total: <strong style="color:#fff;">R$ {{ number_format($rankingCarteiras->sum('receita'),2,',','.') }}</strong></span>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:36px;">#</th>
+            <th>Vendedor / Carteira</th>
+            <th style="text-align:center;">Matrículas</th>
+            <th style="text-align:center;">Confirmadas</th>
+            <th style="text-align:center;">Pendentes</th>
+            <th style="text-align:right;">A receber</th>
+            <th style="text-align:right;">Faturado</th>
+            <th style="text-align:right;">Última venda</th>
+            <th style="width:160px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @php
+            $maxReceita = $rankingCarteiras->max('receita');
+          @endphp
+          @foreach($rankingCarteiras as $i => $carteira)
+            @php
+              $pct      = $maxReceita > 0 ? round(($carteira->receita / $maxReceita) * 100) : 0;
+              $iniciais = strtoupper(substr($carteira->wallet, 0, 2));
+              $isTop    = $i === 0;
+            @endphp
+            <tr>
+              {{-- Posição --}}
+              <td>
+                @if($i === 0)
+                  <span style="font-size:16px;" title="1º lugar">🥇</span>
+                @elseif($i === 1)
+                  <span style="font-size:16px;" title="2º lugar">🥈</span>
+                @elseif($i === 2)
+                  <span style="font-size:16px;" title="3º lugar">🥉</span>
+                @else
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--fg-4);">{{ $i + 1 }}</span>
+                @endif
+              </td>
+
+              {{-- Vendedor --}}
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:50%;background:{{ $isTop ? 'linear-gradient(135deg,#E8B765,#C9921A)' : 'var(--grad-brand)' }};color:{{ $isTop ? '#061224' : '#061224' }};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    {{ $iniciais }}
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:{{ $isTop ? 'var(--gold-400)' : 'var(--fg-1)' }};">
+                      {{ $carteira->wallet }}
+                      @if($isTop)
+                        <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-400);margin-left:6px;">TOP</span>
+                      @endif
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              {{-- Total matrículas --}}
+              <td style="text-align:center;font-family:var(--font-mono);font-size:13px;">
+                {{ number_format($carteira->total_matriculas, 0, ',', '.') }}
+              </td>
+
+              {{-- Confirmadas --}}
+              <td style="text-align:center;">
+                <span class="badge success">{{ $carteira->confirmadas }}</span>
+              </td>
+
+              {{-- Pendentes --}}
+              <td style="text-align:center;">
+                @if($carteira->pendentes > 0)
+                  <span class="badge warn">{{ $carteira->pendentes }}</span>
+                @else
+                  <span style="font-size:12px;color:var(--fg-4);">—</span>
+                @endif
+              </td>
+
+              {{-- A receber --}}
+              <td style="text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--fg-3);">
+                @if($carteira->a_receber > 0)
+                  R$ {{ number_format($carteira->a_receber, 0, ',', '.') }}
+                @else
+                  <span style="color:var(--fg-4);">—</span>
+                @endif
+              </td>
+
+              {{-- Faturado --}}
+              <td style="text-align:right;">
+                <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:{{ $isTop ? 'var(--gold-400)' : 'var(--fg-1)' }};">
+                  R$ {{ number_format($carteira->receita, 0, ',', '.') }}
+                </div>
+              </td>
+
+              {{-- Última venda --}}
+              <td style="text-align:right;font-size:11px;color:var(--fg-4);">
+                {{ $carteira->ultima_venda ? \Carbon\Carbon::parse($carteira->ultima_venda)->diffForHumans() : '—' }}
+              </td>
+
+              {{-- Barra de progresso --}}
+              <td>
+                <div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:{{ $pct }}%;background:{{ $isTop ? 'linear-gradient(90deg,#E8B765,#F0C97A)' : 'var(--grad-brand)' }};border-radius:3px;transition:width 0.6s ease;"></div>
+                </div>
+                <div style="font-size:10px;color:var(--fg-4);text-align:right;margin-top:3px;">{{ $pct }}%</div>
+              </td>
+            </tr>
+          @endforeach
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--line-2);">
+            <td colspan="2" style="padding:12px 16px;font-size:12px;font-weight:700;color:var(--fg-3);">TOTAL GERAL</td>
+            <td style="text-align:center;font-family:var(--font-mono);font-weight:700;font-size:13px;">{{ number_format($rankingCarteiras->sum('total_matriculas'),0,',','.') }}</td>
+            <td style="text-align:center;"><span class="badge success">{{ number_format($rankingCarteiras->sum('confirmadas'),0,',','.') }}</span></td>
+            <td style="text-align:center;"><span class="badge warn">{{ number_format($rankingCarteiras->sum('pendentes'),0,',','.') }}</span></td>
+            <td style="text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--fg-3);">R$ {{ number_format($rankingCarteiras->sum('a_receber'),0,',','.') }}</td>
+            <td style="text-align:right;font-family:var(--font-mono);font-size:15px;font-weight:800;color:var(--gold-400);">R$ {{ number_format($rankingCarteiras->sum('receita'),0,',','.') }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+@endif
+@endcan
+
 @endsection
 
 @push('scripts')

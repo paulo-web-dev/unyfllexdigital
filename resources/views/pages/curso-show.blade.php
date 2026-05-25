@@ -24,10 +24,24 @@
             </div>
             <span id="header-progress-pct" style="font-family:var(--font-mono);font-size:11px;color:var(--brand-300);">0%</span>
           </div>
-          <a href="{{ $classes->checkout_url ?? '#' }}" class="btn-ux btn-ux-primary btn-ux-sm">
-            <i data-lucide="award" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;"></i>
-            Garantir Acesso Completo
-          </a>
+          <button
+          class="btn-ux btn-ux-primary btn-ux-sm btn-add-to-cart"
+          style="display:inline-flex;align-items:center;gap:8px;"
+          data-course-id="{{ $classes->id }}"
+          data-course-title="{{ $classes->title }}"
+          data-course-price="{{ $classes->price ?? 0 }}"
+          data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $classes->photo }}"
+          data-course-slug="{{ $classes->slug }}"
+          aria-label="Adicionar {{ $classes->title }} ao carrinho">
+      
+          <i data-lucide="award"
+             style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;">
+          </i>
+      
+          <span class="btn-cart-label">
+              Garantir Acesso Completo
+          </span>
+      </button>
         </div>
       </div>
     </div>
@@ -271,14 +285,25 @@
       </div>
 
       {{-- CTA --}}
-      <a href="{{ $classes->checkout_url ?? '#' }}"
-         id="modal-cta-btn"
-         style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px 24px;background:var(--grad-brand);border-radius:12px;font-size:15px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:0.01em;transition:opacity 0.2s;margin-bottom:12px;"
-         onmouseover="this.style.opacity='0.9'"
-         onmouseout="this.style.opacity='1'">
-        <i data-lucide="zap" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;"></i>
-        Garantir Acesso Completo
-      </a>
+      <button
+      id="modal-cta-btn"
+      class="btn-add-to-cart"
+      data-course-id="{{ $classes->id }}"
+      data-course-title="{{ $classes->title }}"
+      data-course-price="{{ $classes->price ?? 0 }}"
+      data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $classes->photo }}"
+      data-course-slug="{{ $classes->slug }}"
+      aria-label="Adicionar {{ $classes->title }} ao carrinho"
+      style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px 24px;background:var(--grad-brand);border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:0.01em;transition:opacity 0.2s;margin-bottom:12px;cursor:pointer;"
+      onmouseover="this.style.opacity='0.9'"
+      onmouseout="this.style.opacity='1'">
+  
+      <i data-lucide="zap"
+         style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;">
+      </i>
+  
+      Garantir Acesso Completo
+  </button>
 
       <button onclick="closeLockModal()"
               style="width:100%;padding:11px;background:transparent;border:1px solid var(--line-2);border-radius:10px;font-size:13px;color:var(--fg-3);cursor:pointer;font-family:inherit;transition:border-color 0.2s;"
@@ -550,6 +575,106 @@
   carregarVideo(0);
 })();
 </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+  
+    // Marca botões já no carrinho ao carregar a página
+    const cart = UnyCart.getCart();
+  
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+      const id = String(btn.dataset.courseId);
+  
+      if (cart.find(i => String(i.id) === id)) {
+        setInCart(btn);
+      }
+    });
+  
+    // Listener nos botões
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+  
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+  
+        const item = {
+          id:    this.dataset.courseId,
+          title: this.dataset.courseTitle,
+          price: parseFloat(this.dataset.coursePrice) || 0,
+          thumb: this.dataset.courseThumb,
+          slug:  this.dataset.courseSlug,
+        };
+  
+        const result = UnyCart.addItem(item);
+  
+        // Adicionou ou já existia → vai para checkout
+        if (result.added) {
+          setInCart(this);
+        }
+  
+        window.location.href = '/checkout';
+      });
+  
+    });
+  
+    function setInCart(btn) {
+      btn.classList.add('in-cart');
+  
+      const label = btn.querySelector('.btn-cart-label');
+  
+      if (label) {
+        label.textContent = 'No carrinho';
+      }
+  
+      btn.setAttribute(
+        'aria-label',
+        btn.dataset.courseTitle + ' — já no carrinho'
+      );
+    }
+  
+    // Toast
+    let toastTimer;
+  
+    function showCartToast(title) {
+      const toast = document.getElementById('cartToast');
+      const sub   = document.getElementById('cartToastSub');
+  
+      if (!toast || !sub) return;
+  
+      sub.textContent = title;
+  
+      toast.classList.add('visible');
+  
+      clearTimeout(toastTimer);
+  
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 4000);
+    }
+  
+    // Atualização do carrinho
+    document.addEventListener('cart:updated', function (e) {
+  
+      const ids = e.detail.cart.map(i => String(i.id));
+  
+      document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+  
+        if (!ids.includes(String(btn.dataset.courseId))) {
+  
+          btn.classList.remove('in-cart');
+  
+          const label = btn.querySelector('.btn-cart-label');
+  
+          if (label) {
+            label.textContent = 'Adicionar';
+          }
+        }
+  
+      });
+  
+    });
+  
+  });
+  </script>
+  
 @endpush
 
 @endsection

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ViewsMaterialsMinisserie extends Model
 { 
     
-    use HasFactory;
+    use HasFactory;   
  
     protected $table = 'views_materials_minisseries';
 

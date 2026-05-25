@@ -4,16 +4,19 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Bloqueia acesso ao painel admin para qualquer usuário com power < 13.
+ * Super Admin = power >= 14
+ * Comercial   = power == 13
+ */
 class IsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Deve estar logado E ter power > 10
-        if (!Auth::check() || (int) Auth::user()->power <= 10) {
-            abort(403, 'Acesso restrito.');
+        if (!auth()->check() || auth()->user()->power < 13) {
+            abort(403, 'Acesso não autorizado.');
         }
 
         return $next($request);
