@@ -23,7 +23,13 @@ class AuthController extends Controller
     {
         // Se já estiver logado, vai direto pro dashboard
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            $user = auth()->user();
+
+        if ($user->power >= 13) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return redirect()->intended(route('dashboard'));
         }
 
         return view('pages.login');
@@ -40,30 +46,34 @@ class AuthController extends Controller
             'email.email'       => 'E-mail inválido.',
             'password.required' => 'Informe sua senha.',
         ]);
-
-        // Rate limit: máx 5 tentativas por IP/email a cada 60s
+    
         $throttleKey = Str::lower($request->email) . '|' . $request->ip();
-
+    
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => "Muitas tentativas. Tente novamente em {$seconds} segundos."]);
         }
-
-        // Tenta autenticar usando o campo 'email' da tabela users
+    
         $credentials = $request->only('email', 'password');
         $remember    = $request->boolean('remember');
-
+    
         if (Auth::attempt($credentials, $remember)) {
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
+    
+            // Admin (power >= 13) vai para o painel admin
+            if (Auth::user()->power >= 13) {
+                return redirect()->route('admin.dashboard');
+            }
+    
+            // Aluno vai para o AVA
             return redirect()->intended(route('dashboard'));
         }
-
-        // Falha: incrementa tentativa e retorna erro genérico
+    
         RateLimiter::hit($throttleKey, 60);
-
+    
         return back()
             ->withInput($request->only('email'))
             ->withErrors(['email' => 'E-mail ou senha incorretos.']);
