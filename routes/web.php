@@ -129,6 +129,9 @@ Route::prefix('admin')
         Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');
  
         // ── Sistema — apenas super admin ──────────────────────────────────
+        Route::get('/referral', [AdminController::class, 'referralAnalytics'])
+            ->name('referral')
+            ->middleware('admin.can:admin.super');
         Route::get('/certif',     [AdminController::class, 'certif'])->name('certif');
         Route::get('/suporte',    [AdminController::class, 'suporte'])->name('suporte');
         Route::get('/equipe',     [AdminController::class, 'equipe'])->name('equipe')->middleware('admin.can:admin.equipe');

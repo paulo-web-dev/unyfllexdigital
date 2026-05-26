@@ -893,4 +893,113 @@ class AdminController extends Controller
     ));
 }
 
+public function referralAnalytics(Request $request)
+{
+    $this->authorize('admin.super');
+
+    $periodo = $request->get('periodo', '30'); // dias
+    $inicio  = now()->subDays((int) $periodo - 1)->startOfDay();
+
+    // ── KPIs gerais ───────────────────────────────────────────────────────
+    $totalCliquesGeral  = \App\Models\ReferralClick::count();
+    $cliquesNoPeriodo   = \App\Models\ReferralClick::where('created_at', '>=', $inicio)->count();
+    $totalVendedores    = \App\Models\ReferralClick::distinct('token')->count('token');
+    $cliquesHoje        = \App\Models\ReferralClick::whereDate('created_at', today())->count();
+
+    // Total de conversões (matrículas com wallet preenchida por referral)
+    $classesIds = \App\Models\Classes::where('express', '1')->pluck('id');
+    $totalConversoes = \App\Models\Enrollment::whereIn('classes_id', $classesIds)
+        ->whereNotNull('wallet')
+        ->where('wallet', '!=', 'Matrícula automatica ASAAS')
+        ->count();
+
+    $receitaReferral = \App\Models\Enrollment::whereIn('classes_id', $classesIds)
+        ->whereNotNull('wallet')
+        ->where('wallet', '!=', 'Matrícula automatica ASAAS')
+        ->where('status', 'checked')
+        ->sum('final_value');
+
+    // ── Cliques por dia (gráfico de linha geral) ──────────────────────────
+    $cliquesporDia = \App\Models\ReferralClick::where('created_at', '>=', $inicio)
+        ->selectRaw('DATE(created_at) as dia, COUNT(*) as total')
+        ->groupBy('dia')
+        ->orderBy('dia')
+        ->get()
+        ->keyBy('dia');
+
+    $grafDiasLabels  = collect();
+    $grafDiasCliques = collect();
+    for ($i = (int) $periodo - 1; $i >= 0; $i--) {
+        $d = now()->subDays($i)->format('Y-m-d');
+        $grafDiasLabels->push(now()->subDays($i)->format('d/m'));
+        $grafDiasCliques->push($cliquesporDia[$d]->total ?? 0);
+    }
+
+    // ── Cliques por vendedor no período ───────────────────────────────────
+    $cliquesporVendedor = \App\Models\ReferralClick::where('created_at', '>=', $inicio)
+        ->selectRaw('token, COUNT(*) as cliques')
+        ->groupBy('token')
+        ->orderByDesc('cliques')
+        ->get();
+
+    // ── Conversões por vendedor ───────────────────────────────────────────
+    $conversoesPorVendedor = \App\Models\Enrollment::whereIn('classes_id', $classesIds)
+        ->whereNotNull('wallet')
+        ->where('wallet', '!=', 'Matrícula automatica ASAAS')
+        ->where('created_at', '>=', $inicio)
+        ->selectRaw('wallet, COUNT(*) as conversoes, SUM(CASE WHEN status="checked" THEN final_value ELSE 0 END) as receita')
+        ->groupBy('wallet')
+        ->orderByDesc('receita')
+        ->get()
+        ->keyBy('wallet');
+
+    // ── Ranking completo por vendedor ─────────────────────────────────────
+    $rankingVendedores = $cliquesporVendedor->map(function ($item) use ($conversoesPorVendedor) {
+        $conv     = $conversoesPorVendedor[$item->token] ?? null;
+        $conversoes = $conv?->conversoes ?? 0;
+        $receita    = $conv?->receita    ?? 0;
+        $taxa       = $item->cliques > 0 ? round(($conversoes / $item->cliques) * 100, 1) : 0;
+
+        return (object) [
+            'token'     => $item->token,
+            'cliques'   => $item->cliques,
+            'conversoes'=> $conversoes,
+            'receita'   => $receita,
+            'taxa'      => $taxa,
+        ];
+    });
+
+    // ── Cliques por hora do dia (heatmap simplificado) ────────────────────
+    $cliquesporHora = \App\Models\ReferralClick::where('created_at', '>=', $inicio)
+        ->selectRaw('HOUR(created_at) as hora, COUNT(*) as total')
+        ->groupBy('hora')
+        ->orderBy('hora')
+        ->get()
+        ->keyBy('hora');
+
+    $grafHorasLabels  = collect();
+    $grafHorasCliques = collect();
+    for ($h = 0; $h < 24; $h++) {
+        $grafHorasLabels->push(str_pad($h, 2, '0', STR_PAD_LEFT) . 'h');
+        $grafHorasCliques->push($cliquesporHora[$h]->total ?? 0);
+    }
+
+    // ── Top 5 tokens gráfico barras ───────────────────────────────────────
+    $top5 = $cliquesporVendedor->take(5);
+    $grafTop5Labels  = $top5->pluck('token');
+    $grafTop5Cliques = $top5->pluck('cliques');
+
+    $kpis = compact(
+        'totalCliquesGeral', 'cliquesNoPeriodo', 'totalVendedores',
+        'cliquesHoje', 'totalConversoes', 'receitaReferral'
+    );
+
+    return view('pages.admin.referral-analytics', compact(
+        'kpis', 'periodo', 'rankingVendedores',
+        'grafDiasLabels', 'grafDiasCliques',
+        'grafHorasLabels', 'grafHorasCliques',
+        'grafTop5Labels', 'grafTop5Cliques'
+    ));
+}
+
 }

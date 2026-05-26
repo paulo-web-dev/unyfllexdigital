@@ -144,6 +144,13 @@
       <span>Analytics</span>
       <span class="nav-badge" style="background:rgba(43,217,161,0.15);color:#6FE6BD;">LIVE</span>
     </a>
+    <a href="{{ route('admin.referral') }}" class="nav-item {{ request()->routeIs('admin.referral') ? 'active' : '' }}">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      <span>Links Referral</span>
+    </a>
     @endcan
 
     <div class="sidebar-section-label">Operacional</div>
@@ -216,6 +223,13 @@
 
     {{-- Sistema: apenas super admin --}}
     @can('admin.super')
+    <a href="{{ route('admin.referral') }}" class="nav-item {{ request()->routeIs('admin.referral') ? 'active' : '' }}">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      <span>Links Referral</span>
+    </a>
     <div class="sidebar-section-label">Sistema</div>
     <a href="{{ route('admin.suporte') }}"   class="nav-item {{ request()->routeIs('admin.suporte')   ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
