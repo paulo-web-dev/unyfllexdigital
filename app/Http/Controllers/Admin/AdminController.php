@@ -13,6 +13,7 @@ use App\Models\VideoLesson;
 use App\Models\ViewsMinisserie;
 use App\Models\User;
 use App\Models\Student;
+use App\Models\ReferralClick;
 use App\Traits\EnrollmentScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -832,4 +833,64 @@ class AdminController extends Controller
         MaterialPanels::firstOrCreate(['material_id'=>$material->id,'panel_id'=>$panelId],['course_id'=>$panel->classes_id,'status'=>'able']);
         return redirect()->route('admin.panels.edit',$panelId)->with('success',"Material \"{$material->name}\" vinculado com sucesso!");
     }
+
+
+    public function meuLink()
+{
+    $user  = auth()->user();
+    $token = urlencode($user->name); // token = nome do vendedor
+
+    // URL base do site (ajuste se necessário)
+    $baseUrl  = config('app.url');
+    $linkBase = "{$baseUrl}/?ref={$token}";
+    $linkCursos = "{$baseUrl}/minisseries?ref={$token}";
+
+    // Estatísticas de cliques
+    $totalCliques = \App\Models\ReferralClick::where('token', $user->name)->count();
+    $cliquesHoje  = \App\Models\ReferralClick::where('token', $user->name)->whereDate('clicked_at', today())->count();
+    $cliques7d    = \App\Models\ReferralClick::where('token', $user->name)->where('clicked_at', '>=', now()->subDays(7)->toDateString())->count();
+    $cliques30d   = \App\Models\ReferralClick::where('token', $user->name)->where('clicked_at', '>=', now()->subDays(30)->toDateString())->count();
+
+    // Cliques por dia (últimos 30 dias) para o gráfico
+    $cliquesGraf = \App\Models\ReferralClick::where('token', $user->name)
+        ->where('clicked_at', '>=', now()->subDays(29)->toDateString())
+        ->selectRaw('clicked_at, COUNT(*) as total')
+        ->groupBy('clicked_at')
+        ->orderBy('clicked_at')
+        ->get()
+        ->keyBy('clicked_at');
+
+    $grafLabels  = collect();
+    $grafValores = collect();
+    for ($i = 29; $i >= 0; $i--) {
+        $d = now()->subDays($i)->toDateString();
+        $grafLabels->push(now()->subDays($i)->format('d/m'));
+        $grafValores->push($cliquesGraf[$d]->total ?? 0);
+    }
+
+    // Conversões (matrículas que vieram deste vendedor)
+    $classesIds = \App\Models\Classes::where('express', '1')->pluck('id');
+    $baseEnroll = \App\Models\Enrollment::whereIn('classes_id', $classesIds)->where('wallet', $user->name);
+
+    $totalConversoes = (clone $baseEnroll)->count();
+    $receitaTotal    = (clone $baseEnroll)->where('status', 'checked')->sum('final_value');
+    $receitaMes      = (clone $baseEnroll)->where('status', 'checked')->where('created_at', '>=', now()->startOfMonth())->sum('final_value');
+    $taxaConversao   = $totalCliques > 0 ? round(($totalConversoes / $totalCliques) * 100, 1) : 0;
+
+    // Últimas matrículas convertidas
+    $ultimasConversoes = (clone $baseEnroll)
+        ->with(['student:id,name,email', 'classes:id,title'])
+        ->orderByDesc('id')
+        ->limit(10)
+        ->get();
+
+    return view('pages.admin.meu-link', compact(
+        'user', 'linkBase', 'linkCursos', 'token',
+        'totalCliques', 'cliquesHoje', 'cliques7d', 'cliques30d',
+        'grafLabels', 'grafValores',
+        'totalConversoes', 'receitaTotal', 'receitaMes', 'taxaConversao',
+        'ultimasConversoes'
+    ));
+}
+
 }

@@ -125,6 +125,9 @@ Route::prefix('admin')
         Route::post('/materiais/{mId}/vincular/{pId}',      [AdminController::class, 'materialVincular'])->name('materiais.vincular')->middleware('admin.can:admin.cursos');
         Route::delete('/materiais/{mId}/desvincular/{pId}', [AdminController::class, 'materialDesvincular'])->name('materiais.desvincular')->middleware('admin.can:admin.cursos');
 
+
+        Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');
+ 
         // ── Sistema — apenas super admin ──────────────────────────────────
         Route::get('/certif',     [AdminController::class, 'certif'])->name('certif');
         Route::get('/suporte',    [AdminController::class, 'suporte'])->name('suporte');
