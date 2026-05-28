@@ -150,15 +150,22 @@ class CheckoutService
 
     private function resolverAluno(CheckoutDTO $dto): Student
     {
+        // Busca por CPF primeiro, depois por email
         $student = Student::where('cpf', $dto->cpf)->first()
                 ?? Student::where('email', $dto->email)->first();
-
+    
         if ($student) {
+            // Atualiza email se o CPF bateu mas email mudou
+            if ($student->email !== $dto->email) {
+                $student->email = $dto->email;
+                $student->save();
+            }
+    
             Log::info('[Checkout] Aluno existente reutilizado', ['id' => $student->id]);
             $this->garantirUser($student, $dto);
             return $student;
         }
-
+    
         $student = Student::create([
             'name'       => $dto->nome,
             'email'      => $dto->email,
@@ -169,7 +176,7 @@ class CheckoutService
             'status'     => 'able',
             'minisserie' => '1',
         ]);
-
+    
         User::create([
             'name'       => $dto->nome,
             'email'      => $dto->email,
@@ -179,23 +186,36 @@ class CheckoutService
             'setor'      => $dto->orgao,
             'power'      => 1,
         ]);
-
+    
         Log::info('[Checkout] Novo aluno criado', ['id' => $student->id]);
         return $student;
     }
-
+    
     private function garantirUser(Student $student, CheckoutDTO $dto): void
     {
-        if (!User::where('student_id', $student->id)->exists()) {
-            User::create([
-                'name'       => $dto->nome,
-                'email'      => $dto->email,
-                'cpf'        => $dto->cpf,
-                'password'   => Hash::make($dto->cpf),
-                'student_id' => $student->id,
-                'power'      => 1,
-            ]);
+        $user = User::where('student_id', $student->id)->first()
+             ?? User::where('email', $student->email)->first()
+             ?? User::where('cpf', $dto->cpf)->first();
+    
+        if ($user) {
+            // Atualiza email e CPF se mudaram
+            $dirty = false;
+            if ($user->email !== $dto->email) { $user->email = $dto->email; $dirty = true; }
+            if ($user->cpf   !== $dto->cpf)   { $user->cpf   = $dto->cpf;   $dirty = true; }
+            if (!$user->student_id)            { $user->student_id = $student->id; $dirty = true; }
+            if ($dirty) $user->save();
+            return;
         }
+    
+        // Cria novo user somente se não existe nenhum vínculo
+        User::create([
+            'name'       => $dto->nome,
+            'email'      => $dto->email,
+            'cpf'        => $dto->cpf,
+            'password'   => Hash::make($dto->cpf),
+            'student_id' => $student->id,
+            'power'      => 1,
+        ]);
     }
 
     // ══════════════════════════════════════════════════════════════════════
