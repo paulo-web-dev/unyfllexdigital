@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/player/{slug}/material/{materialId}/registrar', [PlayerController::class, 'registrarMaterial'])->name('player.material.registrar');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
-
+Route::get('/comprarealizada', fn () => view('pages.compra-realizada'))->name('compra.realizada');
 // ══════════════════════════════════════════════════════════════════════════
 // ADMIN — middleware 'admin' bloqueia power < 13
 // Rotas sensíveis adicionalmente protegidas por 'admin.can:gate_name'

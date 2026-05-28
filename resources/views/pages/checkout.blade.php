@@ -804,8 +804,8 @@ async function finalizarPedido() {
     // ── Sucesso CARTÃO ───────────────────────────────────────────────────
     else if (metodoPagamento === 'CREDIT_CARD') {
       if (window.UnyCart) UnyCart.clear?.();
-      mostrarModal('Pagamento aprovado! 🎉', data.mensagem ?? 'Seu acesso já está liberado.');
-      setTimeout(() => { window.location.href = data.redirect ?? '{{ route('dashboard') }}'; }, 2000);
+      window.location.href = '{{ route('compra.realizada') }}';
+ 
     }
 
   } catch (e) {

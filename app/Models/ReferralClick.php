@@ -11,6 +11,9 @@ class ReferralClick extends Model
     protected $fillable = [
         'token',
         'ip',
+        'cidade',
+        'estado',
+        'pais',
         'clicked_at',
     ];
 
