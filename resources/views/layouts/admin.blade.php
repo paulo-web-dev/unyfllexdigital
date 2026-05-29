@@ -151,6 +151,14 @@
       </svg>
       <span>Links Referral</span>
     </a>
+    <a href="{{ route('admin.funil') }}" class="nav-item {{ request()->routeIs('admin.funil') ? 'active' : '' }}">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+        stroke-linecap="round" stroke-linejoin="round">
+       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+     </svg>
+    <span>Funil</span>
+   </a>
+
     @endcan
 
     <div class="sidebar-section-label">Operacional</div>
@@ -230,6 +238,14 @@
       </svg>
       <span>Links Referral</span>
     </a>
+     <a href="{{ route('admin.funil') }}" class="nav-item {{ request()->routeIs('admin.funil') ? 'active' : '' }}">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+            stroke-linecap="round" stroke-linejoin="round">
+           <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+         </svg>
+        <span>Funil</span>
+       </a>
+    
     <div class="sidebar-section-label">Sistema</div>
     <a href="{{ route('admin.suporte') }}"   class="nav-item {{ request()->routeIs('admin.suporte')   ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>

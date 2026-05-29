@@ -14,6 +14,7 @@ use App\Models\ViewsMinisserie;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\ReferralClick;
+use App\Models\FunnelEvent;
 use App\Traits\EnrollmentScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -1000,6 +1001,115 @@ public function referralAnalytics(Request $request)
         'grafHorasLabels', 'grafHorasCliques',
         'grafTop5Labels', 'grafTop5Cliques'
     ));
+}
+public function funilAnalytics(Request $request)
+{
+    $this->authorize('admin.super');
+
+    $periodo      = (int) $request->get('periodo', 30);
+    $origemFiltro = $request->get('origem', 'todos');
+    $inicio       = now()->subDays($periodo - 1)->startOfDay();
+
+    $etapas = ['visita','visualizou','carrinho','checkout','pagamento','converteu'];
+
+    // ── Funil geral ───────────────────────────────────────────────────────
+    $baseQuery = \App\Models\FunnelEvent::where('created_at', '>=', $inicio);
+    if ($origemFiltro !== 'todos') {
+        $baseQuery->where('origem', $origemFiltro);
+    }
+
+    $funil = $baseQuery->clone()
+        ->selectRaw('etapa, COUNT(DISTINCT session_id) as total')
+        ->groupBy('etapa')
+        ->get()
+        ->keyBy('etapa');
+
+    // Garante todas as etapas na ordem certa
+    $funilOrdenado = collect($etapas)->map(fn($e) => (object)[
+        'etapa' => $e,
+        'total' => $funil[$e]->total ?? 0,
+    ]);
+
+    // ── Gráfico por dia ───────────────────────────────────────────────────
+    $eventosPorDia = $baseQuery->clone()
+        ->selectRaw('DATE(created_at) as dia, etapa, COUNT(DISTINCT session_id) as total')
+        ->groupBy('dia', 'etapa')
+        ->orderBy('dia')
+        ->get()
+        ->groupBy('etapa');
+
+    $grafDiasLabels = collect();
+    for ($i = $periodo - 1; $i >= 0; $i--) {
+        $grafDiasLabels->push(now()->subDays($i)->format('d/m'));
+    }
+
+    $grafDias = [];
+    foreach (['visita','carrinho','checkout','converteu'] as $etapa) {
+        $porDia = $eventosPorDia[$etapa]?->keyBy('dia') ?? collect();
+        $serie  = [];
+        for ($i = $periodo - 1; $i >= 0; $i--) {
+            $d = now()->subDays($i)->format('Y-m-d');
+            $serie[] = $porDia[$d]->total ?? 0;
+        }
+        $grafDias[$etapa] = $serie;
+    }
+
+    // ── Gráfico orgânico vs referral por etapa ────────────────────────────
+    $porOrigem = $baseQuery->clone()
+        ->selectRaw('etapa, origem, COUNT(DISTINCT session_id) as total')
+        ->groupBy('etapa', 'origem')
+        ->get()
+        ->groupBy('etapa');
+
+    $grafOrigem = ['organico' => [], 'referral' => []];
+    foreach ($etapas as $etapa) {
+        $grupo = $porOrigem[$etapa] ?? collect();
+        $grafOrigem['organico'][] = (int) ($grupo->firstWhere('origem','organico')?->total ?? 0);
+        $grafOrigem['referral'][] = (int) ($grupo->firstWhere('origem','referral')?->total ?? 0);
+    }
+
+    // ── Top miniséries no carrinho ─────────────────────────────────────────
+    $topCarrinho = $baseQuery->clone()
+        ->where('etapa', 'carrinho')
+        ->whereNotNull('classes_id')
+        ->selectRaw('classes_id, COUNT(*) as total')
+        ->groupBy('classes_id')
+        ->orderByDesc('total')
+        ->limit(8)
+        ->get();
+
+    // ── Top cidades ───────────────────────────────────────────────────────
+    $topCidades = $baseQuery->clone()
+        ->whereNotNull('cidade')
+        ->selectRaw('cidade, estado, pais, COUNT(DISTINCT session_id) as total')
+        ->groupBy('cidade', 'estado', 'pais')
+        ->orderByDesc('total')
+        ->limit(10)
+        ->get();
+
+    // ── Funil por origem (orgânico + cada vendedor) ────────────────────────
+    $funilPorOrigem = $baseQuery->clone()
+        ->selectRaw('
+            origem,
+            COALESCE(referral, "organico") as referral,
+            SUM(CASE WHEN etapa = "visita"     THEN 1 ELSE 0 END) as visitas,
+            SUM(CASE WHEN etapa = "carrinho"   THEN 1 ELSE 0 END) as carrinhos,
+            SUM(CASE WHEN etapa = "checkout"   THEN 1 ELSE 0 END) as checkouts,
+            SUM(CASE WHEN etapa = "converteu"  THEN 1 ELSE 0 END) as convertidos
+        ')
+        ->groupBy('origem', 'referral')
+        ->orderByDesc('visitas')
+        ->get()
+        ->map(function ($o) {
+            $o->taxa = $o->visitas > 0 ? round(($o->convertidos / $o->visitas) * 100, 1) : 0;
+            return $o;
+        });
+        $funil = $funilOrdenado;
+        return view('pages.admin.funil-analytics', compact(
+            'periodo', 'origemFiltro',
+            'grafDiasLabels', 'grafDias', 'grafOrigem',
+            'topCarrinho', 'topCidades', 'funilPorOrigem'
+        ) + ['funil' => $funilOrdenado]);
 }
 
 }

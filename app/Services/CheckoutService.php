@@ -8,6 +8,7 @@ use App\Models\Classes;
 use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\FunnelService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -65,7 +66,7 @@ class CheckoutService
         $wallet = $this->resolverWallet();
 
         Log::info('[Checkout] Wallet resolvida', ['wallet' => $wallet]);
-
+        FunnelService::registrar('pagamento', $dto->classesId);
         return DB::transaction(function () use ($dto, $student, $externalRef, $cardNumberFull, $cvv, $wallet) {
 
             $customer   = $this->asaas->findOrCreateCustomer($dto);
@@ -98,7 +99,9 @@ class CheckoutService
                 'wallet'           => $wallet,  // ← vendedor do cookie ou padrão
                 'log'              => 'checkout_automatico',
             ]);
-
+            if ($statusMatricula === 'checked') {
+                FunnelService::registrar('converteu', $dto->classesId);
+            }
             Log::info('[Checkout] Matrícula criada', [
                 'enrollment_id' => $enrollment->id,
                 'status'        => $statusMatricula,

@@ -60,6 +60,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/player/{slug}/material/{materialId}/registrar', [PlayerController::class, 'registrarMaterial'])->name('player.material.registrar');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
+Route::post('/funil/registrar', [FunnelController::class, 'registrar'])->name('funil.registrar');
+
 Route::get('/comprarealizada', fn () => view('pages.compra-realizada'))->name('compra.realizada');
 // ══════════════════════════════════════════════════════════════════════════
 // ADMIN — middleware 'admin' bloqueia power < 13
@@ -132,6 +134,8 @@ Route::prefix('admin')
         Route::get('/referral', [AdminController::class, 'referralAnalytics'])
             ->name('referral')
             ->middleware('admin.can:admin.super');
+        Route::get('/funil', [AdminController::class, 'funilAnalytics'])->name('funil')->middleware('admin.can:admin.super');
+
         Route::get('/certif',     [AdminController::class, 'certif'])->name('certif');
         Route::get('/suporte',    [AdminController::class, 'suporte'])->name('suporte');
         Route::get('/equipe',     [AdminController::class, 'equipe'])->name('equipe')->middleware('admin.can:admin.equipe');
