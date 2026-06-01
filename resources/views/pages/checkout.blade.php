@@ -474,7 +474,8 @@ function buildParcelas(total) {
     { n: 1,  label: `1x de ${fmt(total)} (à vista)` },
     { n: 2,  label: `2x de ${fmt(total/2)} (sem juros)` },
     { n: 3,  label: `3x de ${fmt(total/3)} (sem juros)` },
-    { n: 6,  label: `6x de ${fmt(total/6)} (sem juros)` },
+    { n: 6,  label: `6x de ${fmt(total/6)} (sem juros)` },  
+    { n: 6,  label: `10x de ${fmt(total/10)} (sem juros)` },
     { n: 12, label: `12x de ${fmt(total/12)}` },
   ].map(o => `<option value="${o.n}">${o.label}</option>`).join('');
 }
