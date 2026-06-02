@@ -27,7 +27,7 @@
           <div class="contact-icon"><i data-lucide="message-circle" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;"></i></div>
           <div>
             <div style="font-weight:600;color:#fff;margin-bottom:2px;">WhatsApp</div>
-            <a href="https://wa.me/5541997587226" target="_blank" rel="noopener" style="font-size:14px;color:var(--fg-3);text-decoration:none;">(41) 9 9758-7226</a>
+            <a href="https://wa.me/554188980259" target="_blank" rel="noopener" style="font-size:14px;color:var(--fg-3);text-decoration:none;">(41) 8898-0259</a>
             <div style="font-size:12px;color:var(--fg-4);margin-top:2px;">Seg–Sex das 8h às 18h</div>
           </div>
         </div>

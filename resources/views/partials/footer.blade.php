@@ -65,7 +65,7 @@
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-3);">
             <i data-lucide="message-circle" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
-            <span>WhatsApp: (41) 9 9758-7226</span>
+            <span>WhatsApp: (41) 8898-0259</span>
           </div>
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-3);">
             <i data-lucide="map-pin" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>

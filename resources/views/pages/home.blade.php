@@ -5,8 +5,19 @@
 
 @section('content')
 
+@php
+  // ── Link único do WhatsApp (reaproveitado em toda a página) ──
+  $waBase = 'https://api.whatsapp.com/send/?phone=554188980259&type=phone_number&app_absent=0';
+  $waDuvidas   = $waBase . '&text=' . rawurlencode('Olá! Tenho dúvidas sobre as miniséries da Unyflex Digital.');
+  $waEquipe    = $waBase . '&text=' . rawurlencode('Olá! Quero um plano para minha equipe/secretaria.');
+  $waCertif    = $waBase . '&text=' . rawurlencode('Olá! Gostaria de saber sobre o certificado e a nota fiscal.');
+  $waAjuda     = $waBase . '&text=' . rawurlencode('Olá! Preciso de ajuda para escolher a minisérie ideal para o meu cargo.');
+  // SVG do ícone do WhatsApp reaproveitável
+  $waIcon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+@endphp
+
 {{-- ================================================================
-     1. HERO — dor concreta + transformação
+     1. HERO
      ================================================================ --}}
 <section class="hero-section" id="hero">
   <div class="container">
@@ -34,8 +45,9 @@
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
             Ver miniséries — a partir de 10x R$ 98
           </a>
-          <a href="#como-funciona" class="btn-ux btn-ux-ghost btn-ux-lg">
-            Como funciona
+          <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-ghost btn-ux-lg" style="color:#25D366;border-color:rgba(37,211,102,0.4);">
+            {!! $waIcon !!}
+            Tirar dúvidas no WhatsApp
           </a>
         </div>
 
@@ -81,6 +93,11 @@
 <style>
 @keyframes pulsePlay { 0%{box-shadow:0 0 0 0 rgba(59,130,246,.6)}70%{box-shadow:0 0 0 18px rgba(59,130,246,0)}100%{box-shadow:0 0 0 0 rgba(59,130,246,0)} }
 @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+@keyframes waPulse { 0%{box-shadow:0 0 0 0 rgba(37,211,102,.55)}70%{box-shadow:0 0 0 16px rgba(37,211,102,0)}100%{box-shadow:0 0 0 0 rgba(37,211,102,0)} }
+.wa-float{position:fixed;bottom:24px;right:24px;z-index:9990;display:flex;align-items:center;gap:10px;background:#25D366;color:#fff;padding:14px 20px 14px 16px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 10px 30px -6px rgba(37,211,102,.5);animation:waPulse 2.4s infinite;transition:transform .2s;}
+.wa-float:hover{transform:scale(1.05);color:#fff;}
+.wa-float .wa-label{white-space:nowrap;}
+@media(max-width:600px){ .wa-float{padding:14px;} .wa-float .wa-label{display:none;} }
 </style>
 <script>
 function playHeroVideo(){
@@ -91,7 +108,7 @@ function playHeroVideo(){
 @endonce
 
 {{-- ================================================================
-     2. MINISÉRIES — LOGO NO COMEÇO, foco total em conversão
+     2. MINISÉRIES — logo no começo
      ================================================================ --}}
 <section class="section-py" id="minisseries" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
@@ -101,13 +118,17 @@ function playHeroVideo(){
       <p class="section-subtitle mx-auto">Cápsulas de 10 a 20 minutos criadas por quem já trabalhou na gestão pública. Cada uma com certificado próprio.</p>
     </div>
 
-    {{-- Barra de oferta --}}
-    <div class="aos-fade" style="max-width:580px;margin:0 auto 36px;background:linear-gradient(135deg,rgba(0,114,255,0.12),rgba(0,163,255,0.06));border:1px solid rgba(0,163,255,0.3);border-radius:var(--r-lg);padding:16px 24px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;text-align:center;">
-      <i data-lucide="tag" style="width:18px;height:18px;stroke:var(--brand-300);fill:none;stroke-width:1.75;"></i>
+    {{-- Barra de oferta + ajuda no WhatsApp --}}
+    <div class="aos-fade" style="max-width:680px;margin:0 auto 36px;background:linear-gradient(135deg,rgba(0,114,255,0.12),rgba(0,163,255,0.06));border:1px solid rgba(0,163,255,0.3);border-radius:var(--r-lg);padding:16px 24px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center;">
       <span style="font-size:14px;color:var(--fg-2);">
+        <i data-lucide="tag" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;vertical-align:-3px;margin-right:4px;"></i>
         De <span style="text-decoration:line-through;color:var(--fg-4);">R$ 1.990</span>
         por <strong style="color:#fff;">10x de R$ 98</strong> ou <strong style="color:#fff;">R$ 998 à vista</strong>
       </span>
+      <a href="{{ $waAjuda }}" target="_blank" style="font-size:13px;color:#25D366;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+        {!! $waIcon !!}
+        Não sabe qual escolher? Fale com a gente
+      </a>
     </div>
 
     <div class="row g-4">
@@ -188,7 +209,7 @@ function playHeroVideo(){
 </section>
 
 {{-- ================================================================
-     4. DORES — identificação imediata
+     4. DORES
      ================================================================ --}}
 <section class="section-py" id="dores" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
@@ -222,6 +243,15 @@ function playHeroVideo(){
       </div>
       @endforeach
     </div>
+
+    {{-- CTA WhatsApp após as dores --}}
+    <div class="text-center mt-5 aos-fade">
+      <p style="font-size:15px;color:var(--fg-3);margin-bottom:16px;">Ainda com dúvida se serve para o seu cargo?</p>
+      <a href="{{ $waAjuda }}" target="_blank" class="btn-ux btn-ux-lg" style="background:#25D366;color:#fff;border:none;">
+        {!! $waIcon !!}
+        Conversar com um especialista
+      </a>
+    </div>
   </div>
 </section>
 
@@ -245,10 +275,16 @@ function playHeroVideo(){
           </div>
           @endforeach
         </div>
-        <a href="#minisseries" class="btn-ux btn-ux-primary btn-ux-lg">
-          Escolher minha minisérie
-          <i data-lucide="arrow-right" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"></i>
-        </a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="#minisseries" class="btn-ux btn-ux-primary btn-ux-lg">
+            Escolher minha minisérie
+            <i data-lucide="arrow-right" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"></i>
+          </a>
+          <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-ghost btn-ux-lg" style="color:#25D366;border-color:rgba(37,211,102,0.4);">
+            {!! $waIcon !!}
+            WhatsApp
+          </a>
+        </div>
       </div>
       <div class="col-lg-6 offset-lg-1 aos-fade aos-delay-2">
         @foreach([
@@ -319,9 +355,36 @@ function playHeroVideo(){
 </section>
 
 {{-- ================================================================
-     7. FAQ
+     7. PLANO PARA EQUIPES — CTA WhatsApp forte
      ================================================================ --}}
-<section class="section-py" id="faq">
+<section class="section-py" id="equipes">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9 aos-fade">
+        <div style="background:linear-gradient(135deg,rgba(0,114,255,0.12),rgba(37,211,102,0.06));border:1px solid rgba(0,163,255,0.3);border-radius:var(--r-xl);padding:36px 40px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:260px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--brand-300);margin-bottom:8px;">Para prefeituras e secretarias</div>
+            <h3 style="font-family:var(--font-display);font-weight:800;font-size:26px;color:#fff;margin-bottom:10px;line-height:1.2;">Quer capacitar toda a sua equipe?</h3>
+            <p style="font-size:15px;color:var(--fg-3);line-height:1.6;margin-bottom:0;">
+              Desconto progressivo por quantidade, emissão de nota fiscal e compra por CNPJ da prefeitura. Fale com a gente e receba uma proposta sob medida.
+            </p>
+          </div>
+          <div style="flex-shrink:0;">
+            <a href="{{ $waEquipe }}" target="_blank" class="btn-ux btn-ux-lg" style="background:#25D366;color:#fff;border:none;white-space:nowrap;">
+              {!! $waIcon !!}
+              Solicitar proposta no WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{-- ================================================================
+     8. FAQ
+     ================================================================ --}}
+<section class="section-py" id="faq" style="background:var(--bg-1);border-top:1px solid var(--line-1);">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-8">
@@ -333,7 +396,7 @@ function playHeroVideo(){
         @foreach([
           ['q'=>'Tem certificado reconhecido?','a'=>'Sim. Os certificados são emitidos pela Faculdade Unypublica, reconhecida pelo MEC. Válidos para progressão funcional, concursos e comprovação de capacitação.'],
           ['q'=>'Em quanto tempo recebo o acesso?','a'=>'No cartão de crédito, o acesso é liberado em até 5 minutos. No PIX, assim que o pagamento é confirmado. No boleto, em 1 a 2 dias úteis após a compensação.'],
-          ['q'=>'Emite nota fiscal? Posso comprar pelo CNPJ?','a'=>'Sim. Emitimos nota fiscal para pessoa física e jurídica. Prefeituras podem comprar via CNPJ — fale com nosso atendimento para formalizar.'],
+          ['q'=>'Emite nota fiscal? Posso comprar pelo CNPJ?','a'=>'Sim. Emitimos nota fiscal para pessoa física e jurídica. Prefeituras podem comprar via CNPJ — fale com nosso atendimento no WhatsApp para formalizar.'],
           ['q'=>'Serve para servidores de qualquer cidade?','a'=>'Sim. O conteúdo cobre legislação federal e boas práticas aplicáveis a municípios de qualquer porte e estado.'],
           ['q'=>'Por quanto tempo tenho acesso?','a'=>'12 meses a partir da matrícula. Pode assistir, revisar e baixar os materiais quantas vezes quiser.'],
           ['q'=>'E se eu não gostar?','a'=>'Você tem 7 dias para pedir reembolso integral, sem precisar justificar. É só falar com a nossa equipe.'],
@@ -346,13 +409,22 @@ function playHeroVideo(){
           <div class="faq-answer"><div class="faq-answer-inner">{{ $faq['a'] }}</div></div>
         </div>
         @endforeach
+
+        {{-- CTA WhatsApp após FAQ --}}
+        <div class="text-center mt-5 aos-fade">
+          <p style="font-size:15px;color:var(--fg-3);margin-bottom:16px;">Não encontrou sua dúvida?</p>
+          <a href="{{ $waCertif }}" target="_blank" class="btn-ux btn-ux-lg" style="background:#25D366;color:#fff;border:none;">
+            {!! $waIcon !!}
+            Falar com o atendimento
+          </a>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 {{-- ================================================================
-     8. CTA FINAL
+     9. CTA FINAL
      ================================================================ --}}
 <section class="final-cta-section">
   <div class="container position-relative">
@@ -374,9 +446,9 @@ function playHeroVideo(){
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
             Ver miniséries e garantir acesso
           </a>
-          <a href="https://api.whatsapp.com/send/?phone=5541997587226&text=Ol%C3%A1%20gostaria%20de%20saber%20mais%20sobre%20as%20minisseries&type=phone_number&app_absent=0" target="_blank" class="btn-ux btn-ux-ghost btn-ux-lg">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Falar com atendimento
+          <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-lg" style="background:#25D366;color:#fff;border:none;">
+            {!! $waIcon !!}
+            Tirar dúvidas no WhatsApp
           </a>
         </div>
 
@@ -392,6 +464,14 @@ function playHeroVideo(){
     </div>
   </div>
 </section>
+
+{{-- ================================================================
+     BOTÃO FLUTUANTE FIXO DO WHATSAPP
+     ================================================================ --}}
+<a href="{{ $waDuvidas }}" target="_blank" class="wa-float" aria-label="Fale conosco no WhatsApp">
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <span class="wa-label">Fale conosco</span>
+</a>
 
 {{-- Toast --}}
 <div class="cart-toast" id="cartToast" role="status" aria-live="polite">
