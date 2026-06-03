@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\CursoLandingController;
 
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -21,6 +22,7 @@ Route::get('/minisseries/{slug}', [CursoController::class, 'show'])->name('curso
 Route::get('/sobre',   [PageController::class, 'sobre'])->name('sobre');
 Route::get('/contato', [PageController::class, 'contato'])->name('contato');
 Route::post('/contato',[PageController::class, 'contatoEnviar'])->name('contato.enviar');
+Route::get('/view/minisseries/{slug}', [CursoLandingController::class, 'show'])->name('curso.show');
 
 // ── Checkout ──────────────────────────────────────────────────────────────
 Route::get('/checkout',                    [CheckoutController::class, 'index'])->name('checkout');
