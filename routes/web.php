@@ -22,6 +22,7 @@ Route::get('/minisseries/{slug}', [CursoController::class, 'show'])->name('curso
 Route::get('/sobre',   [PageController::class, 'sobre'])->name('sobre');
 Route::get('/contato', [PageController::class, 'contato'])->name('contato');
 Route::post('/contato',[PageController::class, 'contatoEnviar'])->name('contato.enviar');
+Route::post('/redirect',[PageController::class, 'redirect'])->name('redirect');
 Route::get('/view/minisseries/{slug}', [CursoLandingController::class, 'show'])->name('curso.show');
 
 // ── Checkout ──────────────────────────────────────────────────────────────

@@ -16,6 +16,12 @@ class PageController extends Controller
         return view('pages.contato');
     }
 
+    public function redirect()
+    {
+        return redirect()->away('https://unyflexincompany.pages.net.br/unyflexdigitalicitacoes');
+        }
+
+
     public function checkout()
     {
         return view('pages.checkout');
