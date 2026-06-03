@@ -142,7 +142,7 @@
                    data-resumo="{{ addslashes($panelItem->content ?? 'Resumo não disponível.') }}"
                    data-season-index="{{ $loop->parent->index }}"
                    data-season-label="{{ addslashes('Temporada '.$pNum.': '.$panelItem->title) }}"
-                   data-materiais="{{ htmlspecialchars($panelItem->material->map(fn($m) => ['id' => $m->id, 'type' => $m->type, 'name' => $m->name ?? $m->file_name, 'file' => $m->file_name])->toJson(), ENT_QUOTES) }}"
+data-materiais="{{ $panelItem->material->map(fn($m) => ['id' => $m->id, 'type' => $m->type, 'name' => $m->name ?? $m->file_name, 'file' => $m->file_name])->toJson() }}"
                    style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px 10px 20px;border-bottom:1px solid var(--line-1);cursor:pointer;transition:background 0.2s;
                    {{ $isAtivo?'background:linear-gradient(90deg,rgba(0,163,255,0.12),transparent);border-left:2px solid var(--brand-400);':'' }}">
 
