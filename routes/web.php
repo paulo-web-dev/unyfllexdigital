@@ -14,6 +14,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\CursoLandingController;
+use App\Http\Controllers\Admin\PropostaController;
 
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -76,7 +77,9 @@ Route::prefix('admin')
     ->group(function () {
 
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
-
+        //Proposta
+        Route::get('/proposta',  [PropostaController::class, 'form'])->name('proposta');
+        Route::post('/proposta', [PropostaController::class, 'gerar'])->name('proposta.gerar');
         // ── Dashboard (todos os admins, dados filtrados no controller) ────
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
