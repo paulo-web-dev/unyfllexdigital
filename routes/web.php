@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\PropostaController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
 Route::get('/minisseries/{slug}', [CursoController::class, 'show'])->name('curso.show');
+Route::get('/minisseriespos/{slug}', [CursoController::class, 'showPos'])->name('curso.showPos');
+
 Route::get('/sobre',   [PageController::class, 'sobre'])->name('sobre');
 Route::get('/contato', [PageController::class, 'contato'])->name('contato');
 Route::post('/contato',[PageController::class, 'contatoEnviar'])->name('contato.enviar');
@@ -32,6 +34,8 @@ Route::post('/checkout',                   [CheckoutController::class, 'processa
 Route::get('/checkout/sucesso',            [CheckoutController::class, 'sucesso'])->name('checkout.sucesso');
 Route::get('/checkout/status/{paymentId}', [CheckoutController::class, 'status'])->name('checkout.status');
 Route::post('/webhooks/asaas',             [WebhookController::class, 'asaas'])->name('webhooks.asaas');
+//ACESSO PÓS
+Route::get('/dashboard/playerpos/{slug}',         [PlayerController::class, 'show'])->name('player');
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
