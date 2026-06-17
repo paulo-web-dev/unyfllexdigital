@@ -15,7 +15,8 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\CursoLandingController;
 use App\Http\Controllers\Admin\PropostaController;
-
+use App\Http\Controllers\GuiaLicitacoesController;
+use App\Http\Controllers\Admin\LeadsGuiaController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -27,7 +28,7 @@ Route::get('/contato', [PageController::class, 'contato'])->name('contato');
 Route::post('/contato',[PageController::class, 'contatoEnviar'])->name('contato.enviar');
 Route::get('/redirect',[PageController::class, 'redirect'])->name('redirect');
 Route::get('/view/minisseries/{slug}', [CursoLandingController::class, 'show'])->name('curso.show');
-
+Route::get('/lp/licitacoes/{slug}', [CursoLandingController::class, 'showLicitacoes'])->name('lp.licitacoes');
 // ── Checkout ──────────────────────────────────────────────────────────────
 Route::get('/checkout',                    [CheckoutController::class, 'index'])->name('checkout');
 Route::post('/checkout',                   [CheckoutController::class, 'processar'])->name('checkout.processar');
@@ -36,6 +37,12 @@ Route::get('/checkout/status/{paymentId}', [CheckoutController::class, 'status']
 Route::post('/webhooks/asaas',             [WebhookController::class, 'asaas'])->name('webhooks.asaas');
 //ACESSO PÓS
 Route::get('/dashboard/playerpos/{slug}',         [PlayerController::class, 'show'])->name('player');
+
+// ---- Landing page publica + captura de lead ----
+Route::get('/guia-licitacoes',          [GuiaLicitacoesController::class, 'landing'])->name('guia.landing');
+Route::post('/guia-licitacoes',         [GuiaLicitacoesController::class, 'store'])->name('guia.store');
+Route::get('/guia-licitacoes/obrigado', [GuiaLicitacoesController::class, 'obrigado'])->name('guia.obrigado');
+Route::get('/guia-licitacoes/download', [GuiaLicitacoesController::class, 'download'])->name('guia.download');
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -97,7 +104,11 @@ Route::prefix('admin')
         Route::get('/alunos/busca',       [AdminController::class, 'alunosBusca'])->name('alunos.busca');
         Route::get('/alunos/{id}/editar', [AdminController::class, 'alunoEdit'])->name('alunos.edit');
         Route::put('/alunos/{id}',        [AdminController::class, 'alunoUpdate'])->name('alunos.update');
-
+        // ── Leads do Guia de Licitacoes ──────────────────────────────
+        Route::get('/leads-guia',                  [LeadsGuiaController::class, 'index'])->name('leads-guia');
+        Route::get('/leads-guia/exportar',         [LeadsGuiaController::class, 'exportar'])->name('leads-guia.export');
+        Route::post('/leads-guia/{id}/contatado',  [LeadsGuiaController::class, 'toggleContatado'])->name('leads-guia.toggle');
+        Route::post('/leads-guia/{id}/observacao', [LeadsGuiaController::class, 'salvarObservacao'])->name('leads-guia.note');
         // ── Matrículas (super admin + comercial) ──────────────────────────
         Route::get('/matriculas',             [AdminController::class, 'matriculas'])->name('matriculas');
         Route::get('/matriculas/criar',       [AdminController::class, 'matriculaCreate'])->name('matriculas.create');
