@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\GuiaEnviado;
 use App\Models\LeadGuia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class GuiaLicitacoesController extends Controller
 {
@@ -14,15 +18,20 @@ class GuiaLicitacoesController extends Controller
     private const WHATSAPP = '5511999999999';
 
     /**
-     * Caminho do PDF (isca) dentro de storage/app/public.
-     * Ele e servido publicamente em /storage/fav/guia-licitacoes-unyflex.pdf
+     * Caminho do PDF dentro de storage/app/public.
+     * Servido publicamente em /storage/fav/guia-licitacoes-unyflex.pdf
      */
-    private const PDF_PATH          = 'fav/guia-licitacoes-unyflex.pdf';
-    private const PDF_NOME_DOWNLOAD = 'Guia-Contratacoes-Publicas-Lei-14133-Unyflex.pdf';
+    private const PDF_PATH = 'fav/guia-licitacoes-unyflex.pdf';
 
     private function whatsMsg(): string
     {
         return rawurlencode('Ola! Acabei de baixar o guia das contratacoes publicas e quero saber mais sobre as Minisseries da Unyflex.');
+    }
+
+    /** URL publica final do arquivo (usa APP_URL). */
+    private function pdfUrl(): string
+    {
+        return asset('storage/' . self::PDF_PATH);
     }
 
     public function landing(Request $request)
@@ -77,7 +86,7 @@ class GuiaLicitacoesController extends Controller
             'user_agent'   => substr((string) $request->userAgent(), 0, 255),
         ];
 
-        // Deduplica por e-mail: se ja existe, atualiza o contato mas PRESERVA status e observacoes.
+        // Deduplica por e-mail: atualiza o contato preservando status/observacoes.
         $lead = LeadGuia::where('email', $data['email'])->first();
 
         if ($lead) {
@@ -87,9 +96,19 @@ class GuiaLicitacoesController extends Controller
             $lead = LeadGuia::create(array_merge($data, $extra));
         }
 
+        // Link assinado do arquivo (sem login, valido permanentemente, e marca o download).
+        $link = URL::signedRoute('guia.arquivo', ['lead' => $lead->id]);
+
+        // Envia o e-mail com o guia. Falha de SMTP NAO quebra a experiencia do usuario.
+        try {
+            Mail::to($lead->email)->send(new GuiaEnviado($lead, $link));
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar e-mail do guia (lead '.$lead->id.'): '.$e->getMessage());
+        }
+
         $request->session()->put('guia_lead_ok', true);
-        $request->session()->put('guia_lead_id', $lead->id);
         $request->session()->put('guia_lead_nome', $lead->nome);
+        $request->session()->put('guia_lead_email', $lead->email);
 
         return redirect()->route('guia.obrigado');
     }
@@ -102,19 +121,20 @@ class GuiaLicitacoesController extends Controller
 
         return view('guia.obrigado', [
             'nome'     => $request->session()->get('guia_lead_nome'),
+            'email'    => $request->session()->get('guia_lead_email'),
             'whatsapp' => self::WHATSAPP,
             'whatsMsg' => $this->whatsMsg(),
         ]);
     }
 
-    public function download(Request $request)
+    /**
+     * Link do arquivo enviado por e-mail. Protegido por assinatura (middleware 'signed').
+     * Marca o download e redireciona para o PDF publico.
+     */
+    public function arquivo(Request $request)
     {
-        if (! $request->session()->get('guia_lead_ok')) {
-            return redirect()->route('guia.landing');
-        }
+        $id = $request->query('lead');
 
-        // Marca o download no lead (controle de quem realmente baixou).
-        $id = $request->session()->get('guia_lead_id');
         if ($id) {
             LeadGuia::where('id', $id)->where('baixou', false)->update([
                 'baixou'     => true,
@@ -122,12 +142,6 @@ class GuiaLicitacoesController extends Controller
             ]);
         }
 
-        $caminho = storage_path('app/public/' . self::PDF_PATH);
-
-        if (! is_file($caminho)) {
-            abort(404, 'Arquivo do guia nao encontrado.');
-        }
-
-        return response()->download($caminho, self::PDF_NOME_DOWNLOAD);
+        return redirect()->away($this->pdfUrl());
     }
 }

@@ -77,28 +77,20 @@
   /></noscript>
   @stack('styles')
 </head>
-<body class="has-urgency-bar">
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K7L7LBLS"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
-  {{-- Barra de urgência --}}
-  <div class="urgency-bar">
-    <span>🔥 Oferta expira em breve — </span>
-    <strong>R$ 1.990 por apenas R$ 998</strong>
-    <span> — </span>
-    <a href="{{ route('checkout') }}">Garantir minha vaga</a>
-    <button class="urgency-bar-dismiss" style="background:none;border:none;color:#fff;margin-left:16px;cursor:pointer;font-size:16px;">×</button>
-  </div>
-
-  {{-- Navbar --}}
-  @include('partials.navbar')
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K7L7LBLS"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+  
+    {{-- Navbar --}}
+    @include('partials.navbar')
 
   {{-- Mobile menu --}}
   @include('partials.mobile-menu')
 
   {{-- Popup de conversão --}}
-  @include('partials.popup')
+  {{-- @include('partials.popup') --}}
 
   {{-- Conteúdo da página --}}
   @yield('content')

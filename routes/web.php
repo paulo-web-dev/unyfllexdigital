@@ -42,8 +42,11 @@ Route::get('/dashboard/playerpos/{slug}',         [PlayerController::class, 'sho
 Route::get('/guia-licitacoes',          [GuiaLicitacoesController::class, 'landing'])->name('guia.landing');
 Route::post('/guia-licitacoes',         [GuiaLicitacoesController::class, 'store'])->name('guia.store');
 Route::get('/guia-licitacoes/obrigado', [GuiaLicitacoesController::class, 'obrigado'])->name('guia.obrigado');
-Route::get('/guia-licitacoes/download', [GuiaLicitacoesController::class, 'download'])->name('guia.download');
 
+// Link do arquivo enviado por e-mail (URL assinada — middleware 'signed').
+Route::get('/guia-licitacoes/arquivo', [GuiaLicitacoesController::class, 'arquivo'])
+    ->name('guia.arquivo')
+    ->middleware('signed');
 // ── Auth ──────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
@@ -109,6 +112,7 @@ Route::prefix('admin')
         Route::get('/leads-guia/exportar',         [LeadsGuiaController::class, 'exportar'])->name('leads-guia.export');
         Route::post('/leads-guia/{id}/contatado',  [LeadsGuiaController::class, 'toggleContatado'])->name('leads-guia.toggle');
         Route::post('/leads-guia/{id}/observacao', [LeadsGuiaController::class, 'salvarObservacao'])->name('leads-guia.note');
+
         // ── Matrículas (super admin + comercial) ──────────────────────────
         Route::get('/matriculas',             [AdminController::class, 'matriculas'])->name('matriculas');
         Route::get('/matriculas/criar',       [AdminController::class, 'matriculaCreate'])->name('matriculas.create');

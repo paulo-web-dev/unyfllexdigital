@@ -31,23 +31,12 @@
   <div class="container" style="max-width:760px;">
 
     <div class="ty-card aos-fade">
-      <div class="ty-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></div>
-      <h1 class="section-title" style="font-size:clamp(26px,3.5vw,38px);">Pronto{{ $nome ? ', '.\Illuminate\Support\Str::of($nome)->explode(' ')->first() : '' }}! Seu guia esta liberado.</h1>
-      <p style="font-size:16px;color:var(--fg-3);line-height:1.6;max-width:48ch;margin:10px auto 0;">Tambem enviamos o link para o seu e-mail. Se preferir, baixe agora mesmo:</p>
-
-      <div class="ty-dl">
-        <div class="ty-book" aria-hidden="true"></div>
-        <div class="ty-book-ttl">
-          <b>Risco Zero nas Contratacoes Publicas</b>
-          <span>O caminho completo da demanda ao contrato · PDF</span>
-        </div>
-      </div>
-
-      <a class="btn-ux btn-ux-primary btn-ux-lg" style="margin-top:14px;justify-content:center;" href="{{ route('guia.download') }}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-        Baixar o guia em PDF
-      </a>
-      <p class="ty-obs">Nao iniciou? <a href="{{ route('guia.download') }}" style="color:#00A3FF;font-weight:600;">Clique aqui</a>.</p>
+      <div class="ty-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+      <h1 class="section-title" style="font-size:clamp(26px,3.5vw,38px);">Pronto{{ $nome ? ', '.\Illuminate\Support\Str::of($nome)->explode(' ')->first() : '' }}! Recebemos seus dados.</h1>
+      <p style="font-size:16px;color:var(--fg-3);line-height:1.6;max-width:52ch;margin:10px auto 0;">
+        Enviamos o guia <b style="color:#fff;">Risco Zero nas Contratacoes Publicas</b> para o seu e-mail @if($email) <b style="color:#fff;">{{ $email }}</b>@endif. Pode levar alguns minutinhos para chegar.
+      </p>
+      <p class="ty-obs" style="max-width:46ch;margin:14px auto 0;">Nao encontrou? Da uma olhada nas abas <b>Promocoes</b> e <b>Spam</b> — e marque como "nao e spam" para receber os proximos materiais.</p>
     </div>
 
     <div class="ty-oferta aos-fade">
@@ -69,7 +58,7 @@
         @if($verRota)
           <a href="{{ route($verRota) }}" class="btn-ux btn-ux-ghost btn-ux-lg">Ver as minisseries</a>
         @endif
-        <a class="btn-wpp" href="https://wa.me/{{ $whatsapp }}?text={{ $whatsMsg }}" target="_blank" rel="noopener">
+        <a class="btn-wpp" href="https://api.whatsapp.com/send/?phone=554188980259&type=phone_number&app_absent=0&" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.477-.711z"/></svg>
           Falar no WhatsApp
         </a>

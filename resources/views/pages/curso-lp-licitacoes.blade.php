@@ -16,53 +16,61 @@
 {{-- ================================================================
      1. HERO — promessa de RESULTADO, SEM preço (P0 + P1)
      ================================================================ --}}
-<section class="hero-section" id="curso-hero" style="padding-top:48px;">
-  <div class="container">
-    <div class="row align-items-center g-5">
-
-      <div class="col-lg-6">
-        <div class="hero-eyebrow aos-fade">
-          <span class="dot"></span>
-          <span>Lei 14.133 na prática · Certificado MEC · +49.000 servidores capacitados</span>
-        </div>
-
-        <h1 class="hero-title aos-fade aos-delay-1" style="font-size:clamp(28px,4vw,44px);">
-          Aplique os termos-chave da Nova Licitação com
-          <span class="highlight">mais segurança na rotina pública</span>
-        </h1>
-
-        <p class="hero-subtitle aos-fade aos-delay-2">
-          {{ $totalVideos }} cápsulas objetivas, materiais prontos e certificado para servidores,
-          gestores e equipes que atuam com licitações e contratos.
-          <strong style="color:#fff;">Sem curso longo, sem teoria solta.</strong>
-        </p>
-
-        {{-- CTAs — principal dominante, WhatsApp secundário (P0) --}}
-        <div class="hero-cta-group aos-fade aos-delay-3">
-          <a href="#oferta" class="btn-ux btn-ux-primary btn-ux-lg">
-            <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Garantir meu acesso
-          </a>
-          <a href="{{ $waCurso }}" target="_blank" style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:#25D366;font-weight:600;text-decoration:none;padding:8px 4px;">
-            {!! $waIcon !!}
-            Tirar dúvida no WhatsApp
-          </a>
-        </div>
-
-        <div class="aos-fade aos-delay-4" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;">
-          @foreach(['Acesso em 5 minutos','Certificado MEC','Garantia de 7 dias'] as $tag)
-          <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-4);">
-            <i data-lucide="shield-check" style="width:13px;height:13px;stroke:var(--success);fill:none;stroke-width:1.75;"></i>
-            {{ $tag }}
+     <section class="hero-section" id="curso-hero" style="padding-top:48px;">
+      <div class="container">
+        <div class="row align-items-center g-5">
+    
+          <div class="col-lg-6">
+            <div class="hero-eyebrow aos-fade">
+              <span class="dot"></span>
+              <span>Lei 14.133 na prática · Certificado MEC · +49.000 servidores capacitados</span>
+            </div>
+    
+            <h1 class="hero-title aos-fade aos-delay-1" style="font-size:clamp(28px,4vw,44px);">
+              {{ $curso->title }}
+            </h1>
+    
+            <p class="hero-subtitle aos-fade aos-delay-2">
+              {{ $totalVideos }} cápsulas objetivas, materiais prontos e certificado para servidores,
+              gestores e equipes que atuam com licitações e contratos.
+              <strong style="color:#fff;">Sem curso longo, sem teoria solta.</strong>
+            </p>
+    
+            {{-- CTAs — principal dominante, WhatsApp secundário (P0) --}}
+            <div class="hero-cta-group aos-fade aos-delay-3">
+              <a href="#oferta" class="btn-ux btn-ux-primary btn-ux-lg">
+                <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
+                Garantir meu acesso
+              </a>
+              <a href="{{ $waCurso }}" target="_blank" style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:#25D366;font-weight:600;text-decoration:none;padding:8px 4px;">
+                {!! $waIcon !!}
+                Tirar dúvida no WhatsApp
+              </a>
+            </div>
+    
+            <div class="aos-fade aos-delay-4" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;">
+              @foreach(['Acesso em 5 minutos','Certificado MEC','Garantia de 7 dias'] as $tag)
+              <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-4);">
+                <i data-lucide="shield-check" style="width:13px;height:13px;stroke:var(--success);fill:none;stroke-width:1.75;"></i>
+                {{ $tag }}
+              </div>
+              @endforeach
+            </div>
           </div>
-          @endforeach
-        </div>
-      </div>
-
-      {{-- Thumb (sem preço) --}}
+    
+        {{-- Vídeo (sem preço) --}}
       <div class="col-lg-6 aos-fade aos-delay-2">
-        <div style="position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(59,130,246,0.25);box-shadow:0 0 40px rgba(59,130,246,0.12);aspect-ratio:16/9;background-image:url('{{ $thumb }}');background-size:cover;background-position:center;">
-          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(5,10,30,0.3),rgba(10,20,50,0.15));"></div>
+        <div style="position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(59,130,246,0.25);box-shadow:0 0 40px rgba(59,130,246,0.12);max-width:380px;margin:0 auto;">
+          <video
+            src="https://unyflex.com.br/storage/fav/videolicitacao.mp4"
+            poster="{{ $thumb }}"
+            autoplay
+            muted
+            loop
+            playsinline
+            controls
+            style="width:100%;height:auto;display:block;"
+          ></video>
         </div>
         <div style="display:flex;gap:0;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-lg);margin-top:14px;overflow:hidden;">
           @foreach([
@@ -79,11 +87,10 @@
           @endforeach
         </div>
       </div>
-
-    </div>
-  </div>
-</section>
-
+    
+        </div>
+      </div>
+    </section>
 {{-- ================================================================
      2. DOR / APLICAÇÃO — logo após o hero (P1)
      ================================================================ --}}
