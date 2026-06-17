@@ -3,26 +3,9 @@
 @section('meta_description', 'Baixe gratis o roteiro completo das contratacoes publicas: as 12 etapas da demanda ao contrato, com checklists e 8 documentos modelo prontos para o seu orgao.')
 
 @push('styles')
-{{-- OG / compartilhamento --}}
 <meta property="og:type" content="website">
 <meta property="og:title" content="Da demanda ao contrato sem medo de errar na Lei 14.133">
 <meta property="og:description" content="Roteiro completo das contratacoes publicas, com checklists e modelos prontos. Download gratuito.">
-
-{{-- ===========================================================
-     META PIXEL (opcional): cole seu ID e descomente para medir
-     trafego e conversao no Gerenciador de Anuncios.
-=========================================================== --}}
-{{--
-<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
-</script>
---}}
-
 <style>
   .lp-hp{position:absolute!important;left:-9999px!important;top:-9999px!important;height:0;width:0;opacity:0}
 
@@ -34,10 +17,17 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
   .lp-trust{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line-2);font-size:13px;color:var(--fg-3)}
   .lp-trust b{color:#fff;font-family:var(--font-display);font-weight:700}
 
-  /* Form card (mesma linguagem do spotlight) */
-  .lp-formcard{background:radial-gradient(70% 120% at 90% 0%, rgba(0,163,255,0.18), transparent 60%),linear-gradient(160deg,#0F1726,#050A18);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:26px;box-shadow:var(--shadow-lg);position:sticky;top:96px}
+  /* Enfase no "Gratuito" */
+  .lp-eyebrow-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .lp-free-pill{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#13955F,#0b8a52);color:#fff;font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:.02em;text-transform:uppercase;padding:8px 15px;border-radius:999px;box-shadow:0 8px 22px -8px rgba(19,149,95,.75)}
+  .lp-free-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:#7dffba;box-shadow:0 0 0 3px rgba(125,255,186,.25)}
+  .lp-free-sticker{position:absolute;top:-16px;right:-12px;width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#13955F,#0b8a52);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:19px;line-height:1;transform:rotate(8deg);box-shadow:0 12px 28px -8px rgba(19,149,95,.85),0 0 0 4px rgba(11,138,82,.25);z-index:3}
+  .lp-free-sticker small{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;opacity:.95}
+
+  /* Form card */
+  .lp-formcard{position:relative;background:radial-gradient(70% 120% at 90% 0%, rgba(0,163,255,0.18), transparent 60%),linear-gradient(160deg,#0F1726,#050A18);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:26px;box-shadow:var(--shadow-lg);top:96px}
   .lp-formcard h3{font-family:var(--font-display);font-weight:800;font-size:20px;color:#fff;letter-spacing:-0.02em;margin:12px 0 3px}
-  .lp-formcard .lp-lead{font-size:13.5px;color:var(--fg-3);margin-bottom:18px}
+  .lp-lead{font-size:13.5px;color:var(--fg-3);margin-bottom:18px}
   .lp-field{margin-bottom:13px}
   .lp-field label{display:block;font-size:13px;font-weight:600;color:var(--fg-2);margin-bottom:6px}
   .lp-field input{width:100%;background:var(--bg-2);border:1px solid var(--line-2);border-radius:12px;padding:13px 14px;color:#fff;font-size:15px;font-family:inherit;transition:.18s}
@@ -58,7 +48,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
   .lp-fecho{margin-top:28px;background:radial-gradient(60% 120% at 90% 50%, rgba(0,163,255,0.18), transparent 60%),linear-gradient(120deg,#0F1726,#050A18);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:22px 26px;font-size:16px;color:#eaf2ff;display:flex;gap:15px;align-items:center;box-shadow:var(--shadow-lg)}
   .lp-fecho svg{flex:none;width:30px;height:30px;color:#00A3FF}
 
-  /* Trilha 12 etapas */
+  /* Trilha */
   .lp-step{background:var(--bg-2);border:1px solid var(--line-2);border-radius:16px;padding:20px;height:100%;transition:.2s}
   .lp-step:hover{border-color:rgba(0,163,255,0.4);transform:translateY(-3px);box-shadow:var(--shadow-lg)}
   .lp-step-num{font-family:var(--font-display);font-weight:800;font-size:14px;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0072FF,#00A3FF);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:13px}
@@ -85,7 +75,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
   @media(max-width:991px){
     .lp-hero{grid-template-columns:1fr;gap:28px}
-    .lp-formcard{position:static}
+    .lp-formcard{position:relative;top:0}
     .lp-final{grid-template-columns:1fr;gap:28px;padding:28px}
   }
 </style>
@@ -98,10 +88,13 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
     {{-- ===== HERO ===== --}}
     <div class="lp-hero aos-fade">
       <div>
-        <div class="offer-badge" style="margin-bottom:14px;">Guia gratuito · Atualizado 2026 (Decreto 12.807/2025)</div>
+        <div class="lp-eyebrow-row" style="margin-bottom:16px;">
+          <span class="lp-free-pill">100% Gratuito</span>
+          <span class="offer-badge">Atualizado 2026 · Decreto 12.807/2025</span>
+        </div>
         <h1 class="section-title" style="font-size:clamp(30px,4.2vw,50px);">Da demanda ao contrato, <span style="color:#00A3FF;">sem medo de errar</span> na Lei 14.133</h1>
         <p style="font-size:16px;color:var(--fg-3);line-height:1.65;max-width:500px;margin-top:8px;">
-          Baixe o roteiro completo das contratacoes publicas: as 12 etapas explicadas, checklists de conferencia e documentos modelo prontos para adaptar no seu orgao.
+          Baixe <b style="color:#fff;">gratuitamente</b> o roteiro completo das contratacoes publicas: as 12 etapas explicadas, checklists de conferencia e documentos modelo prontos para adaptar no seu orgao.
         </p>
         <ul class="lp-benef">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> Passo a passo do DFD ate a gestao do contrato</li>
@@ -117,12 +110,13 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
       {{-- FORM (topo) --}}
       <div class="lp-formcard" id="form-topo">
+        <span class="lp-free-sticker">R$ 0<small>100% gratis</small></span>
         <div class="offer-badge">Material gratuito · PDF</div>
         <h3>Receba o guia agora</h3>
-        <p class="lp-lead">Preencha os dados e libere o download na proxima tela.</p>
+        <p class="lp-lead">Preencha os dados e receba o guia no seu e-mail.</p>
 
         @if($errors->any())
-          <div class="lp-alert">Confira os campos destacados para liberar o download.</div>
+          <div class="lp-alert">Confira os campos destacados para receber o guia.</div>
         @endif
 
         <form method="POST" action="{{ route('guia.store') }}" novalidate>
@@ -132,7 +126,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
             Quero o guia gratuito
           </button>
-          <p class="lp-micro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> Acesso imediato · 100% gratuito</p>
+          <p class="lp-micro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> 100% gratuito · sem cartao · acesso imediato</p>
           <p class="lp-lgpd">Ao enviar, voce concorda em receber comunicacoes da Unyflex Digital. Seus dados estao protegidos conforme a LGPD.</p>
         </form>
       </div>
@@ -224,8 +218,8 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
         {{-- FORM (final) --}}
         <div id="form-final">
-          <h3 style="font-family:var(--font-display);font-weight:800;font-size:20px;color:#fff;margin-bottom:3px;">Liberar meu guia</h3>
-          <p class="lp-lead" style="font-size:13.5px;color:var(--fg-3);margin-bottom:18px;">Preencha e receba o download na proxima tela.</p>
+          <h3 style="font-family:var(--font-display);font-weight:800;font-size:20px;color:#fff;margin-bottom:3px;">Liberar meu guia gratuito</h3>
+          <p class="lp-lead" style="margin-bottom:18px;">Preencha e receba o guia no seu e-mail.</p>
 
           @if($errors->any())
             <div class="lp-alert">Confira os campos destacados.</div>
@@ -238,7 +232,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
               Baixar guia gratuito
             </button>
-            <p class="lp-micro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> Acesso imediato · 100% gratuito</p>
+            <p class="lp-micro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> 100% gratuito · sem cartao · acesso imediato</p>
             <p class="lp-lgpd">Dados protegidos conforme a LGPD.</p>
           </form>
         </div>
@@ -251,7 +245,6 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
 @push('scripts')
 <script>
-  // Mascara de WhatsApp: (00) 00000-0000
   document.querySelectorAll('.js-whats').forEach(function(el){
     el.addEventListener('input', function(){
       var v = el.value.replace(/\D/g,'').slice(0,11);
@@ -261,7 +254,6 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
       else { el.value = ''; }
     });
   });
-  // Evita duplo envio
   document.querySelectorAll('form').forEach(function(f){
     if(!f.querySelector('.js-whats')) return;
     f.addEventListener('submit', function(){
