@@ -1,8 +1,10 @@
 {{-- Campos reutilizados nos formularios do topo e do final --}}
 
-{{-- Honeypot anti-spam (invisivel para humanos) --}}
-<input type="text" name="website" class="lp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-
+{{-- honeypot anti-spam --}}
+<div class="lp-hp" aria-hidden="true">
+  <label>Nao preencha este campo</label>
+  <input type="text" name="lp_hp" tabindex="-1" autocomplete="off">
+</div>
 {{-- UTMs capturadas da URL do anuncio --}}
 <input type="hidden" name="utm_source"   value="{{ $utm['utm_source'] ?? '' }}">
 <input type="hidden" name="utm_medium"   value="{{ $utm['utm_medium'] ?? '' }}">

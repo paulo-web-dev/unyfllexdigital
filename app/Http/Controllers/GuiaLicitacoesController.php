@@ -53,10 +53,10 @@ class GuiaLicitacoesController extends Controller
 
     public function store(Request $request)
     {
-        // Honeypot anti-spam: campo invisivel "website". Se vier preenchido, e bot.
-        if (filled($request->input('website'))) {
-            return redirect()->route('guia.landing');
-        }
+   // Honeypot anti-spam: campo invisivel. Se vier preenchido, e bot.
+if (filled($request->input('lp_hp'))) {
+    return redirect()->route('guia.landing');
+}
 
         $data = $request->validate([
             'nome'     => ['required', 'string', 'min:3', 'max:150'],
