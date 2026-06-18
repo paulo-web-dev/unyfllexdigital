@@ -10,7 +10,26 @@
   $waCurso = $waBase . '&text=' . rawurlencode('Olá! Tenho interesse na minisérie "' . $curso->title . '". Pode me ajudar?');
   $waIcon  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
   $thumb = 'https://unyflex.com.br/storage/cursos/banner/' . $curso->photo;
-  $preco = $curso->price ?? 998;
+
+  // ===== Valores: tudo derivado do campo "valor" do curso =====
+  $preco        = (float) ($curso->valor ?? 0);    // preço à vista
+  $parcelas     = 10;                              // nº máximo de parcelas (ajuste aqui)
+  $valorParcela = $parcelas > 0 ? $preco / $parcelas : $preco;
+  $precoDe      = $curso->valor_de ?? null;        // preço "cheio" opcional (riscado); aparece só se existir e for maior
+  $fmt          = fn ($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
+
+  // ===== Fotos (prova social) =====
+  $docentes = [
+    'https://unygov.com.br/storage/galeria/fotos/IMG_5940.jpg',
+    'https://unygov.com.br/storage/galeria/fotos/IMG_5642.jpg',
+    'https://unygov.com.br/storage/galeria/fotos/IMG_6745.jpg',
+  ];
+  $alunosFotos = [
+    'https://unygov.com.br/storage/galeria/fotos/IMG_6269.jpg',
+    'https://unygov.com.br/storage/galeria/fotos/IMG_6029.jpg',
+    'https://unygov.com.br/storage/galeria/fotos/IMG_5971.jpg',
+    'https://unygov.com.br/storage/galeria/fotos/IMG_5948.jpg',
+  ];
 @endphp
 
 {{-- ================================================================
@@ -132,9 +151,43 @@
 </section>
 
 {{-- ================================================================
-     3. O QUE VOCÊ VAI DOMINAR (P-estrutura)
+     3. DOCENTES ESPECIALISTAS — prova social (3ª dobra)
      ================================================================ --}}
-<section class="section-py" id="aprender">
+<section class="section-py" id="docentes">
+  <div class="container">
+    <div class="text-center mb-5 aos-fade">
+      <div class="section-eyebrow">Quem ensina</div>
+      <h2 class="section-title">Docentes especialistas<br><span class="text-brand-gradient">no assunto</span></h2>
+      <p class="section-subtitle mx-auto">Aulas conduzidas por quem vive a administração pública — especialistas em licitações e contratos, com atuação prática e didática direta ao ponto.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      @foreach($docentes as $i => $foto)
+      <div class="col-lg-4 col-md-4 aos-fade" style="transition-delay:{{ $i * 0.08 }}s;">
+        <div class="foto-card">
+          <img src="{{ $foto }}" alt="Docente especialista da Unyflex em aula presencial" loading="lazy">
+          <div class="foto-cap">
+            <i data-lucide="graduation-cap" style="width:15px;height:15px;stroke:var(--brand-300);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
+           
+          </div>
+        </div>
+      </div>
+      @endforeach
+    </div>
+
+    <div class="text-center mt-5 aos-fade">
+      <a href="#oferta" class="btn-ux btn-ux-primary btn-ux-lg">
+        <i data-lucide="zap" style="width:16px;height:16px;fill:currentColor;stroke:none;"></i>
+        
+      </a>
+    </div>
+  </div>
+</section>
+
+{{-- ================================================================
+     4. O QUE VOCÊ VAI DOMINAR (P-estrutura)
+     ================================================================ --}}
+<section class="section-py" id="aprender" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">O que você vai dominar</div>
@@ -160,10 +213,10 @@
 </section>
 
 {{-- ================================================================
-     4. SOBRE (se houver)
+     5. SOBRE (se houver)
      ================================================================ --}}
 @if($curso->info)
-<section class="section-py" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
+<section class="section-py">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-8 aos-fade">
@@ -178,9 +231,9 @@
 @endif
 
 {{-- ================================================================
-     5. CONTEÚDO PROGRAMÁTICO
+     6. CONTEÚDO PROGRAMÁTICO
      ================================================================ --}}
-<section class="section-py" id="conteudo" style="{{ $curso->info ? '' : 'background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);' }}">
+<section class="section-py" id="conteudo" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">Conteúdo programático</div>
@@ -245,9 +298,9 @@
 </section>
 
 {{-- ================================================================
-     6. PARA QUEM É — cargos reais (P2)
+     7. PARA QUEM É — cargos reais (P2)
      ================================================================ --}}
-<section class="section-py" id="para-quem" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
+<section class="section-py" id="para-quem">
   <div class="container">
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">Para quem é</div>
@@ -278,9 +331,9 @@
 </section>
 
 {{-- ================================================================
-     7. PROVA INSTITUCIONAL (P3)
+     8. PROVA INSTITUCIONAL + galeria de alunos (P3)
      ================================================================ --}}
-<section class="section-py" id="prova">
+<section class="section-py" id="prova" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">Confiança</div>
@@ -317,35 +370,20 @@
         </div>
       </div>
     </div>
-  </div>
-</section>
 
-{{-- ================================================================
-     8. PROFESSOR / ESPECIALISTA (P4)
-     ================================================================ --}}
-<section class="section-py" id="professor" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
-  <div class="container">
-    <div class="row justify-content-center align-items-center g-5">
-      <div class="col-lg-4 col-md-5 aos-fade">
-        {{-- Espaço para foto real do professor — troque o src --}}
-        <div style="aspect-ratio:1;border-radius:var(--r-xl);overflow:hidden;border:1px solid var(--line-2);background:var(--bg-3);display:flex;align-items:center;justify-content:center;">
-          {{-- <img src="https://unyflex.com.br/storage/professores/SEU-PROFESSOR.jpg" alt="Professor" style="width:100%;height:100%;object-fit:cover;"> --}}
-          <i data-lucide="user" style="width:48px;height:48px;stroke:var(--fg-4);fill:none;stroke-width:1.25;"></i>
+    {{-- Galeria — servidores em capacitações presenciais --}}
+    <div class="text-center mt-5 mb-4 aos-fade">
+      <h3 style="font-family:var(--font-display);font-weight:800;font-size:clamp(20px,2.6vw,28px);color:#fff;letter-spacing:-0.01em;margin-bottom:6px;">Servidores capacitados presencialmente</h3>
+      <p style="font-size:14px;color:var(--fg-4);max-width:520px;margin:0 auto;">Turmas reais das nossas capacitações em municípios de todo o Brasil.</p>
+    </div>
+    <div class="row g-3 justify-content-center">
+      @foreach($alunosFotos as $i => $foto)
+      <div class="col-6 col-md-3 aos-fade" style="transition-delay:{{ $i * 0.06 }}s;">
+        <div class="foto-card aluno">
+          <img src="{{ $foto }}" alt="Servidores em capacitação presencial da Unyflex" loading="lazy">
         </div>
       </div>
-      <div class="col-lg-6 col-md-7 aos-fade aos-delay-2">
-        <div class="section-eyebrow">Quem ensina</div>
-        <h2 class="section-title" style="font-size:clamp(22px,3vw,30px);">Conteúdo de quem vive a<br>administração pública</h2>
-        <p style="font-size:15px;color:var(--fg-3);line-height:1.7;margin:16px 0;">
-          {{-- TROQUE pelos dados reais do professor --}}
-          Nome do Especialista · Cargo / Formação
-        </p>
-        <p style="font-size:14px;color:var(--fg-3);line-height:1.7;">
-          Especialista em licitações e contratos administrativos com atuação prática no setor público.
-          Traduz a Lei 14.133 em conceitos diretos e aplicáveis, do jeito que o servidor precisa para
-          executar com segurança no dia a dia.
-        </p>
-      </div>
+      @endforeach
     </div>
   </div>
 </section>
@@ -367,19 +405,21 @@
 
           <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:18px;margin-top:8px;">{{ $curso->title }}</div>
 
-          <div style="font-size:13px;color:var(--fg-4);text-decoration:line-through;margin-bottom:8px;">De R$ 1.990,00</div>
+          @if($precoDe && $precoDe > $preco)
+          <div style="font-size:13px;color:var(--fg-4);text-decoration:line-through;margin-bottom:8px;">De {{ $fmt($precoDe) }}</div>
+          @endif
 
           <div style="background:rgba(0,163,255,0.10);border:1px solid rgba(0,163,255,0.25);border-radius:var(--r-md);padding:16px;margin-bottom:10px;">
             <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--brand-300);margin-bottom:6px;">Parcelado em até</div>
             <div style="display:flex;align-items:baseline;justify-content:center;gap:5px;">
-              <span style="font-family:var(--font-display);font-weight:800;font-size:30px;color:#fff;">10x</span>
-              <span style="font-family:var(--font-display);font-weight:800;font-size:50px;color:#fff;line-height:1;">R$ 98</span>
+              <span style="font-family:var(--font-display);font-weight:800;font-size:30px;color:#fff;">{{ $parcelas }}x</span>
+              <span style="font-family:var(--font-display);font-weight:800;font-size:50px;color:#fff;line-height:1;">{{ $fmt($valorParcela) }}</span>
             </div>
             <div style="font-size:11px;color:var(--fg-4);margin-top:4px;">sem juros no cartão</div>
           </div>
 
           <div style="font-size:13px;color:var(--fg-3);margin-bottom:22px;">
-            ou <strong style="color:#fff;">R$ {{ number_format($preco,0,',','.') }}</strong> à vista · acesso por 12 meses
+            ou <strong style="color:#fff;">{{ $fmt($preco) }}</strong> à vista · acesso por 12 meses
           </div>
 
           <button class="btn-ux btn-ux-primary btn-ux-lg btn-add-to-cart" style="width:100%;justify-content:center;margin-bottom:12px;"
@@ -446,7 +486,7 @@
           ['q'=>'Em quanto tempo recebo o acesso?','a'=>'No cartão de crédito, em até 5 minutos. No PIX, assim que o pagamento confirma. No boleto, em 1 a 2 dias úteis.'],
           ['q'=>'O certificado é reconhecido?','a'=>'Sim. Emitido pela Faculdade Unypública, reconhecida pelo MEC. Vale para progressão funcional, concursos e comprovação de capacitação.'],
           ['q'=>'Por quanto tempo tenho acesso?','a'=>'12 meses a partir da matrícula. Assista, revise e baixe os materiais quantas vezes quiser.'],
-          ['q'=>'Posso pagar parcelado?','a'=>'Sim, em até 10x de R$ 98 sem juros no cartão. Também aceitamos PIX e boleto à vista.'],
+          ['q'=>'Posso pagar parcelado?','a'=>'Sim, em até '.$parcelas.'x de '.$fmt($valorParcela).' sem juros no cartão. Também aceitamos PIX e boleto à vista.'],
           ['q'=>'Emite nota fiscal? Prefeitura pode comprar?','a'=>'Sim, nota fiscal para PF e PJ. Prefeituras podem comprar via CNPJ — fale com a gente no WhatsApp.'],
           ['q'=>'E se eu não gostar?','a'=>'Você tem 7 dias de garantia incondicional. Pediu, devolvemos 100% do valor, sem burocracia.'],
         ] as $faq)
@@ -485,7 +525,7 @@
           Domine a Nova Licitação<br><span class="text-brand-gradient">e aplique com segurança</span>
         </h2>
         <p style="font-size:17px;color:var(--fg-3);line-height:1.65;margin-bottom:32px;max-width:540px;margin-left:auto;margin-right:auto;">
-          {{ $totalVideos }} cápsulas práticas por 10x de R$ 98. Junte-se a mais de 49.000 servidores capacitados.
+          {{ $totalVideos }} cápsulas práticas por {{ $parcelas }}x de {{ $fmt($valorParcela) }}. Junte-se a mais de 49.000 servidores capacitados.
         </p>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center;">
@@ -511,8 +551,10 @@
 {{-- Barra fixa de conversão --}}
 <div id="lp-sticky-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9980;background:rgba(8,14,28,0.97);border-top:1px solid var(--line-2);backdrop-filter:blur(10px);padding:10px 16px;display:none;align-items:center;gap:12px;">
   <div style="flex:1;min-width:0;">
-    <div style="font-size:11px;color:var(--fg-4);text-decoration:line-through;">R$ 1.990</div>
-    <div style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-display);">10x R$ 98 <span style="font-size:11px;font-weight:400;color:var(--fg-3);">sem juros</span></div>
+    @if($precoDe && $precoDe > $preco)
+    <div style="font-size:11px;color:var(--fg-4);text-decoration:line-through;">{{ $fmt($precoDe) }}</div>
+    @endif
+    <div style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-display);">{{ $parcelas }}x {{ $fmt($valorParcela) }} <span style="font-size:11px;font-weight:400;color:var(--fg-3);">sem juros</span></div>
   </div>
   <button class="btn-ux btn-ux-primary btn-ux-sm btn-add-to-cart" style="flex-shrink:0;"
           data-course-id="{{ $curso->id }}"
@@ -549,6 +591,13 @@
 @media(max-width:600px){ .wa-float{bottom:74px;} }
 .lp-accordion-header:hover{border-color:rgba(0,163,255,0.4)!important;}
 .lp-chevron.open{transform:rotate(180deg);}
+
+/* Galeria de fotos (prova social) */
+.foto-card{position:relative;border-radius:var(--r-xl);overflow:hidden;border:1px solid var(--line-2);background:var(--bg-3);box-shadow:0 14px 38px -18px rgba(0,0,0,.65);aspect-ratio:4/5;}
+.foto-card.aluno{aspect-ratio:1/1;}
+.foto-card img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .55s ease;}
+.foto-card:hover img{transform:scale(1.06);}
+.foto-card .foto-cap{position:absolute;left:0;right:0;bottom:0;padding:16px 16px 13px;background:linear-gradient(to top,rgba(5,10,24,.92),rgba(5,10,24,.4) 55%,transparent);font-size:12.5px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
 </style>
 @endpush
 
