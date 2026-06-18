@@ -203,7 +203,7 @@
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">{{ $panel->title }}</div>
-            <div style="font-size:12.5px;color:var(--fg-4);">{{ $panel->video_lesson->count() }} cápsulas @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais @endif</div>
+            <div style="font-size:12.5px;color:var(--fg-4);">71 cápsulas @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais @endif</div>
           </div>
         </div>
       </div>
@@ -238,7 +238,7 @@
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">Conteúdo programático</div>
       <h2 class="section-title">Tudo o que está dentro<br><span class="text-brand-gradient">da minisérie</span></h2>
-      <p class="section-subtitle mx-auto">{{ $totalTemporadas }} temporadas · {{ $totalVideos }} cápsulas · {{ $totalMateriais }} materiais de apoio</p>
+      <p class="section-subtitle mx-auto">6 temporadas · 71 cápsulas · 30 materiais de apoio</p>
     </div>
 
     <div class="row justify-content-center">
@@ -255,8 +255,8 @@
               <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--brand-400);margin-bottom:2px;">Temporada {{ $pNum }}</div>
               <div style="font-size:15px;font-weight:700;color:#fff;">{{ $panel->title }}</div>
               <div style="font-size:12px;color:var(--fg-4);margin-top:2px;">
-                {{ $panel->video_lesson->count() }} cápsulas
-                @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais @endif
+               71 cápsulas
+                @if($panel->material->count() > 0) · 30 materiais @endif
               </div>
             </div>
             <i data-lucide="chevron-down" class="lp-chevron" style="width:20px;height:20px;stroke:var(--fg-4);fill:none;stroke-width:2;flex-shrink:0;transition:transform 0.25s;"></i>
@@ -440,9 +440,9 @@
 
           <div style="display:flex;flex-direction:column;gap:9px;text-align:left;">
             @foreach([
-              'Acesso por 12 meses a todas as ' . $totalVideos . ' cápsulas',
+              'Acesso por 12 meses a todas as 71 cápsulas',
               'Versão em podcast de cada aula',
-              $totalMateriais . ' materiais, modelos e checklists',
+              '30 materiais, modelos e checklists',
               'Certificado reconhecido pelo MEC',
               'Suporte pedagógico durante o acesso',
               'Garantia incondicional de 7 dias',
@@ -525,7 +525,7 @@
           Domine a Nova Licitação<br><span class="text-brand-gradient">e aplique com segurança</span>
         </h2>
         <p style="font-size:17px;color:var(--fg-3);line-height:1.65;margin-bottom:32px;max-width:540px;margin-left:auto;margin-right:auto;">
-          {{ $totalVideos }} cápsulas práticas por {{ $parcelas }}x de {{ $fmt($valorParcela) }}. Junte-se a mais de 49.000 servidores capacitados.
+        71 cápsulas práticas por {{ $parcelas }}x de {{ $fmt($valorParcela) }}. Junte-se a mais de 49.000 servidores capacitados.
         </p>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center;">
