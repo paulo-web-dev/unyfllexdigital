@@ -62,7 +62,7 @@ class CursoLandingController extends Controller
     {
         // Busca o curso pela slug
         $curso = Classes::where('slug', $slug)
-            ->where('status', 'able')
+            ->where('express', '1')
             ->firstOrFail();
 
         // Carrega painéis (temporadas) — query separada

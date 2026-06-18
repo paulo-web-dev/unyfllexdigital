@@ -9,7 +9,7 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $classes = Classes::where('express', '1')->get();
+        $classes = Classes::where('express', '1')->where('status', 'able')->get();
         
         return view('pages.home',[
             'classes' => $classes,
