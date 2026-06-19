@@ -463,7 +463,25 @@ let _countdownTimer = null;
 let _currentPaymentId = null;
 
 function fmt(val) {
-  return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'R$ ' + (Number(val) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── Fonte de verdade do preço ───────────────────────────────────────────────
+// PRIORIDADE: item.price (já vem correto do carrinho/UnyCart) -> meta.valor
+// (catalogo) -> 0 (fallback visivel, nunca mais 998 escondido).
+// Assim o checkout NAO depende do curso estar no CATALOG (filtro status='able').
+function getItensCarrinho() {
+  const cart = window.UnyCart ? UnyCart.getCart() : [];
+  return cart.map(item => {
+    const meta  = CATALOG.find(m => m.id == item.id) ?? {};
+    const valor = parseFloat(item.price ?? meta.valor ?? 0) || 0;
+    return {
+      ...item,
+      valor,
+      thumb: item.thumb ?? meta.thumb,
+      title: item.title ?? meta.title,
+    };
+  });
 }
 
 // ── Parcelas ──────────────────────────────────────────────────────────────
@@ -474,26 +492,22 @@ function buildParcelas(total) {
     { n: 1,  label: `1x de ${fmt(total)} (à vista)` },
     { n: 2,  label: `2x de ${fmt(total/2)} (sem juros)` },
     { n: 3,  label: `3x de ${fmt(total/3)} (sem juros)` },
-    { n: 6,  label: `6x de ${fmt(total/6)} (sem juros)` },  
-    { n: 6,  label: `10x de ${fmt(total/10)} (sem juros)` },
+    { n: 6,  label: `6x de ${fmt(total/6)} (sem juros)` },
+    { n: 10, label: `10x de ${fmt(total/10)} (sem juros)` },
     { n: 12, label: `12x de ${fmt(total/12)}` },
   ].map(o => `<option value="${o.n}">${o.label}</option>`).join('');
 }
 
 // ── Renderiza carrinho ────────────────────────────────────────────────────
 function renderCheckout() {
-  const cart    = window.UnyCart ? UnyCart.getCart() : [];
   const emptyEl = document.getElementById('checkoutEmpty');
   const mainEl  = document.getElementById('checkoutMain');
   const listEl  = document.getElementById('checkoutItemsList');
 
-  if (!cart.length) { emptyEl.style.display = 'block'; mainEl.style.display = 'none'; return; }
-  emptyEl.style.display = 'none'; mainEl.style.display = 'block';
+  const itens = getItensCarrinho();
 
-  const itens = cart.map(item => {
-    const meta = CATALOG.find(m => m.id == item.id) ?? {};
-    return { ...item, valor: meta.valor ?? 998, thumb: meta.thumb ?? item.thumb };
-  });
+  if (!itens.length) { emptyEl.style.display = 'block'; mainEl.style.display = 'none'; return; }
+  emptyEl.style.display = 'none'; mainEl.style.display = 'block';
 
   const total = itens.reduce((s, i) => s + i.valor, 0);
   const qty   = itens.length;
@@ -675,13 +689,13 @@ function stopCountdown() {
 async function finalizarPedido() {
   limparErros();
 
-  const cart = window.UnyCart ? UnyCart.getCart() : [];
-  if (!cart.length) { mostrarAlerta('Adicione ao menos uma minisérie ao carrinho.'); return; }
+  // Mesma fonte de verdade do resumo visual
+  const itens = getItensCarrinho();
+  if (!itens.length) { mostrarAlerta('Adicione ao menos uma minisérie ao carrinho.'); return; }
 
-  const itemCatalog = CATALOG.find(m => m.id == cart[0].id) ?? {};
-  const classesId   = cart[0].id;
-  const valor       = parseFloat(itemCatalog.valor ?? 998);
-  const parcelas    = parseInt(document.getElementById('selectParcelas')?.value ?? '1');
+  const classesId = itens[0].id;                              // primeiro item para o payload
+  const valor     = itens.reduce((s, i) => s + i.valor, 0);   // total, bate com o exibido
+  const parcelas  = parseInt(document.getElementById('selectParcelas')?.value ?? '1');
 
   const payload = {
     nome:             document.getElementById('inputNome')?.value.trim()  ?? '',
@@ -776,15 +790,18 @@ async function finalizarPedido() {
         urlBtn.innerHTML = urlBtn.innerHTML.replace('Abrir / Baixar boleto', 'Processando boleto…');
       }
 
-      // Linha digitável
+      // Linha digitável (só atualiza se o elemento existir no DOM)
       const linhaEl = document.getElementById('boletoLinha');
-      if (_boletoCodigo) {
-        linhaEl.textContent = _boletoCodigo;
-      } else {
-        linhaEl.textContent   = 'Linha digitável em processamento…';
-        linhaEl.style.color   = 'var(--fg-4)';
-        linhaEl.style.cursor  = 'default';
-        document.getElementById('btnCopiarBoleto').style.display = 'none';
+      if (linhaEl) {
+        if (_boletoCodigo) {
+          linhaEl.textContent = _boletoCodigo;
+        } else {
+          linhaEl.textContent   = 'Linha digitável em processamento…';
+          linhaEl.style.color   = 'var(--fg-4)';
+          linhaEl.style.cursor  = 'default';
+          const btnCopiar = document.getElementById('btnCopiarBoleto');
+          if (btnCopiar) btnCopiar.style.display = 'none';
+        }
       }
 
       if (data.boleto_vencimento) {
@@ -806,7 +823,6 @@ async function finalizarPedido() {
     else if (metodoPagamento === 'CREDIT_CARD') {
       if (window.UnyCart) UnyCart.clear?.();
       window.location.href = '{{ route('compra.realizada') }}';
- 
     }
 
   } catch (e) {

@@ -425,7 +425,7 @@
           <button class="btn-ux btn-ux-primary btn-ux-lg btn-add-to-cart" style="width:100%;justify-content:center;margin-bottom:12px;"
                   data-course-id="{{ $curso->id }}"
                   data-course-title="{{ $curso->title }}"
-                  data-course-price="{{ $preco }}"
+                  data-course-price="{{ $curso->valor }}"
                   data-course-thumb="{{ $thumb }}"
                   data-course-slug="{{ $curso->slug }}">
             <i data-lucide="zap" style="width:17px;height:17px;fill:currentColor;stroke:none;"></i>

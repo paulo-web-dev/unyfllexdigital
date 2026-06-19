@@ -380,210 +380,236 @@
 {{-- ================================================================
      JAVASCRIPT
      ================================================================ --}}
-<script>
-/* ---- UnyCart: gerenciador de carrinho ---- */
-window.UnyCart = (function () {
-  const STORAGE_KEY = 'unyflex_cart';
-  const PRICE_PER_COURSE = 998; // R$ 998 por minisérie
-
-  function getCart() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-    catch { return []; }
-  }
-
-  function saveCart(cart) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-    updateBadge(cart.length);
-    renderDropdown(cart);
-    document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
-  }
-
-  function addItem(item) {
-    const cart = getCart();
-    if (cart.find(i => String(i.id) === String(item.id))) return { added: false };
-    item.price = PRICE_PER_COURSE;
-    cart.push(item);
-    saveCart(cart);
-    return { added: true };
-  }
-
-  function removeItem(id) {
-    saveCart(getCart().filter(i => String(i.id) !== String(id)));
-  }
-
-  function clearCart() { saveCart([]); }
-
-  function formatPrice(val) {
-    return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function updateBadge(count) {
-    const badge = document.getElementById('navbarCartCount');
-    if (!badge) return;
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.style.display = count > 0 ? 'flex' : 'none';
-  }
-
-  function renderDropdown(cart) {
-    const itemsEl   = document.getElementById('cartDropdownItems');
-    const emptyEl   = document.getElementById('cartDropdownEmpty');
-    const footerEl  = document.getElementById('cartDropdownFooter');
-    const totalEl   = document.getElementById('cartDropdownTotal');
-    const qtyEl     = document.getElementById('cartDropdownQty');
-    if (!itemsEl) return;
-
-    const qty = cart.length;
-    qtyEl.textContent = qty === 0 ? '0 itens' : qty === 1 ? '1 item' : qty + ' itens';
-
-    if (qty === 0) {
-      itemsEl.innerHTML = '';
-      emptyEl.style.display = 'flex';
-      footerEl.style.display = 'none';
-      return;
-    }
-
-    emptyEl.style.display = 'none';
-    footerEl.style.display = 'block';
-    totalEl.textContent = formatPrice(qty * PRICE_PER_COURSE);
-
-    itemsEl.innerHTML = cart.map(item => `
-      <div class="cart-dropdown-item" data-item-id="${item.id}">
-        ${item.thumb
-          ? `<img class="cart-item-thumb" src="${item.thumb}" alt="${item.title}" onerror="this.style.display='none'">`
-          : `<div class="cart-item-thumb-placeholder">
-               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-             </div>`
+     <script>
+      /* ---- UnyCart: gerenciador de carrinho ----
+         AJUSTE: removido o PRICE_PER_COURSE fixo (998) de TODOS os pontos.
+         Agora cada item carrega seu próprio "price", vindo do data-course-price.
+         - addItem mantém o preço recebido e atualiza item já existente
+         - renderDropdown soma os preços reais (por item e total)
+         - handler de "adicionar" lê data-course-price em vez de 998 fixo
+         - adicionado clear() (alias de clearCart) para o checkout esvaziar o carrinho
+      */
+      window.UnyCart = (function () {
+        const STORAGE_KEY = 'unyflex_cart';
+      
+        function getCart() {
+          try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+          catch { return []; }
         }
-        <div class="cart-item-info">
-          <div class="cart-item-name" title="${item.title}">${item.title}</div>
-          <div class="cart-item-price">${formatPrice(PRICE_PER_COURSE)}</div>
-        </div>
-        <button class="cart-item-remove" data-remove-id="${item.id}" aria-label="Remover ${item.title}">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-    `).join('');
-
-    // Listeners de remoção
-    itemsEl.querySelectorAll('.cart-item-remove').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const id = this.dataset.removeId;
-        UnyCart.removeItem(id);
-        // Restaura botão de adicionar na página
-        const addBtn = document.querySelector(`.btn-add-to-cart[data-course-id="${id}"]`);
-        if (addBtn) {
-          addBtn.classList.remove('in-cart');
-          addBtn.querySelector('.btn-cart-label').textContent = 'Adicionar';
+      
+        function saveCart(cart) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+          updateBadge(cart.length);
+          renderDropdown(cart);
+          document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
         }
+      
+        // Preço seguro de um item (fallback 0 deixa dado ruim VISÍVEL, em vez de virar 998)
+        function itemPrice(item) {
+          return Number(item && item.price) || 0;
+        }
+      
+        function addItem(item) {
+          const cart = getCart();
+          const existente = cart.find(i => String(i.id) === String(item.id));
+      
+          if (existente) {
+            // Em vez de ignorar, atualiza os dados — resolve preço "grudado" em cache
+            existente.price = item.price;
+            existente.title = item.title;
+            existente.thumb = item.thumb;
+            existente.slug  = item.slug;
+            saveCart(cart);
+            return { added: false, updated: true };
+          }
+      
+          // NÃO sobrescreve mais o preço: mantém o que veio da página
+          cart.push(item);
+          saveCart(cart);
+          return { added: true };
+        }
+      
+        function removeItem(id) {
+          saveCart(getCart().filter(i => String(i.id) !== String(id)));
+        }
+      
+        function clearCart() { saveCart([]); }
+      
+        function formatPrice(val) {
+          return 'R$ ' + (Number(val) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      
+        function updateBadge(count) {
+          const badge = document.getElementById('navbarCartCount');
+          if (!badge) return;
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+      
+        function renderDropdown(cart) {
+          const itemsEl   = document.getElementById('cartDropdownItems');
+          const emptyEl   = document.getElementById('cartDropdownEmpty');
+          const footerEl  = document.getElementById('cartDropdownFooter');
+          const totalEl   = document.getElementById('cartDropdownTotal');
+          const qtyEl     = document.getElementById('cartDropdownQty');
+          if (!itemsEl) return;
+      
+          const qty = cart.length;
+          qtyEl.textContent = qty === 0 ? '0 itens' : qty === 1 ? '1 item' : qty + ' itens';
+      
+          if (qty === 0) {
+            itemsEl.innerHTML = '';
+            emptyEl.style.display = 'flex';
+            footerEl.style.display = 'none';
+            return;
+          }
+      
+          emptyEl.style.display = 'none';
+          footerEl.style.display = 'block';
+      
+          // Total = soma dos preços reais de cada item
+          const total = cart.reduce((s, i) => s + itemPrice(i), 0);
+          totalEl.textContent = formatPrice(total);
+      
+          itemsEl.innerHTML = cart.map(item => `
+            <div class="cart-dropdown-item" data-item-id="${item.id}">
+              ${item.thumb
+                ? `<img class="cart-item-thumb" src="${item.thumb}" alt="${item.title}" onerror="this.style.display='none'">`
+                : `<div class="cart-item-thumb-placeholder">
+                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+                   </div>`
+              }
+              <div class="cart-item-info">
+                <div class="cart-item-name" title="${item.title}">${item.title}</div>
+                <div class="cart-item-price">${formatPrice(itemPrice(item))}</div>
+              </div>
+              <button class="cart-item-remove" data-remove-id="${item.id}" aria-label="Remover ${item.title}">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          `).join('');
+      
+          // Listeners de remoção
+          itemsEl.querySelectorAll('.cart-item-remove').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const id = this.dataset.removeId;
+              UnyCart.removeItem(id);
+              // Restaura botão de adicionar na página
+              const addBtn = document.querySelector(`.btn-add-to-cart[data-course-id="${id}"]`);
+              if (addBtn) {
+                addBtn.classList.remove('in-cart');
+                const lbl = addBtn.querySelector('.btn-cart-label');
+                if (lbl) lbl.textContent = 'Adicionar';
+              }
+            });
+          });
+        }
+      
+        function init() {
+          const cart = getCart();
+          updateBadge(cart.length);
+          renderDropdown(cart);
+        }
+      
+        return { getCart, addItem, removeItem, clearCart, clear: clearCart, init, renderDropdown };
+      })();
+      
+      /* ---- Toggle do dropdown ---- */
+      document.addEventListener('DOMContentLoaded', function () {
+        UnyCart.init();
+      
+        const btn      = document.getElementById('navbarCartBtn');
+        const dropdown = document.getElementById('cartDropdown');
+        const wrap     = document.getElementById('navbarCartWrap');
+      
+        if (!btn || !dropdown) return;
+      
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const isOpen = dropdown.classList.contains('open');
+          dropdown.classList.toggle('open', !isOpen);
+          btn.classList.toggle('active', !isOpen);
+          btn.setAttribute('aria-expanded', String(!isOpen));
+          dropdown.setAttribute('aria-hidden', String(isOpen));
+      
+          // Re-renderiza ao abrir para garantir dados frescos
+          if (!isOpen) UnyCart.renderDropdown(UnyCart.getCart());
+        });
+      
+        // Fecha ao clicar fora
+        document.addEventListener('click', function (e) {
+          if (!wrap.contains(e.target)) {
+            dropdown.classList.remove('open');
+            btn.classList.remove('active');
+            btn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      
+        // Fecha com ESC
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            dropdown.classList.remove('open');
+            btn.classList.remove('active');
+          }
+        });
+      
+        /* ---- Botões "Adicionar ao carrinho" na página ---- */
+        const cart = UnyCart.getCart();
+        document.querySelectorAll('.btn-add-to-cart').forEach(addBtn => {
+          if (cart.find(i => String(i.id) === String(addBtn.dataset.courseId))) {
+            setInCart(addBtn);
+          }
+          addBtn.addEventListener('click', function () {
+            const item = {
+              id:    this.dataset.courseId,
+              title: this.dataset.courseTitle,
+              price: parseFloat(this.dataset.coursePrice) || 0,   // lê o preço real do botão (sem 998 fixo)
+              thumb: this.dataset.courseThumb,
+              slug:  this.dataset.courseSlug,
+            };
+            const result = UnyCart.addItem(item);
+            if (result.added) {
+              setInCart(this);
+              showToast(item.title);
+            } else {
+              // Já no carrinho (preço foi atualizado): abre dropdown
+              dropdown.classList.add('open');
+              btn.classList.add('active');
+            }
+          });
+        });
+      
+        function setInCart(addBtn) {
+          addBtn.classList.add('in-cart');
+          const label = addBtn.querySelector('.btn-cart-label');
+          if (label) label.textContent = 'No carrinho ✓';
+        }
+      
+        /* ---- Toast ---- */
+        let toastTimer;
+        function showToast(title) {
+          const toast = document.getElementById('cartToast');
+          const sub   = document.getElementById('cartToastSub');
+          if (!toast) return;
+          sub.textContent = title;
+          toast.classList.add('visible');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => toast.classList.remove('visible'), 4500);
+        }
+      
+        /* ---- Sync ao remover do carrinho ---- */
+        document.addEventListener('cart:updated', function (e) {
+          const ids = e.detail.cart.map(i => String(i.id));
+          document.querySelectorAll('.btn-add-to-cart').forEach(addBtn => {
+            if (!ids.includes(String(addBtn.dataset.courseId))) {
+              addBtn.classList.remove('in-cart');
+              const label = addBtn.querySelector('.btn-cart-label');
+              if (label) label.textContent = 'Adicionar';
+            }
+          });
+        });
       });
-    });
-  }
-
-  function init() {
-    const cart = getCart();
-    updateBadge(cart.length);
-    renderDropdown(cart);
-  }
-
-  return { getCart, addItem, removeItem, clearCart, init, renderDropdown };
-})();
-
-/* ---- Toggle do dropdown ---- */
-document.addEventListener('DOMContentLoaded', function () {
-  UnyCart.init();
-
-  const btn      = document.getElementById('navbarCartBtn');
-  const dropdown = document.getElementById('cartDropdown');
-  const wrap     = document.getElementById('navbarCartWrap');
-
-  if (!btn || !dropdown) return;
-
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    const isOpen = dropdown.classList.contains('open');
-    dropdown.classList.toggle('open', !isOpen);
-    btn.classList.toggle('active', !isOpen);
-    btn.setAttribute('aria-expanded', String(!isOpen));
-    dropdown.setAttribute('aria-hidden', String(isOpen));
-
-    // Re-renderiza ao abrir para garantir dados frescos
-    if (!isOpen) UnyCart.renderDropdown(UnyCart.getCart());
-  });
-
-  // Fecha ao clicar fora
-  document.addEventListener('click', function (e) {
-    if (!wrap.contains(e.target)) {
-      dropdown.classList.remove('open');
-      btn.classList.remove('active');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  // Fecha com ESC
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      dropdown.classList.remove('open');
-      btn.classList.remove('active');
-    }
-  });
-
-  /* ---- Botões "Adicionar ao carrinho" na página ---- */
-  const cart = UnyCart.getCart();
-  document.querySelectorAll('.btn-add-to-cart').forEach(addBtn => {
-    if (cart.find(i => String(i.id) === String(addBtn.dataset.courseId))) {
-      setInCart(addBtn);
-    }
-    addBtn.addEventListener('click', function () {
-      const item = {
-        id:    this.dataset.courseId,
-        title: this.dataset.courseTitle,
-        price: 998,
-        thumb: this.dataset.courseThumb,
-        slug:  this.dataset.courseSlug,
-      };
-      const result = UnyCart.addItem(item);
-      if (result.added) {
-        setInCart(this);
-        showToast(item.title);
-      } else {
-        // Já no carrinho: abre dropdown
-        dropdown.classList.add('open');
-        btn.classList.add('active');
-      }
-    });
-  });
-
-  function setInCart(addBtn) {
-    addBtn.classList.add('in-cart');
-    const label = addBtn.querySelector('.btn-cart-label');
-    if (label) label.textContent = 'No carrinho ✓';
-  }
-
-  /* ---- Toast ---- */
-  let toastTimer;
-  function showToast(title) {
-    const toast = document.getElementById('cartToast');
-    const sub   = document.getElementById('cartToastSub');
-    if (!toast) return;
-    sub.textContent = title;
-    toast.classList.add('visible');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('visible'), 4500);
-  }
-
-  /* ---- Sync ao remover do carrinho ---- */
-  document.addEventListener('cart:updated', function (e) {
-    const ids = e.detail.cart.map(i => String(i.id));
-    document.querySelectorAll('.btn-add-to-cart').forEach(addBtn => {
-      if (!ids.includes(String(addBtn.dataset.courseId))) {
-        addBtn.classList.remove('in-cart');
-        const label = addBtn.querySelector('.btn-cart-label');
-        if (label) label.textContent = 'Adicionar';
-      }
-    });
-  });
-});
-</script>
+      </script>
