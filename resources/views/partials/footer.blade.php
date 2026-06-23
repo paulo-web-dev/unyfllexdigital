@@ -14,7 +14,7 @@
           </div>
         </a>
         <p class="footer-brand-desc">
-          Plataforma de miniséries de aprendizado rápido para servidores municipais, gestores públicos,
+          Plataforma de minisséries de aprendizado rápido para servidores municipais, gestores públicos,
           pregoeiros e auditores. Conteúdo que vai direto ao ponto — aplicável no dia seguinte.
         </p>
         <div style="display:flex; gap:10px;">
