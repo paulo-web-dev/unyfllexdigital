@@ -1,6 +1,6 @@
 @extends('layouts.site')
-@section('meta_title', 'Miniséries — Unyflex Digital')
-@section('meta_description', 'Catálogo completo de miniséries para servidores públicos. 26 miniséries, 184+ cápsulas de 10 a 20 minutos.')
+@section('meta_title', 'Minisséries — Unyflex Digital')
+@section('meta_description', 'Catálogo completo de minisséries para servidores públicos. 26 minisséries, 184+ cápsulas de 10 a 20 minutos.')
 
 @section('content')
 
@@ -11,7 +11,7 @@
     <div class="row justify-content-between align-items-end mb-5 aos-fade">
       <div class="col-lg-7">
         <div class="section-eyebrow">Catálogo completo</div>
-        <h1 class="section-title" style="font-size:clamp(32px,4vw,50px);">Miniséries</h1>
+        <h1 class="section-title" style="font-size:clamp(32px,4vw,50px);">Minisséries</h1>
         <p style="font-size:16px;color:var(--fg-3);line-height:1.65;max-width:500px;">
           Cápsulas de 10 a 20 minutos pensadas para servidores municipais aplicarem o conteúdo na rotina logo após assistir.
         </p>

@@ -1,14 +1,14 @@
 @extends('layouts.site')
 
 @section('meta_title', 'Unyflex Digital — Capacitação Prática para Servidores Públicos')
-@section('meta_description', 'Miniséries de 10 a 20 minutos para pregoeiros, gestores de contratos, auditores e equipes municipais. Conteúdo aplicável no órgão no dia seguinte. Reconhecido pelo MEC.')
+@section('meta_description', 'Minisséries de 10 a 20 minutos para pregoeiros, gestores de contratos, auditores e equipes municipais. Conteúdo aplicável no órgão no dia seguinte. Reconhecido pelo MEC.')
 
 @section('content')
 
 @php
   // ── Link único do WhatsApp (reaproveitado em toda a página) ──
   $waBase = 'https://api.whatsapp.com/send/?phone=554188980259&type=phone_number&app_absent=0';
-  $waDuvidas   = $waBase . '&text=' . rawurlencode('Olá! Tenho dúvidas sobre as miniséries da Unyflex Digital.');
+  $waDuvidas   = $waBase . '&text=' . rawurlencode('Olá! Tenho dúvidas sobre as minisséries da Unyflex Digital.');
   $waEquipe    = $waBase . '&text=' . rawurlencode('Olá! Quero um plano para minha equipe/secretaria.');
   $waCertif    = $waBase . '&text=' . rawurlencode('Olá! Gostaria de saber sobre o certificado e a nota fiscal.');
   $waAjuda     = $waBase . '&text=' . rawurlencode('Olá! Preciso de ajuda para escolher a minisérie ideal para o meu cargo.');
@@ -35,7 +35,7 @@
         </h1>
 
         <p class="hero-subtitle aos-fade aos-delay-2">
-          Miniséries de 20 minutos que ensinam exatamente o que você precisa para
+          Minisséries de 20 minutos que ensinam exatamente o que você precisa para
           executar com segurança no seu órgão — sem teoria interminável, sem juridiquês.
           <strong style="color:#fff;">Aplicável já no dia seguinte.</strong>
         </p>
@@ -43,7 +43,7 @@
         <div class="hero-cta-group aos-fade aos-delay-3">
           <a href="#minisseries" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Ver miniséries — a partir de 10x R$ 98
+            Ver minisséries — a partir de 10x R$ 98
           </a>
           <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-ghost btn-ux-lg" style="color:#25D366;border-color:rgba(37,211,102,0.4);">
             {!! $waIcon !!}
@@ -288,7 +288,7 @@ function playHeroVideo(){
       </div>
       <div class="col-lg-6 offset-lg-1 aos-fade aos-delay-2">
         @foreach([
-          ['1','Escolha sua minisérie','Adicione ao carrinho as miniséries que se encaixam na sua rotina e finalize a compra.'],
+          ['1','Escolha sua minisérie','Adicione ao carrinho as minisséries que se encaixam na sua rotina e finalize a compra.'],
           ['2','Acesse em 5 minutos','Pagou, liberou. Login imediato em qualquer dispositivo, sem espera.'],
           ['3','Assista em cápsulas rápidas','10 a 20 minutos por cápsula. Densas, diretas e sem enrolação.'],
           ['4','Aplique e emita o certificado','Use no seu órgão no dia seguinte e baixe o certificado MEC ao concluir.'],
@@ -444,7 +444,7 @@ function playHeroVideo(){
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
           <a href="#minisseries" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Ver miniséries e garantir acesso
+            Ver minisséries e garantir acesso
           </a>
           <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-lg" style="background:#25D366;color:#fff;border:none;">
             {!! $waIcon !!}
