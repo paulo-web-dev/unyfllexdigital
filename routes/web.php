@@ -17,6 +17,7 @@ use App\Http\Controllers\CursoLandingController;
 use App\Http\Controllers\Admin\PropostaController;
 use App\Http\Controllers\GuiaLicitacoesController;
 use App\Http\Controllers\Admin\LeadsGuiaController;
+use App\Http\Controllers\Admin\ModularCourseController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -151,6 +152,21 @@ Route::prefix('admin')
         Route::delete('/materiais/{id}',      [AdminController::class, 'materialDestroy'])->name('materiais.destroy')->middleware('admin.can:admin.cursos');
         Route::post('/materiais/{mId}/vincular/{pId}',      [AdminController::class, 'materialVincular'])->name('materiais.vincular')->middleware('admin.can:admin.cursos');
         Route::delete('/materiais/{mId}/desvincular/{pId}', [AdminController::class, 'materialDesvincular'])->name('materiais.desvincular')->middleware('admin.can:admin.cursos');
+
+        // ── Cursos Modulares (apostila PDF → curso) — apenas super admin ──
+        Route::get('/cursos-modulares',              [ModularCourseController::class, 'index'])->name('cursos-modulares')->middleware('admin.can:admin.cursos');
+        Route::get('/cursos-modulares/criar',        [ModularCourseController::class, 'create'])->name('cursos-modulares.create')->middleware('admin.can:admin.cursos');
+        Route::post('/cursos-modulares',             [ModularCourseController::class, 'store'])->name('cursos-modulares.store')->middleware('admin.can:admin.cursos');
+        Route::get('/cursos-modulares/{id}',         [ModularCourseController::class, 'show'])->name('cursos-modulares.show')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::get('/cursos-modulares/{id}/arquivo', [ModularCourseController::class, 'download'])->name('cursos-modulares.download')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::delete('/cursos-modulares/{id}',      [ModularCourseController::class, 'destroy'])->name('cursos-modulares.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
+
+        // Cursos Modulares — geração (n8n) + gerência dos assets
+        Route::post('/cursos-modulares/{id}/gerar',                    [ModularCourseController::class, 'gerar'])->name('cursos-modulares.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/assets/{assetId}/aprovar', [ModularCourseController::class, 'assetApprove'])->name('cursos-modulares.assets.approve')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::post('/cursos-modulares/{id}/assets/{assetId}/reprovar',[ModularCourseController::class, 'assetReject'])->name('cursos-modulares.assets.reject')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::put('/cursos-modulares/{id}/assets/{assetId}',          [ModularCourseController::class, 'assetUpdate'])->name('cursos-modulares.assets.update')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::delete('/cursos-modulares/{id}/assets/{assetId}',       [ModularCourseController::class, 'assetDestroy'])->name('cursos-modulares.assets.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
 
 
         Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');

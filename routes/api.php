@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\ModularCourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Callback do n8n com os rascunhos gerados (resumo / podcast / vídeo).
+// Sem CSRF (grupo 'api'); protegido pelo header X-Webhook-Secret no controller.
+Route::post('/n8n/cursos-modulares/assets', [ModularCourseController::class, 'callback'])
+    ->name('api.cursos-modulares.callback');

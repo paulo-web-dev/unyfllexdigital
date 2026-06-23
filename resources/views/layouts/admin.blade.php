@@ -211,9 +211,13 @@
 
     {{-- Cursos / Materiais: apenas super admin --}}
     @can('admin.cursos')
-    <a href="{{ route('admin.cursos') }}" class="nav-item {{ request()->routeIs('admin.cursos*') ? 'active' : '' }}">
+    <a href="{{ route('admin.cursos') }}" class="nav-item {{ (request()->routeIs('admin.cursos') || request()->routeIs('admin.cursos.*')) ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
       <span>Cursos</span>
+    </a>
+    <a href="{{ route('admin.cursos-modulares') }}" class="nav-item {{ request()->routeIs('admin.cursos-modulares*') ? 'active' : '' }}">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span>Cursos Modulares</span>
     </a>
     <a href="{{ route('admin.materiais') }}" class="nav-item {{ request()->routeIs('admin.materiais*') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
