@@ -89,6 +89,12 @@ class ModularCourse extends Model
         return $this->hasMany(MediaKitAsset::class, 'modular_course_id');
     }
 
+    /** Áudio do podcast deste curso (um por curso). */
+    public function podcastAudio()
+    {
+        return $this->hasOne(PodcastAudio::class, 'modular_course_id');
+    }
+
     /** URL pública do card (usado como capa do curso no admin), se existir. */
     public function cardImageUrl(): ?string
     {

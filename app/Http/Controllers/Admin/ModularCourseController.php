@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ModularCourse;
 use App\Models\ModularCourseAsset;
 use App\Models\MediaKitAsset;
+use App\Models\PodcastAudio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
@@ -26,6 +27,7 @@ class ModularCourseController extends Controller
 {
     private const DIR_APOSTILA = 'storage/cursos-modulares/apostilas';
     private const DIR_MEDIA    = 'storage/media-kit';
+    private const DIR_PODCAST  = 'storage/podcast-audio';
 
     /** Tipos do media kit. */
     private const TIPOS_MIDIA = ['card' => 'Card (feed)', 'story' => 'Story (vertical)'];
@@ -98,7 +100,9 @@ class ModularCourseController extends Controller
             ->orderByRaw("FIELD(`type`, 'card', 'story')")
             ->get();
 
-        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets', 'midia'));
+        $audio = $curso->podcastAudio()->first();
+
+        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets', 'midia', 'audio'));
     }
 
     public function download(int $id)
@@ -119,6 +123,10 @@ class ModularCourseController extends Controller
         foreach ($curso->mediaKitAssets as $m) {
             $this->apagarImagem($m);
         }
+        if ($curso->podcastAudio) {
+            $this->apagarAudio($curso->podcastAudio);
+        }
+        $curso->podcastAudio()->delete();
         $curso->mediaKitAssets()->delete();
         $curso->assets()->delete();
         $curso->delete();
@@ -407,6 +415,93 @@ class ModularCourseController extends Controller
         return back()->with('success', 'Item removido.');
     }
 
+    // ═══════════════════ PODCAST EM ÁUDIO (fase 4) ═════════════════════
+
+    public function gerarPodcastAudio(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+
+        $roteiro = $curso->assets()->where('type', 'podcast')->first();
+        abort_unless(
+            $roteiro && trim((string) $roteiro->content) !== '',
+            422,
+            'Gere o roteiro de podcast antes do audio.'
+        );
+
+        $atual  = PodcastAudio::firstOrNew(['modular_course_id' => $curso->id]);
+        $versao = ((int) ($atual->version ?? 0)) + 1;
+        $atual->fill(['status' => 'gerando', 'version' => $versao])->save();
+
+        $ok = $this->dispararN8n([
+            'course_id'    => $curso->id,
+            'title'        => $curso->title,
+            'roteiro'      => $roteiro->content,
+            'callback_url' => url('/api/n8n/cursos-modulares/podcast-audio'),
+            'version'      => $versao,
+        ], $this->podcastWebhook());
+
+        return back()->with(
+            $ok ? 'success' : 'warning',
+            $ok ? 'Geracao do audio disparada - o podcast chega em instantes (atualize a pagina).'
+                : 'Nao consegui acionar o n8n (audio). Confira a URL do webhook.'
+        );
+    }
+
+    public function podcastAudioCallback(Request $request)
+    {
+        $this->validarSecret($request);
+
+        $data = $request->validate([
+            'course_id'    => ['required', 'integer'],
+            'audio_base64' => ['nullable', 'string'],
+            'version'      => ['nullable', 'integer'],
+        ]);
+
+        $curso = ModularCourse::find($data['course_id']);
+        if (! $curso) {
+            return response()->json(['ok' => false, 'error' => 'curso nao encontrado'], 404);
+        }
+
+        $registro = PodcastAudio::firstOrNew(['modular_course_id' => $curso->id]);
+        $registro->version = $data['version'] ?? ($registro->version ?? 1);
+
+        $bin = ! empty($data['audio_base64']) ? base64_decode($data['audio_base64'], true) : false;
+
+        if ($bin !== false && strlen($bin) > 0) {
+            $dir = public_path(self::DIR_PODCAST . '/' . $curso->id);
+            if (! File::isDirectory($dir)) {
+                File::makeDirectory($dir, 0755, true);
+            }
+            if ($registro->audio_path && File::exists(public_path($registro->audio_path))) {
+                File::delete(public_path($registro->audio_path));
+            }
+            $fname = 'podcast-' . time() . '-' . Str::lower(Str::random(4)) . '.wav';
+            File::put($dir . '/' . $fname, $bin);
+            $registro->audio_path = self::DIR_PODCAST . '/' . $curso->id . '/' . $fname;
+            $registro->status     = 'pronto';
+        } else {
+            $registro->status = 'erro';
+        }
+
+        $registro->save();
+
+        return response()->json(['ok' => true, 'status' => $registro->status]);
+    }
+
+    public function podcastAudioDestroy(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+        $audio = $curso->podcastAudio()->first();
+        if ($audio) {
+            $this->apagarAudio($audio);
+            $audio->delete();
+        }
+
+        return back()->with('success', 'Audio do podcast removido.');
+    }
+
     // ──────────────────────────── HELPERS ───────────────────────────────
 
     private function payloadRoteiros(ModularCourse $curso): array
@@ -439,6 +534,12 @@ class ModularCourseController extends Controller
     {
         return config('cursos_modulares.n8n_mediakit_webhook_url')
             ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/media-kit';
+    }
+
+    private function podcastWebhook(): string
+    {
+        return config('cursos_modulares.n8n_podcast_webhook_url')
+            ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/podcast-audio';
     }
 
     private function validarSecret(Request $request): void
@@ -521,6 +622,16 @@ class ModularCourseController extends Controller
     {
         if ($asset->image_path) {
             $full = public_path($asset->image_path);
+            if (File::exists($full)) {
+                File::delete($full);
+            }
+        }
+    }
+
+    private function apagarAudio(PodcastAudio $audio): void
+    {
+        if ($audio->audio_path) {
+            $full = public_path($audio->audio_path);
             if (File::exists($full)) {
                 File::delete($full);
             }

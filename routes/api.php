@@ -27,3 +27,7 @@ Route::post('/n8n/cursos-modulares/assets', [ModularCourseController::class, 'ca
 // Callback do n8n com as artes do media kit (card / story).
 Route::post('/n8n/cursos-modulares/media-kit', [ModularCourseController::class, 'mediaKitCallback'])
     ->name('api.cursos-modulares.media-kit');
+
+// Callback do n8n com o áudio do podcast (.wav em base64).
+Route::post('/n8n/cursos-modulares/podcast-audio', [ModularCourseController::class, 'podcastAudioCallback'])
+    ->name('api.cursos-modulares.podcast-audio');

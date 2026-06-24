@@ -176,6 +176,10 @@ Route::prefix('admin')
         Route::put('/cursos-modulares/{id}/media/{assetId}/legenda',    [ModularCourseController::class, 'mediaUpdateCaption'])->name('cursos-modulares.media.caption')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
         Route::delete('/cursos-modulares/{id}/media/{assetId}',         [ModularCourseController::class, 'mediaDestroy'])->name('cursos-modulares.media.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
 
+        // Cursos Modulares — Podcast em áudio (Gemini TTS)
+        Route::post('/cursos-modulares/{id}/podcast-audio/gerar', [ModularCourseController::class, 'gerarPodcastAudio'])->name('cursos-modulares.podcast.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::delete('/cursos-modulares/{id}/podcast-audio',     [ModularCourseController::class, 'podcastAudioDestroy'])->name('cursos-modulares.podcast.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
+
 
         Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');
  
