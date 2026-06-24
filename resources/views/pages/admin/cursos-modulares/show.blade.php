@@ -268,9 +268,10 @@
     $roteiroPodcast = $assets->firstWhere('type', 'podcast');
     $temRoteiro   = $roteiroPodcast && trim((string) $roteiroPodcast->content) !== '';
     $gerandoAudio = $audios->contains(fn ($x) => $x->status === 'gerando');
-    $erroAudio    = $audios->count() === 1 && optional($audios->first())->status === 'erro';
     $prontos      = $audios->where('status', 'pronto')->sortBy('part');
     $temAudio     = $prontos->isNotEmpty();
+    $falhou       = $audios->where('status', 'erro')->count();
+    $erroAudio    = ! $gerandoAudio && $prontos->isEmpty() && $audios->isNotEmpty();
   @endphp
   <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
     <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Áudio do Podcast</h2>
@@ -300,6 +301,9 @@
           <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir tudo</button>
         </form>
       </div>
+      @if($falhou)
+        <p style="color:#ffcf8f;font-size:12px;margin:0 0 12px;">⚠ {{ $falhou }} {{ $falhou === 1 ? 'trecho não foi gerado' : 'trechos não foram gerados' }} (provável limite do Gemini). Você pode clicar em “Regerar áudios” para tentar os que faltaram.</p>
+      @endif
       <div style="display:flex;flex-direction:column;gap:14px;">
         @foreach($prontos as $au)
           <div style="padding:12px 14px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);">

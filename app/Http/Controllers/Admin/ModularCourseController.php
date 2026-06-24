@@ -463,13 +463,14 @@ class ModularCourseController extends Controller
     {
         $this->validarSecret($request);
 
+        // Recebe UM trecho por chamada (o n8n manda um POST por parte).
         $data = $request->validate([
-            'course_id'             => ['required', 'integer'],
-            'audios'                => ['required', 'array', 'min:1'],
-            'audios.*.part'         => ['required', 'integer'],
-            'audios.*.title'        => ['nullable', 'string', 'max:120'],
-            'audios.*.audio_base64' => ['nullable', 'string'],
-            'audios.*.version'      => ['nullable', 'integer'],
+            'course_id'    => ['required', 'integer'],
+            'part'         => ['required', 'integer', 'min:1'],
+            'total'        => ['nullable', 'integer'],
+            'title'        => ['nullable', 'string', 'max:120'],
+            'audio_base64' => ['nullable', 'string'],
+            'version'      => ['nullable', 'integer'],
         ]);
 
         $curso = ModularCourse::find($data['course_id']);
@@ -477,48 +478,38 @@ class ModularCourseController extends Controller
             return response()->json(['ok' => false, 'error' => 'curso nao encontrado'], 404);
         }
 
-        // limpa as partes anteriores (inclui o placeholder "gerando")
-        foreach ($curso->podcastAudios as $old) {
-            $this->apagarAudio($old);
-        }
-        $curso->podcastAudios()->delete();
+        $parte = (int) $data['part'];
 
-        $dir = public_path(self::DIR_PODCAST . '/' . $curso->id);
-        if (! File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0755, true);
-        }
+        // Acha a linha desse trecho (ou o placeholder "gerando" da parte 1) e atualiza.
+        $registro = PodcastAudio::firstOrNew([
+            'modular_course_id' => $curso->id,
+            'part'              => $parte,
+        ]);
+        $registro->title   = $data['title'] ?? ('Parte ' . $parte);
+        $registro->version = $data['version'] ?? ($registro->version ?? 1);
 
-        $salvos = 0;
-        foreach ($data['audios'] as $a) {
-            $bin = ! empty($a['audio_base64']) ? base64_decode($a['audio_base64'], true) : false;
-            if ($bin === false || strlen($bin) === 0) {
-                continue;
+        $bin = ! empty($data['audio_base64']) ? base64_decode($data['audio_base64'], true) : false;
+
+        if ($bin !== false && strlen($bin) > 0) {
+            $dir = public_path(self::DIR_PODCAST . '/' . $curso->id);
+            if (! File::isDirectory($dir)) {
+                File::makeDirectory($dir, 0755, true);
             }
-            $parte = (int) $a['part'];
+            if ($registro->audio_path && File::exists(public_path($registro->audio_path))) {
+                File::delete(public_path($registro->audio_path));
+            }
             $fname = 'podcast-p' . $parte . '-' . time() . '-' . Str::lower(Str::random(4)) . '.wav';
             File::put($dir . '/' . $fname, $bin);
-            PodcastAudio::create([
-                'modular_course_id' => $curso->id,
-                'part'              => $parte,
-                'title'             => $a['title'] ?? ('Parte ' . $parte),
-                'audio_path'        => self::DIR_PODCAST . '/' . $curso->id . '/' . $fname,
-                'status'            => 'pronto',
-                'version'           => $a['version'] ?? 1,
-            ]);
-            $salvos++;
+            $registro->audio_path = self::DIR_PODCAST . '/' . $curso->id . '/' . $fname;
+            $registro->status     = 'pronto';
+        } else {
+            // trecho falhou (Gemini nao retornou audio) - marca erro, mas nao derruba os outros
+            $registro->status = 'erro';
         }
 
-        if ($salvos === 0) {
-            PodcastAudio::create([
-                'modular_course_id' => $curso->id,
-                'part'              => 1,
-                'title'             => 'Erro',
-                'status'            => 'erro',
-                'version'           => 1,
-            ]);
-        }
+        $registro->save();
 
-        return response()->json(['ok' => true, 'saved' => $salvos]);
+        return response()->json(['ok' => true, 'part' => $parte, 'status' => $registro->status]);
     }
 
     public function podcastAudioDestroy(int $id)
