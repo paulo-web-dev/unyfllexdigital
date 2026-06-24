@@ -24,12 +24,15 @@ class PodcastAudio extends Model
 
     protected $fillable = [
         'modular_course_id',
+        'part',
+        'title',
         'audio_path',
         'status',
         'version',
     ];
 
     protected $casts = [
+        'part'    => 'integer',
         'version' => 'integer',
     ];
 

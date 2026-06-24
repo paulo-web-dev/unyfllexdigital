@@ -263,15 +263,22 @@
     @endforeach
   </div>
 
-  {{-- ══════════════════ ÁUDIO DO PODCAST ══════════════════ --}}
-  @php $roteiroPodcast = $assets->firstWhere('type', 'podcast'); $temRoteiro = $roteiroPodcast && trim((string) $roteiroPodcast->content) !== ''; @endphp
+  {{-- ══════════════════ ÁUDIO DO PODCAST (mini-podcasts) ══════════════════ --}}
+  @php
+    $roteiroPodcast = $assets->firstWhere('type', 'podcast');
+    $temRoteiro   = $roteiroPodcast && trim((string) $roteiroPodcast->content) !== '';
+    $gerandoAudio = $audios->contains(fn ($x) => $x->status === 'gerando');
+    $erroAudio    = $audios->count() === 1 && optional($audios->first())->status === 'erro';
+    $prontos      = $audios->where('status', 'pronto')->sortBy('part');
+    $temAudio     = $prontos->isNotEmpty();
+  @endphp
   <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
     <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Áudio do Podcast</h2>
     @if($temRoteiro)
       <form action="{{ route('admin.cursos-modulares.podcast.gerar', $curso->id) }}" method="POST" style="display:inline;"
-            onsubmit="return confirm('Gerar o áudio do podcast a partir do roteiro? (Pode levar ~1 min.)');">
+            onsubmit="return confirm('Gerar o áudio do podcast em trechos? (Pode levar alguns minutos.)');">
         @csrf
-        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ ($audio && $audio->hasAudio()) ? 'Regerar áudio' : 'Gerar áudio do podcast' }}</button>
+        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $temAudio ? 'Regerar áudios' : 'Gerar áudio do podcast' }}</button>
       </form>
     @endif
   </div>
@@ -279,23 +286,30 @@
   <div class="card" style="padding:18px 20px;">
     @if(!$temRoteiro)
       <p style="color:var(--fg-4);font-size:13px;margin:0;">Gere o <strong>roteiro de podcast</strong> ali em cima primeiro — o áudio é criado a partir dele.</p>
-    @elseif(!$audio)
+    @elseif($gerandoAudio)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando os áudios em trechos… pode levar alguns minutos (são vários). Atualize a página para ouvir.</p>
+    @elseif($erroAudio)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou áudio. Tente “Regerar áudios”.</p>
+    @elseif(!$temAudio)
       <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum áudio gerado ainda. Clique em “Gerar áudio do podcast”.</p>
-    @elseif($audio->status === 'gerando')
-      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando o áudio… isso leva ~1 min. Atualize a página para ouvir.</p>
-    @elseif($audio->status === 'erro')
-      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou áudio. Tente “Regerar áudio”.</p>
-    @elseif($audio->hasAudio())
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
-        <span style="font-size:11px;color:var(--fg-4);">v{{ $audio->version }}</span>
-      </div>
-      <audio controls preload="none" src="{{ $audio->audioUrl() }}" style="width:100%;"></audio>
-      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-        <a href="{{ $audio->audioUrl() }}" download class="btn btn-sm" style="font-size:12px;text-decoration:none;">⤓ Baixar .wav</a>
-        <form action="{{ route('admin.cursos-modulares.podcast.destroy', $curso->id) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir o áudio do podcast?');">@csrf @method('DELETE')
-          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
+        <span style="font-size:11px;color:var(--fg-4);">{{ $prontos->count() }} {{ $prontos->count() === 1 ? 'trecho' : 'trechos' }}</span>
+        <form action="{{ route('admin.cursos-modulares.podcast.destroy', $curso->id) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir todos os áudios do podcast?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir tudo</button>
         </form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        @foreach($prontos as $au)
+          <div style="padding:12px 14px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $au->title ?: ('Parte ' . $au->part) }}</span>
+              <a href="{{ $au->audioUrl() }}" download class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Baixar</a>
+            </div>
+            <audio controls preload="none" src="{{ $au->audioUrl() }}" style="width:100%;"></audio>
+          </div>
+        @endforeach
       </div>
     @endif
   </div>

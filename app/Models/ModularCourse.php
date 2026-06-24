@@ -90,9 +90,9 @@ class ModularCourse extends Model
     }
 
     /** Áudio do podcast deste curso (um por curso). */
-    public function podcastAudio()
+    public function podcastAudios()
     {
-        return $this->hasOne(PodcastAudio::class, 'modular_course_id');
+        return $this->hasMany(PodcastAudio::class, 'modular_course_id');
     }
 
     /** URL pública do card (usado como capa do curso no admin), se existir. */
