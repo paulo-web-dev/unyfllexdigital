@@ -429,6 +429,69 @@
     @endif
   </div>
 
+  {{-- ══════════════════ PROVA / SIMULADO (interativo) ══════════════════ --}}
+  @php
+    $roteiroProva = $assets->firstWhere('type', 'resumo');
+    $temBaseProva = $roteiroProva && trim((string) $roteiroProva->content) !== '';
+    $provas       = $materiais->where('type', 'prova');
+    $provaGerando = $provas->contains(fn ($x) => $x->status === 'gerando');
+    $provaPronta  = $provas->where('status', 'pronto')->sortBy('sort_order')->first();
+    $provaErro    = ! $provaGerando && ! $provaPronta && $provas->isNotEmpty();
+    $questions    = $provaPronta ? (json_decode((string) $provaPronta->content, true) ?: []) : [];
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Prova / Simulado</h2>
+    @if($temBaseProva)
+      <form action="{{ route('admin.cursos-modulares.prova.gerar', $curso->id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Gerar a prova (simulado) a partir do roteiro de resumo?');">
+        @csrf
+        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ (count($questions)) ? 'Regerar prova' : 'Gerar prova' }}</button>
+      </form>
+    @endif
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if(!$temBaseProva)
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Gere o <strong>roteiro de resumo</strong> ali em cima primeiro — a prova é criada a partir dele.</p>
+    @elseif($provaGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando a prova… atualize a página em instantes.</p>
+    @elseif($provaErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou questões. Tente “Regerar prova”.</p>
+    @elseif(!$provaPronta || !count($questions))
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhuma prova gerada ainda. Clique em “Gerar prova”.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        <span style="font-size:11px;color:var(--fg-4);">{{ count($questions) }} {{ count($questions) === 1 ? 'questão' : 'questões' }}</span>
+        <form action="{{ route('admin.cursos-modulares.materiais.destroy', [$curso->id, 'prova']) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir a prova?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
+        </form>
+      </div>
+      <div class="cm-prova" data-total="{{ count($questions) }}">
+        @foreach($questions as $qi => $q)
+          <div class="qz-q" data-correct="{{ (int) ($q['correta'] ?? 0) }}" style="padding:14px 16px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:10px;line-height:1.5;">{{ $qi + 1 }}. {{ $q['enunciado'] ?? '' }}</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              @foreach(($q['alternativas'] ?? []) as $ai => $alt)
+                <button type="button" class="qz-alt" data-i="{{ $ai }}" style="text-align:left;padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--bg-1);color:var(--fg-2);font-size:13px;cursor:pointer;line-height:1.45;">
+                  <strong style="color:var(--brand-300);">{{ chr(65 + $ai) }})</strong> {{ $alt }}
+                </button>
+              @endforeach
+            </div>
+            <div class="qz-coment" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(0,163,255,0.06);border-left:3px solid var(--brand-500);border-radius:4px;font-size:12.5px;color:var(--fg-3);line-height:1.5;">
+              {!! nl2br(e($q['comentario'] ?? '')) !!}
+            </div>
+          </div>
+        @endforeach
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+          <button type="button" class="qz-corrigir btn btn-sm" style="font-size:12px;">Corrigir prova</button>
+          <button type="button" class="qz-refazer btn btn-sm" style="font-size:12px;color:var(--fg-4);display:none;">Refazer</button>
+          <span class="qz-score" style="font-size:13px;font-weight:700;color:var(--fg-1);margin-left:auto;"></span>
+        </div>
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 
@@ -466,5 +529,48 @@ function cmInitDecks(){
   });
 }
 document.addEventListener('DOMContentLoaded', cmInitDecks);
+function cmInitQuiz(){
+  document.querySelectorAll('.cm-prova').forEach(function(quiz){
+    if(quiz.__init) return; quiz.__init=true;
+    var qs=Array.prototype.slice.call(quiz.querySelectorAll('.qz-q'));
+    var btnC=quiz.querySelector('.qz-corrigir'), btnR=quiz.querySelector('.qz-refazer'), score=quiz.querySelector('.qz-score');
+    function reset(alt){ alt.classList.remove('sel'); alt.style.borderColor='var(--line-2)'; alt.style.background='var(--bg-1)'; }
+    qs.forEach(function(q){
+      q.querySelectorAll('.qz-alt').forEach(function(alt){
+        alt.addEventListener('click', function(){
+          if(quiz.__done) return;
+          q.querySelectorAll('.qz-alt').forEach(reset);
+          alt.classList.add('sel'); alt.style.borderColor='var(--brand-500)'; alt.style.background='rgba(0,163,255,0.10)';
+        });
+      });
+    });
+    btnC.addEventListener('click', function(){
+      if(quiz.__done) return; quiz.__done=true;
+      var acertos=0;
+      qs.forEach(function(q){
+        var correct=parseInt(q.getAttribute('data-correct'),10);
+        var sel=q.querySelector('.qz-alt.sel');
+        q.querySelectorAll('.qz-alt').forEach(function(a){
+          var i=parseInt(a.getAttribute('data-i'),10);
+          if(i===correct){ a.style.borderColor='#2bd9a1'; a.style.background='rgba(43,217,161,0.14)'; }
+          else if(sel&&a===sel){ a.style.borderColor='#ff6b6b'; a.style.background='rgba(255,107,107,0.12)'; }
+        });
+        if(sel&&parseInt(sel.getAttribute('data-i'),10)===correct) acertos++;
+        var com=q.querySelector('.qz-coment'); if(com) com.style.display='block';
+      });
+      score.textContent='Acertos: '+acertos+' / '+qs.length;
+      btnC.style.display='none'; btnR.style.display='inline-flex';
+    });
+    btnR.addEventListener('click', function(){
+      quiz.__done=false;
+      qs.forEach(function(q){
+        q.querySelectorAll('.qz-alt').forEach(reset);
+        var com=q.querySelector('.qz-coment'); if(com) com.style.display='none';
+      });
+      score.textContent=''; btnR.style.display='none'; btnC.style.display='inline-flex';
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', cmInitQuiz);
 </script>
 @endpush

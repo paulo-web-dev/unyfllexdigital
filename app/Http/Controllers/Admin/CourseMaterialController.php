@@ -115,6 +115,51 @@ class CourseMaterialController extends Controller
         );
     }
 
+    // ───────────────────────────── GERAR (PROVA / SIMULADO) ─────────────────────────────
+
+    public function gerarProva(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+
+        $resumo = $curso->assets()->where('type', 'resumo')->first();
+        abort_unless(
+            $resumo && trim((string) $resumo->content) !== '',
+            422,
+            'Gere o roteiro de resumo antes de criar a prova.'
+        );
+
+        $versao = ((int) ($curso->courseMaterials()->where('type', 'prova')->max('version') ?? 0)) + 1;
+
+        foreach ($curso->courseMaterials()->where('type', 'prova')->get() as $old) {
+            $this->apagarMaterial($old);
+        }
+        $curso->courseMaterials()->where('type', 'prova')->delete();
+
+        CourseMaterial::create([
+            'modular_course_id' => $curso->id,
+            'type'              => 'prova',
+            'title'             => 'Gerando...',
+            'status'            => 'gerando',
+            'sort_order'        => 1,
+            'version'           => $versao,
+        ]);
+
+        $ok = $this->dispararN8n([
+            'course_id'    => $curso->id,
+            'title'        => $curso->title,
+            'resumo'       => $resumo->content,
+            'callback_url' => url('/api/n8n/cursos-modulares/materiais'),
+            'version'      => $versao,
+        ], $this->provaWebhook());
+
+        return back()->with(
+            $ok ? 'success' : 'warning',
+            $ok ? 'Geração da prova disparada — chega em instantes (atualize a página).'
+                : 'Não consegui acionar o n8n (prova). Confira a URL do webhook.'
+        );
+    }
+
     // ───────────────────────────── CALLBACK DO n8n ─────────────────────────────
 
     public function materialCallback(Request $request)
@@ -222,6 +267,12 @@ class CourseMaterialController extends Controller
     {
         return config('cursos_modulares.n8n_cartoes_webhook_url')
             ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/cartoes';
+    }
+
+    private function provaWebhook(): string
+    {
+        return config('cursos_modulares.n8n_prova_webhook_url')
+            ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/prova';
     }
 
     private function validarSecret(Request $request): void
