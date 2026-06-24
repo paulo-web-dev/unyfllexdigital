@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ModularCourseController;
+use App\Http\Controllers\Admin\CourseMaterialController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,3 +32,6 @@ Route::post('/n8n/cursos-modulares/media-kit', [ModularCourseController::class, 
 // Callback do n8n com o áudio do podcast (.wav em base64).
 Route::post('/n8n/cursos-modulares/podcast-audio', [ModularCourseController::class, 'podcastAudioCallback'])
     ->name('api.cursos-modulares.podcast-audio');
+
+Route::post('/n8n/cursos-modulares/materiais', [CourseMaterialController::class, 'materialCallback'])
+    ->name('api.cursos-modulares.materiais');

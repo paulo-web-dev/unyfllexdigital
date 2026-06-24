@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\PropostaController;
 use App\Http\Controllers\GuiaLicitacoesController;
 use App\Http\Controllers\Admin\LeadsGuiaController;
 use App\Http\Controllers\Admin\ModularCourseController;
+use App\Http\Controllers\Admin\CourseMaterialController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -179,6 +180,8 @@ Route::prefix('admin')
         // Cursos Modulares — Podcast em áudio (Gemini TTS)
         Route::post('/cursos-modulares/{id}/podcast-audio/gerar', [ModularCourseController::class, 'gerarPodcastAudio'])->name('cursos-modulares.podcast.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::delete('/cursos-modulares/{id}/podcast-audio',     [ModularCourseController::class, 'podcastAudioDestroy'])->name('cursos-modulares.podcast.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/resumo-pdf/gerar',       [CourseMaterialController::class, 'gerarResumoPdf'])->name('cursos-modulares.resumo-pdf.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::delete('/cursos-modulares/{id}/materiais/{type}',     [CourseMaterialController::class, 'materialDestroy'])->name('cursos-modulares.materiais.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
 
 
         Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');

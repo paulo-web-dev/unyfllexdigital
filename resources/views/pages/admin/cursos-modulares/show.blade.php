@@ -318,6 +318,55 @@
     @endif
   </div>
 
+  {{-- ══════════════════ MATERIAIS DE ESTUDO — RESUMOS (PDF) ══════════════════ --}}
+  @php
+    $roteiroResumo  = $assets->firstWhere('type', 'resumo');
+    $temResumoBase  = $roteiroResumo && trim((string) $roteiroResumo->content) !== '';
+    $resumos        = $materiais->where('type', 'resumo');
+    $resGerando     = $resumos->contains(fn ($x) => $x->status === 'gerando');
+    $resProntos     = $resumos->where('status', 'pronto')->sortBy('sort_order');
+    $resErro        = ! $resGerando && $resProntos->isEmpty() && $resumos->isNotEmpty();
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Materiais de Estudo — Resumos (PDF)</h2>
+    @if($temResumoBase)
+      <form action="{{ route('admin.cursos-modulares.resumo-pdf.gerar', $curso->id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Gerar os resumos em PDF a partir do roteiro de resumo? (Pode levar 1-2 min.)');">
+        @csrf
+        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $resProntos->isNotEmpty() ? 'Regerar resumos' : 'Gerar resumos em PDF' }}</button>
+      </form>
+    @endif
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if(!$temResumoBase)
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Gere o <strong>roteiro de resumo</strong> ali em cima primeiro — os PDFs são criados a partir dele.</p>
+    @elseif($resGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando os resumos em PDF… pode levar 1-2 min. Atualize a página para baixar.</p>
+    @elseif($resErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou PDF. Tente “Regerar resumos”.</p>
+    @elseif($resProntos->isEmpty())
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum resumo gerado ainda. Clique em “Gerar resumos em PDF”.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        <span style="font-size:11px;color:var(--fg-4);">{{ $resProntos->count() }} {{ $resProntos->count() === 1 ? 'resumo' : 'resumos' }}</span>
+        <form action="{{ route('admin.cursos-modulares.materiais.destroy', [$curso->id, 'resumo']) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir todos os resumos em PDF?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir tudo</button>
+        </form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        @foreach($resProntos as $mat)
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);">
+            <span style="font-size:18px;line-height:1;">📄</span>
+            <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $mat->title }}</span>
+            <a href="{{ $mat->pdfUrl() }}" target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Baixar PDF</a>
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 
