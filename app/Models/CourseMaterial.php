@@ -15,6 +15,7 @@ class CourseMaterial extends Model
         'type',
         'title',
         'pdf_path',
+        'content',
         'status',
         'sort_order',
         'version',
@@ -41,6 +42,13 @@ class CourseMaterial extends Model
     public function tipoLabel(): string
     {
         return self::TIPOS[$this->type] ?? ucfirst((string) $this->type);
+    }
+
+    /** Cartões (deck) decodificados, quando type=cartoes. */
+    public function cards(): array
+    {
+        $arr = json_decode((string) $this->content, true);
+        return is_array($arr) ? $arr : [];
     }
 
     /** URL pública do PDF, montada a partir da base pública configurada. */

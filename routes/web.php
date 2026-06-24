@@ -181,6 +181,7 @@ Route::prefix('admin')
         Route::post('/cursos-modulares/{id}/podcast-audio/gerar', [ModularCourseController::class, 'gerarPodcastAudio'])->name('cursos-modulares.podcast.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::delete('/cursos-modulares/{id}/podcast-audio',     [ModularCourseController::class, 'podcastAudioDestroy'])->name('cursos-modulares.podcast.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::post('/cursos-modulares/{id}/resumo-pdf/gerar',       [CourseMaterialController::class, 'gerarResumoPdf'])->name('cursos-modulares.resumo-pdf.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/cartoes/gerar',          [CourseMaterialController::class, 'gerarCartoes'])->name('cursos-modulares.cartoes.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::delete('/cursos-modulares/{id}/materiais/{type}',     [CourseMaterialController::class, 'materialDestroy'])->name('cursos-modulares.materiais.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
 
 

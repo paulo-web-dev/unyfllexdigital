@@ -70,6 +70,51 @@ class CourseMaterialController extends Controller
         );
     }
 
+    // ───────────────────────────── GERAR (CARTÕES) ─────────────────────────────
+
+    public function gerarCartoes(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+
+        $resumo = $curso->assets()->where('type', 'resumo')->first();
+        abort_unless(
+            $resumo && trim((string) $resumo->content) !== '',
+            422,
+            'Gere o roteiro de resumo antes de criar os cartões.'
+        );
+
+        $versao = ((int) ($curso->courseMaterials()->where('type', 'cartoes')->max('version') ?? 0)) + 1;
+
+        foreach ($curso->courseMaterials()->where('type', 'cartoes')->get() as $old) {
+            $this->apagarMaterial($old);
+        }
+        $curso->courseMaterials()->where('type', 'cartoes')->delete();
+
+        CourseMaterial::create([
+            'modular_course_id' => $curso->id,
+            'type'              => 'cartoes',
+            'title'             => 'Gerando...',
+            'status'            => 'gerando',
+            'sort_order'        => 1,
+            'version'           => $versao,
+        ]);
+
+        $ok = $this->dispararN8n([
+            'course_id'    => $curso->id,
+            'title'        => $curso->title,
+            'resumo'       => $resumo->content,
+            'callback_url' => url('/api/n8n/cursos-modulares/materiais'),
+            'version'      => $versao,
+        ], $this->cartoesWebhook());
+
+        return back()->with(
+            $ok ? 'success' : 'warning',
+            $ok ? 'Geração dos cartões disparada — chegam em instantes (atualize a página).'
+                : 'Não consegui acionar o n8n (cartões). Confira a URL do webhook.'
+        );
+    }
+
     // ───────────────────────────── CALLBACK DO n8n ─────────────────────────────
 
     public function materialCallback(Request $request)
@@ -83,6 +128,7 @@ class CourseMaterialController extends Controller
             'materials.*.title'      => ['nullable', 'string', 'max:160'],
             'materials.*.sort_order' => ['nullable', 'integer'],
             'materials.*.pdf_base64' => ['nullable', 'string'],
+            'materials.*.content'    => ['nullable', 'string'],
         ]);
 
         $curso = ModularCourse::find($data['course_id']);
@@ -99,24 +145,35 @@ class CourseMaterialController extends Controller
         $curso->courseMaterials()->where('type', $type)->delete();
 
         $dir = public_path(self::DIR_MATERIAIS . '/' . $curso->id . '/' . $type);
-        if (! File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0755, true);
-        }
 
         $salvos = 0;
         foreach ($data['materials'] as $i => $m) {
+            $ordem  = (int) ($m['sort_order'] ?? ($i + 1));
+            $titulo = $m['title'] ?? ((CourseMaterial::TIPOS[$type] ?? 'Material') . ' ' . $ordem);
+
+            $pdfPath = null;
+            $content = null;
+
             $bin = ! empty($m['pdf_base64']) ? base64_decode($m['pdf_base64'], true) : false;
-            if ($bin === false || strlen($bin) === 0) {
-                continue;
+            if ($bin !== false && strlen($bin) > 0) {
+                if (! File::isDirectory($dir)) {
+                    File::makeDirectory($dir, 0755, true);
+                }
+                $fname = $type . '-' . $ordem . '-' . time() . '-' . Str::lower(Str::random(4)) . '.pdf';
+                File::put($dir . '/' . $fname, $bin);
+                $pdfPath = self::DIR_MATERIAIS . '/' . $curso->id . '/' . $type . '/' . $fname;
+            } elseif (! empty($m['content'])) {
+                $content = $m['content'];
+            } else {
+                continue; // sem PDF e sem conteúdo -> ignora
             }
-            $ordem = (int) ($m['sort_order'] ?? ($i + 1));
-            $fname = $type . '-' . $ordem . '-' . time() . '-' . Str::lower(Str::random(4)) . '.pdf';
-            File::put($dir . '/' . $fname, $bin);
+
             CourseMaterial::create([
                 'modular_course_id' => $curso->id,
                 'type'              => $type,
-                'title'             => $m['title'] ?? (CourseMaterial::TIPOS[$type] ?? 'Material') . ' ' . $ordem,
-                'pdf_path'          => self::DIR_MATERIAIS . '/' . $curso->id . '/' . $type . '/' . $fname,
+                'title'             => $titulo,
+                'pdf_path'          => $pdfPath,
+                'content'           => $content,
                 'status'            => 'pronto',
                 'sort_order'        => $ordem,
                 'version'           => 1,
@@ -159,6 +216,12 @@ class CourseMaterialController extends Controller
     {
         return config('cursos_modulares.n8n_resumo_pdf_webhook_url')
             ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/resumo-pdf';
+    }
+
+    private function cartoesWebhook(): string
+    {
+        return config('cursos_modulares.n8n_cartoes_webhook_url')
+            ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/cartoes';
     }
 
     private function validarSecret(Request $request): void

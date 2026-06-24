@@ -367,6 +367,68 @@
     @endif
   </div>
 
+  {{-- ══════════════════ CARTÕES DIDÁTICOS (interativos) ══════════════════ --}}
+  @php
+    $roteiroBase    = $assets->firstWhere('type', 'resumo');
+    $temBaseCartoes = $roteiroBase && trim((string) $roteiroBase->content) !== '';
+    $cartoes        = $materiais->where('type', 'cartoes');
+    $cartGerando    = $cartoes->contains(fn ($x) => $x->status === 'gerando');
+    $cartProntos    = $cartoes->where('status', 'pronto')->sortBy('sort_order');
+    $cartErro       = ! $cartGerando && $cartProntos->isEmpty() && $cartoes->isNotEmpty();
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Cartões Didáticos</h2>
+    @if($temBaseCartoes)
+      <form action="{{ route('admin.cursos-modulares.cartoes.gerar', $curso->id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Gerar os cartões didáticos a partir do roteiro de resumo?');">
+        @csrf
+        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $cartProntos->isNotEmpty() ? 'Regerar cartões' : 'Gerar cartões' }}</button>
+      </form>
+    @endif
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if(!$temBaseCartoes)
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Gere o <strong>roteiro de resumo</strong> ali em cima primeiro — os cartões são criados a partir dele.</p>
+    @elseif($cartGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando os cartões… atualize a página em instantes.</p>
+    @elseif($cartErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou cartões. Tente “Regerar cartões”.</p>
+    @elseif($cartProntos->isEmpty())
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum cartão gerado ainda. Clique em “Gerar cartões”.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        <span style="font-size:11px;color:var(--fg-4);">{{ $cartProntos->count() }} {{ $cartProntos->count() === 1 ? 'baralho' : 'baralhos' }}</span>
+        <form action="{{ route('admin.cursos-modulares.materiais.destroy', [$curso->id, 'cartoes']) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir todos os cartões?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir tudo</button>
+        </form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        @foreach($cartProntos as $deck)
+          @php $cards = $deck->cards(); @endphp
+          <div class="cm-deck" data-cards='@json($cards)' style="background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <span style="font-size:18px;line-height:1;">🃏</span>
+              <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $deck->title }}</span>
+              <span style="font-size:11px;color:var(--fg-4);">{{ count($cards) }} cartões</span>
+            </div>
+            <div class="flashcard" style="cursor:pointer;min-height:130px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--bg-1);user-select:none;">
+              <div class="fc-front" style="font-size:15px;font-weight:600;color:#fff;width:100%;"></div>
+              <div class="fc-back" style="font-size:14px;color:var(--fg-2);line-height:1.55;display:none;width:100%;"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:10px;justify-content:center;">
+              <button type="button" class="fc-prev btn btn-sm" style="font-size:12px;">‹ Anterior</button>
+              <span class="fc-counter" style="font-size:12px;color:var(--fg-4);min-width:56px;text-align:center;"></span>
+              <button type="button" class="fc-next btn btn-sm" style="font-size:12px;">Próximo ›</button>
+            </div>
+            <p style="font-size:11px;color:var(--fg-4);text-align:center;margin:8px 0 0;">Clique no cartão para virar (pergunta ⇄ resposta)</p>
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 
@@ -382,5 +444,27 @@
 <script>
 function cmToggle(id){ const el=document.getElementById(id); if(el) el.style.display=(el.style.display==='none'||!el.style.display)?'block':'none'; }
 function cmCopy(id, btn){ const el=document.getElementById(id); if(!el) return; navigator.clipboard.writeText(el.innerText).then(()=>{ const o=btn.textContent; btn.textContent='Copiado!'; setTimeout(()=>{btn.textContent=o;},1500); }); }
+function cmInitDecks(){
+  document.querySelectorAll('.cm-deck').forEach(function(deck){
+    if(deck.__init) return; deck.__init=true;
+    var cards=[]; try{ cards=JSON.parse(deck.getAttribute('data-cards')||'[]'); }catch(e){ cards=[]; }
+    if(!cards.length) return;
+    var i=0, back=false;
+    var elFront=deck.querySelector('.fc-front'), elBack=deck.querySelector('.fc-back');
+    var elCount=deck.querySelector('.fc-counter'), card=deck.querySelector('.flashcard');
+    function render(){
+      elFront.textContent=cards[i].front||'';
+      elBack.textContent=cards[i].back||'';
+      elFront.style.display=back?'none':'block';
+      elBack.style.display=back?'block':'none';
+      elCount.textContent=(i+1)+' / '+cards.length;
+    }
+    card.addEventListener('click', function(){ back=!back; render(); });
+    deck.querySelector('.fc-prev').addEventListener('click', function(e){ e.stopPropagation(); i=(i-1+cards.length)%cards.length; back=false; render(); });
+    deck.querySelector('.fc-next').addEventListener('click', function(e){ e.stopPropagation(); i=(i+1)%cards.length; back=false; render(); });
+    render();
+  });
+}
+document.addEventListener('DOMContentLoaded', cmInitDecks);
 </script>
 @endpush
