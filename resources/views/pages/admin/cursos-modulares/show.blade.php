@@ -5,7 +5,6 @@
 @section('content')
 <div class="page">
 
-  {{-- Breadcrumb --}}
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:12px;color:var(--fg-4);">
     <a href="{{ route('admin.cursos-modulares') }}" style="color:var(--fg-4);text-decoration:none;" onmouseover="this.style.color='var(--brand-300)'" onmouseout="this.style.color='var(--fg-4)'">Cursos Modulares</a>
     <span>/</span>
@@ -28,9 +27,14 @@
       'processando' => ['bg'=>'rgba(232,183,101,0.12)','bd'=>'rgba(232,183,101,0.35)','fg'=>'var(--gold-400)'],
       'publicado'   => ['bg'=>'rgba(43,217,161,0.12)','bd'=>'rgba(43,217,161,0.35)','fg'=>'#6FE6BD'],
     ][$curso->status] ?? ['bg'=>'rgba(255,255,255,0.06)','bd'=>'var(--line-2)','fg'=>'var(--fg-3)'];
+    $sb = [
+      'gerando'            => ['bg'=>'rgba(0,163,255,0.12)','bd'=>'rgba(0,163,255,0.30)','fg'=>'var(--brand-300)'],
+      'aguardando_revisao' => ['bg'=>'rgba(232,183,101,0.12)','bd'=>'rgba(232,183,101,0.35)','fg'=>'var(--gold-400)'],
+      'aprovado'           => ['bg'=>'rgba(43,217,161,0.12)','bd'=>'rgba(43,217,161,0.35)','fg'=>'#6FE6BD'],
+      'reprovado'          => ['bg'=>'rgba(255,90,90,0.10)','bd'=>'rgba(255,90,90,0.30)','fg'=>'#ff9a9a'],
+    ];
   @endphp
 
-  {{-- Cabeçalho --}}
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ $curso->title }}</h1>
@@ -42,24 +46,23 @@
     <div class="page-actions">
       @if($curso->hasApostila())
         <a href="{{ $curso->apostilaUrl() }}" target="_blank" class="btn" style="text-decoration:none;display:inline-flex;">Baixar apostila</a>
-        <form action="{{ route('admin.cursos-modulares.gerar', $curso->id) }}" method="POST" style="display:inline;"
-              onsubmit="return confirm('Gerar (ou regenerar) os três rascunhos a partir da apostila?');">
-          @csrf
-          <button type="submit" class="btn btn-primary" style="display:inline-flex;">
-            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Gerar rascunhos
-          </button>
-        </form>
       @endif
+      <form action="{{ route('admin.cursos-modulares.gerar-tudo', $curso->id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Gerar TUDO? (Media kit a partir do título/descrição, e os roteiros a partir da apostila.)');">
+        @csrf
+        <button type="submit" class="btn btn-primary" style="display:inline-flex;">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Gerar tudo
+        </button>
+      </form>
       <a href="{{ route('admin.cursos-modulares') }}" class="btn btn-ghost" style="text-decoration:none;display:inline-flex;">Voltar</a>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;margin-bottom:24px;">
-    {{-- Apostila --}}
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;margin-bottom:28px;">
     <div class="card" style="padding:0;">
       <div style="padding:16px 20px;border-bottom:1px solid var(--line-2);">
-        <h2 style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#fff;margin:0;">Apostila (origem do curso)</h2>
+        <h2 style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#fff;margin:0;">Apostila (origem dos roteiros)</h2>
       </div>
       <div style="padding:20px;">
         @if($curso->hasApostila())
@@ -73,7 +76,7 @@
             </div>
           </div>
         @else
-          <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhuma apostila enviada. Sem apostila não dá pra gerar os rascunhos.</p>
+          <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhuma apostila enviada. Sem apostila não dá pra gerar os roteiros (o media kit usa só o título e a descrição).</p>
         @endif
         @if($curso->description)
           <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line-1);">
@@ -84,29 +87,114 @@
       </div>
     </div>
 
-    {{-- Como funciona --}}
     <div class="card" style="padding:16px 18px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-4);margin-bottom:8px;">Como funciona</div>
       <p style="font-size:12px;color:var(--fg-3);margin:0;line-height:1.6;">
-        Clique em <strong style="color:var(--fg-2);">Gerar rascunhos</strong> e o n8n + Claude leem a apostila e devolvem os três conteúdos abaixo. Você revisa cada um: <strong style="color:var(--fg-2);">Aprovar</strong> fixa, <strong style="color:var(--fg-2);">Reprovar</strong> manda refazer com o seu comentário. Quando os três estiverem aprovados, o curso vira <strong style="color:var(--fg-2);">Publicado</strong>.
+        <strong style="color:var(--fg-2);">Gerar tudo</strong> dispara o media kit (card + story, do título/descrição) e os roteiros (da apostila). Revise cada peça: <strong style="color:var(--fg-2);">Aprovar</strong> fixa, <strong style="color:var(--fg-2);">Reprovar</strong> manda refazer com seu comentário.
       </p>
     </div>
   </div>
 
-  {{-- ══ Conteúdo gerado ══════════════════════════════════════════════ --}}
-  <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0 0 14px;">Conteúdo gerado</h2>
+  {{-- ══════════════════ MEDIA KIT ══════════════════ --}}
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Media Kit</h2>
+    <form action="{{ route('admin.cursos-modulares.media.gerar', $curso->id) }}" method="POST" style="display:inline;"
+          onsubmit="return confirm('Gerar (ou regenerar) o card e o story a partir do título e descrição?');">
+      @csrf
+      <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">Gerar media kit</button>
+    </form>
+  </div>
 
-  @php
-    $porTipo = $assets->keyBy('type');
-    $tipos   = config('cursos_modulares.tipos');
-    $sb = [
-      'gerando'            => ['bg'=>'rgba(0,163,255,0.12)','bd'=>'rgba(0,163,255,0.30)','fg'=>'var(--brand-300)'],
-      'aguardando_revisao' => ['bg'=>'rgba(232,183,101,0.12)','bd'=>'rgba(232,183,101,0.35)','fg'=>'var(--gold-400)'],
-      'aprovado'           => ['bg'=>'rgba(43,217,161,0.12)','bd'=>'rgba(43,217,161,0.35)','fg'=>'#6FE6BD'],
-      'reprovado'          => ['bg'=>'rgba(255,90,90,0.10)','bd'=>'rgba(255,90,90,0.30)','fg'=>'#ff9a9a'],
-    ];
-  @endphp
+  @php $mPorTipo = $midia->keyBy('type'); @endphp
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px;">
+    @foreach(['card'=>'Card (feed)','story'=>'Story (vertical)'] as $key => $label)
+      @php $m = $mPorTipo[$key] ?? null; $mst = $m ? ($sb[$m->status] ?? $sb['aguardando_revisao']) : null; @endphp
+      <div class="card" style="padding:0;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;gap:10px;">
+          <h3 style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--fg-1);margin:0;flex:1;">{{ $label }}</h3>
+          @if($m)
+            <span style="font-size:11px;color:var(--fg-4);">v{{ $m->version }}</span>
+            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:{{ $mst['bg'] }};border:1px solid {{ $mst['bd'] }};color:{{ $mst['fg'] }};">{{ $m->statusLabel() }}</span>
+          @else
+            <span style="font-size:11px;color:var(--fg-4);">não gerado</span>
+          @endif
+        </div>
 
+        <div style="padding:18px;">
+          @if(!$m || (!$m->hasImage() && $m->status !== 'gerando'))
+            <p style="color:var(--fg-4);font-size:13px;margin:0;">Ainda não gerado. Use “Gerar media kit”.</p>
+          @elseif($m->status === 'gerando')
+            <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando a arte… atualize a página em instantes.</p>
+            @if($m->feedback)<div style="margin-top:10px;font-size:12px;color:var(--fg-4);">Refazendo com seu feedback: “{{ $m->feedback }}”</div>@endif
+          @else
+            @if($m->hasImage())
+              <img src="{{ $m->imageUrl() }}" alt="{{ $label }}" style="max-height:380px;max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto 14px;border:1px solid var(--line-2);">
+            @endif
+            @if($m->status === 'reprovado' && $m->feedback)
+              <div style="margin-bottom:12px;padding:10px 12px;background:rgba(255,90,90,0.06);border:1px solid rgba(255,90,90,0.20);border-radius:var(--r-md);font-size:12px;color:#ffb3b3;"><strong>Último feedback:</strong> {{ $m->feedback }}</div>
+            @endif
+            @if($m->caption)
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-4);margin-bottom:6px;">Legenda</div>
+              <div id="cap-{{ $m->id }}" style="font-size:12px;color:var(--fg-2);line-height:1.6;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-sm);padding:10px 12px;white-space:pre-wrap;">{{ $m->caption }}</div>
+              <button type="button" class="btn btn-sm" style="font-size:11px;margin-top:8px;" onclick="cmCopy('cap-{{ $m->id }}', this)">Copiar legenda</button>
+            @endif
+          @endif
+        </div>
+
+        @if($m && $m->status !== 'gerando' && $m->hasImage())
+          <div style="padding:12px 18px;border-top:1px solid var(--line-1);display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            @if($m->status !== 'aprovado')
+              <form action="{{ route('admin.cursos-modulares.media.approve', [$curso->id, $m->id]) }}" method="POST" style="display:inline;">@csrf
+                <button type="submit" class="btn btn-sm" style="font-size:12px;color:#6FE6BD;border-color:rgba(43,217,161,0.35);">✓ Aprovar</button>
+              </form>
+            @endif
+            <button type="button" class="btn btn-sm" style="font-size:12px;color:#ff9a9a;border-color:rgba(255,90,90,0.30);" onclick="cmToggle('mrej-{{ $m->id }}')">↺ Reprovar / refazer</button>
+            <a href="{{ $m->imageUrl() }}" download class="btn btn-sm" style="font-size:12px;text-decoration:none;">⤓ Baixar PNG</a>
+            <button type="button" class="btn btn-sm" style="font-size:12px;" onclick="cmToggle('mcap-{{ $m->id }}')">✎ Legenda</button>
+            <form action="{{ route('admin.cursos-modulares.media.destroy', [$curso->id, $m->id]) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir esta peça?');">@csrf @method('DELETE')
+              <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
+            </form>
+          </div>
+
+          <div id="mrej-{{ $m->id }}" style="display:none;padding:14px 18px;border-top:1px solid var(--line-1);background:rgba(255,90,90,0.03);">
+            <form action="{{ route('admin.cursos-modulares.media.reject', [$curso->id, $m->id]) }}" method="POST">@csrf
+              <label class="cm-label">O que melhorar nesta arte?</label>
+              <textarea name="feedback" class="cm-input" rows="2" required placeholder="Ex: aumente o título, use mais a cor de destaque, deixe o fundo mais claro…"></textarea>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button type="submit" class="btn btn-primary btn-sm" style="font-size:12px;">Enviar para refazer</button>
+                <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="cmToggle('mrej-{{ $m->id }}')">Cancelar</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="mcap-{{ $m->id }}" style="display:none;padding:14px 18px;border-top:1px solid var(--line-1);">
+            <form action="{{ route('admin.cursos-modulares.media.caption', [$curso->id, $m->id]) }}" method="POST">@csrf @method('PUT')
+              <label class="cm-label">Editar legenda</label>
+              <textarea name="caption" class="cm-input" rows="4">{{ $m->caption }}</textarea>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button type="submit" class="btn btn-primary btn-sm" style="font-size:12px;">Salvar legenda</button>
+                <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="cmToggle('mcap-{{ $m->id }}')">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        @endif
+      </div>
+    @endforeach
+  </div>
+
+  {{-- ══════════════════ ROTEIROS ══════════════════ --}}
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Roteiros</h2>
+    @if($curso->hasApostila())
+      <form action="{{ route('admin.cursos-modulares.gerar', $curso->id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Gerar (ou regenerar) os três roteiros a partir da apostila?');">
+        @csrf
+        <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">Gerar rascunhos</button>
+      </form>
+    @endif
+  </div>
+
+  @php $porTipo = $assets->keyBy('type'); $tipos = config('cursos_modulares.tipos'); @endphp
   <div style="display:flex;flex-direction:column;gap:14px;">
     @foreach($tipos as $key => $label)
       @php $a = $porTipo[$key] ?? null; $st = $a ? ($sb[$a->status] ?? $sb['aguardando_revisao']) : null; @endphp
@@ -120,70 +208,49 @@
             <span style="font-size:11px;color:var(--fg-4);">não gerado</span>
           @endif
         </div>
-
         <div style="padding:18px 20px;">
           @if(!$a || (!$a->hasContent() && $a->status !== 'gerando'))
-            <p style="color:var(--fg-4);font-size:13px;margin:0;">Ainda não gerado. Use o botão “Gerar rascunhos” acima.</p>
+            <p style="color:var(--fg-4);font-size:13px;margin:0;">Ainda não gerado.</p>
           @elseif($a->status === 'gerando')
-            <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando… isso leva de alguns segundos a ~1 min. Atualize a página para ver o resultado.</p>
-            @if($a->feedback)
-              <div style="margin-top:10px;font-size:12px;color:var(--fg-4);">Refazendo com seu feedback: “{{ $a->feedback }}”</div>
-            @endif
+            <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando… atualize a página em instantes.</p>
+            @if($a->feedback)<div style="margin-top:10px;font-size:12px;color:var(--fg-4);">Refazendo com seu feedback: “{{ $a->feedback }}”</div>@endif
           @else
             @if($a->status === 'reprovado' && $a->feedback)
-              <div style="margin-bottom:12px;padding:10px 12px;background:rgba(255,90,90,0.06);border:1px solid rgba(255,90,90,0.20);border-radius:var(--r-md);font-size:12px;color:#ffb3b3;">
-                <strong>Seu último feedback:</strong> {{ $a->feedback }}
-              </div>
+              <div style="margin-bottom:12px;padding:10px 12px;background:rgba(255,90,90,0.06);border:1px solid rgba(255,90,90,0.20);border-radius:var(--r-md);font-size:12px;color:#ffb3b3;"><strong>Último feedback:</strong> {{ $a->feedback }}</div>
             @endif
-
-            <button type="button" class="btn btn-sm" style="font-size:12px;" onclick="cmToggle('ver-{{ $a->id }}')">Ver / ocultar conteúdo</button>
+            <button type="button" class="btn btn-sm" style="font-size:12px;" onclick="cmToggle('ver-{{ $a->id }}')">Ver / ocultar</button>
             <button type="button" class="btn btn-sm" style="font-size:12px;" onclick="cmCopy('content-{{ $a->id }}', this)">Copiar</button>
-
             <div id="ver-{{ $a->id }}" style="display:none;margin-top:12px;">
-              <div id="content-{{ $a->id }}" style="max-height:380px;overflow:auto;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-md);font-size:13px;line-height:1.7;color:var(--fg-2);white-space:normal;">{!! nl2br(e($a->content)) !!}</div>
+              <div id="content-{{ $a->id }}" style="max-height:380px;overflow:auto;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-md);font-size:13px;line-height:1.7;color:var(--fg-2);">{!! nl2br(e($a->content)) !!}</div>
             </div>
           @endif
         </div>
-
         @if($a && $a->status !== 'gerando' && $a->hasContent())
           <div style="padding:12px 20px;border-top:1px solid var(--line-1);display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-            {{-- Aprovar --}}
             @if($a->status !== 'aprovado')
-              <form action="{{ route('admin.cursos-modulares.assets.approve', [$curso->id, $a->id]) }}" method="POST" style="display:inline;">
-                @csrf
+              <form action="{{ route('admin.cursos-modulares.assets.approve', [$curso->id, $a->id]) }}" method="POST" style="display:inline;">@csrf
                 <button type="submit" class="btn btn-sm" style="font-size:12px;color:#6FE6BD;border-color:rgba(43,217,161,0.35);">✓ Aprovar</button>
               </form>
             @endif
-            {{-- Reprovar (abre textarea) --}}
             <button type="button" class="btn btn-sm" style="font-size:12px;color:#ff9a9a;border-color:rgba(255,90,90,0.30);" onclick="cmToggle('rej-{{ $a->id }}')">↺ Reprovar / refazer</button>
-            {{-- Editar (abre textarea) --}}
             <button type="button" class="btn btn-sm" style="font-size:12px;" onclick="cmToggle('edit-{{ $a->id }}')">✎ Editar</button>
-            {{-- Excluir --}}
-            <form action="{{ route('admin.cursos-modulares.assets.destroy', [$curso->id, $a->id]) }}" method="POST" style="display:inline;margin-left:auto;"
-                  onsubmit="return confirm('Excluir este item gerado?');">
-              @csrf @method('DELETE')
+            <form action="{{ route('admin.cursos-modulares.assets.destroy', [$curso->id, $a->id]) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir este item?');">@csrf @method('DELETE')
               <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
             </form>
           </div>
-
-          {{-- Form reprovar --}}
           <div id="rej-{{ $a->id }}" style="display:none;padding:14px 20px;border-top:1px solid var(--line-1);background:rgba(255,90,90,0.03);">
-            <form action="{{ route('admin.cursos-modulares.assets.reject', [$curso->id, $a->id]) }}" method="POST">
-              @csrf
+            <form action="{{ route('admin.cursos-modulares.assets.reject', [$curso->id, $a->id]) }}" method="POST">@csrf
               <label class="cm-label">O que você quer que melhore?</label>
-              <textarea name="feedback" class="cm-input" rows="3" required placeholder="Ex: deixe mais informal, inclua exemplos de pregão eletrônico, encurte a abertura…"></textarea>
+              <textarea name="feedback" class="cm-input" rows="3" required placeholder="Ex: deixe mais informal, inclua exemplos de pregão eletrônico…"></textarea>
               <div style="margin-top:10px;display:flex;gap:8px;">
                 <button type="submit" class="btn btn-primary btn-sm" style="font-size:12px;">Enviar para refazer</button>
                 <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="cmToggle('rej-{{ $a->id }}')">Cancelar</button>
               </div>
             </form>
           </div>
-
-          {{-- Form editar --}}
           <div id="edit-{{ $a->id }}" style="display:none;padding:14px 20px;border-top:1px solid var(--line-1);">
-            <form action="{{ route('admin.cursos-modulares.assets.update', [$curso->id, $a->id]) }}" method="POST">
-              @csrf @method('PUT')
-              <label class="cm-label">Editar conteúdo manualmente</label>
+            <form action="{{ route('admin.cursos-modulares.assets.update', [$curso->id, $a->id]) }}" method="POST">@csrf @method('PUT')
+              <label class="cm-label">Editar conteúdo</label>
               <textarea name="content" class="cm-input" rows="12" required>{{ $a->content }}</textarea>
               <div style="margin-top:10px;display:flex;gap:8px;">
                 <button type="submit" class="btn btn-primary btn-sm" style="font-size:12px;">Salvar alterações</button>
@@ -209,19 +276,7 @@
 
 @push('scripts')
 <script>
-function cmToggle(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
-}
-function cmCopy(id, btn) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const txt = el.innerText;
-  navigator.clipboard.writeText(txt).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = 'Copiado!';
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  });
-}
+function cmToggle(id){ const el=document.getElementById(id); if(el) el.style.display=(el.style.display==='none'||!el.style.display)?'block':'none'; }
+function cmCopy(id, btn){ const el=document.getElementById(id); if(!el) return; navigator.clipboard.writeText(el.innerText).then(()=>{ const o=btn.textContent; btn.textContent='Copiado!'; setTimeout(()=>{btn.textContent=o;},1500); }); }
 </script>
 @endpush

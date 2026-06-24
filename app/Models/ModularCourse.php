@@ -83,6 +83,23 @@ class ModularCourse extends Model
         return $this->hasMany(ModularCourseAsset::class, 'modular_course_id');
     }
 
+    /** Peças de divulgação (card / story) deste curso. */
+    public function mediaKitAssets()
+    {
+        return $this->hasMany(MediaKitAsset::class, 'modular_course_id');
+    }
+
+    /** URL pública do card (usado como capa do curso no admin), se existir. */
+    public function cardImageUrl(): ?string
+    {
+        $card = $this->mediaKitAssets->firstWhere('type', 'card');
+        if (! $card || empty($card->image_path)) {
+            return null;
+        }
+        $base = rtrim((string) config('cursos_modulares.public_base_url'), '/');
+        return $base . '/' . ltrim($card->image_path, '/');
+    }
+
     /** URL pública da apostila, montada a partir da base pública configurada. */
     public function apostilaUrl(): ?string
     {

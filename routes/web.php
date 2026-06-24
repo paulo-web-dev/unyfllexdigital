@@ -168,6 +168,14 @@ Route::prefix('admin')
         Route::put('/cursos-modulares/{id}/assets/{assetId}',          [ModularCourseController::class, 'assetUpdate'])->name('cursos-modulares.assets.update')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
         Route::delete('/cursos-modulares/{id}/assets/{assetId}',       [ModularCourseController::class, 'assetDestroy'])->name('cursos-modulares.assets.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
 
+        // Cursos Modulares — Media Kit (card + story) + gerar tudo
+        Route::post('/cursos-modulares/{id}/media-kit/gerar',           [ModularCourseController::class, 'gerarMediaKit'])->name('cursos-modulares.media.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/gerar-tudo',                [ModularCourseController::class, 'gerarTudo'])->name('cursos-modulares.gerar-tudo')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/media/{assetId}/aprovar',   [ModularCourseController::class, 'mediaApprove'])->name('cursos-modulares.media.approve')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::post('/cursos-modulares/{id}/media/{assetId}/reprovar',  [ModularCourseController::class, 'mediaReject'])->name('cursos-modulares.media.reject')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::put('/cursos-modulares/{id}/media/{assetId}/legenda',    [ModularCourseController::class, 'mediaUpdateCaption'])->name('cursos-modulares.media.caption')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+        Route::delete('/cursos-modulares/{id}/media/{assetId}',         [ModularCourseController::class, 'mediaDestroy'])->name('cursos-modulares.media.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('assetId');
+
 
         Route::get('/meu-link', [AdminController::class, 'meuLink'])->name('meu-link');
  

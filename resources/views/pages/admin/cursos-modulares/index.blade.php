@@ -86,10 +86,21 @@
             @endphp
             <tr style="border-bottom:1px solid var(--line-1);">
               <td style="padding:14px 18px;">
-                <a href="{{ route('admin.cursos-modulares.show', $curso->id) }}" style="font-weight:600;color:var(--fg-1);text-decoration:none;">{{ $curso->title }}</a>
-                @if($curso->description)
-                  <div style="font-size:11px;color:var(--fg-4);margin-top:2px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $curso->description }}</div>
-                @endif
+                <div style="display:flex;align-items:center;gap:12px;">
+                  @if($curso->cardImageUrl())
+                    <img src="{{ $curso->cardImageUrl() }}" alt="" style="width:44px;height:55px;object-fit:cover;border-radius:6px;border:1px solid var(--line-2);flex-shrink:0;">
+                  @else
+                    <div style="width:44px;height:55px;border-radius:6px;border:1px dashed var(--line-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--fg-4);">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                  @endif
+                  <div style="min-width:0;">
+                    <a href="{{ route('admin.cursos-modulares.show', $curso->id) }}" style="font-weight:600;color:var(--fg-1);text-decoration:none;">{{ $curso->title }}</a>
+                    @if($curso->description)
+                      <div style="font-size:11px;color:var(--fg-4);margin-top:2px;max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $curso->description }}</div>
+                    @endif
+                  </div>
+                </div>
               </td>
               <td style="padding:14px 18px;color:var(--fg-3);">
                 @if($curso->hasApostila())

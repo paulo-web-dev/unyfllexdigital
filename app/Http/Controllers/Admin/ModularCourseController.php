@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ModularCourse;
 use App\Models\ModularCourseAsset;
+use App\Models\MediaKitAsset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
@@ -14,18 +15,20 @@ use Illuminate\Support\Facades\Log;
 /**
  * Cursos Modulares — apostila PDF -> curso modular.
  *
- * FASE 2: dispara a geração no n8n, recebe os rascunhos de volta (callback),
- * e gerencia os assets (resumo / podcast / vídeo) com aprovar / reprovar +
- * comentário / editar dentro da tela do curso.
+ * FASE 2: roteiros (resumo / podcast / vídeo) gerados pelo n8n + Claude.
+ * FASE 3: media kit (card + story) gerados pelo n8n + Claude + renderizador.
  *
  * Rotas do admin: grupo 'auth'+'admin', gate admin.cursos.
- * O callback do n8n entra por routes/api.php (sem CSRF) e é protegido por
- * um segredo compartilhado no header X-Webhook-Secret.
+ * Callbacks do n8n entram por routes/api.php (sem CSRF), protegidos pelo
+ * header X-Webhook-Secret (config cursos_modulares.n8n_secret).
  */
 class ModularCourseController extends Controller
 {
-    /** Pasta pública da apostila (dentro de public/, servida em /storage/...). */
-    private const DIR = 'storage/cursos-modulares/apostilas';
+    private const DIR_APOSTILA = 'storage/cursos-modulares/apostilas';
+    private const DIR_MEDIA    = 'storage/media-kit';
+
+    /** Tipos do media kit. */
+    private const TIPOS_MIDIA = ['card' => 'Card (feed)', 'story' => 'Story (vertical)'];
 
     // ───────────────────────────── LISTAGEM ─────────────────────────────
 
@@ -33,7 +36,7 @@ class ModularCourseController extends Controller
     {
         $this->authorize('admin.cursos');
 
-        $cursos = ModularCourse::orderByDesc('id')->paginate(20);
+        $cursos = ModularCourse::with('mediaKitAssets')->orderByDesc('id')->paginate(20);
 
         $kpis = [
             'total'      => ModularCourse::count(),
@@ -91,8 +94,11 @@ class ModularCourseController extends Controller
         $assets = $curso->assets()
             ->orderByRaw("FIELD(`type`, 'resumo', 'podcast', 'video')")
             ->get();
+        $midia = $curso->mediaKitAssets()
+            ->orderByRaw("FIELD(`type`, 'card', 'story')")
+            ->get();
 
-        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets'));
+        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets', 'midia'));
     }
 
     public function download(int $id)
@@ -110,6 +116,10 @@ class ModularCourseController extends Controller
         $curso = ModularCourse::findOrFail($id);
 
         $this->apagarApostila($curso);
+        foreach ($curso->mediaKitAssets as $m) {
+            $this->apagarImagem($m);
+        }
+        $curso->mediaKitAssets()->delete();
         $curso->assets()->delete();
         $curso->delete();
 
@@ -118,52 +128,37 @@ class ModularCourseController extends Controller
             ->with('success', 'Curso modular removido.');
     }
 
-    // ─────────────────────── DISPARAR GERAÇÃO NO N8N ────────────────────
+    // ═══════════════════════ ROTEIROS (fase 2) ═════════════════════════
 
     public function gerar(int $id)
     {
         $this->authorize('admin.cursos');
         $curso = ModularCourse::findOrFail($id);
-
         abort_unless($curso->hasApostila(), 422, 'Envie a apostila antes de gerar.');
 
-        // Marca os tipos como "gerando" (placeholders que o callback vai preencher).
         foreach (array_keys(config('cursos_modulares.tipos')) as $tipo) {
             ModularCourseAsset::updateOrCreate(
                 ['modular_course_id' => $curso->id, 'type' => $tipo],
                 ['status' => 'gerando', 'feedback' => null]
             );
         }
-
         $curso->status = 'processando';
         $curso->save();
 
-        $ok = $this->dispararN8n([
-            'course_id'    => $curso->id,
-            'title'        => $curso->title,
-            'apostila_url' => $curso->apostilaUrl(),
-            'callback_url' => url('/api/n8n/cursos-modulares/assets'),
-            'type'         => null,
-            'feedback'     => null,
-            'version'      => 1,
-        ]);
+        $ok = $this->dispararN8n($this->payloadRoteiros($curso), config('cursos_modulares.n8n_webhook_url'));
 
         return back()->with(
             $ok ? 'success' : 'warning',
-            $ok
-                ? 'Geração disparada. Os rascunhos chegam em instantes — atualize a página.'
-                : 'Não consegui acionar o n8n. Confira a URL do webhook em config/cursos_modulares.php.'
+            $ok ? 'Geração dos roteiros disparada — atualize a página em instantes.'
+                : 'Não consegui acionar o n8n (roteiros). Confira a URL do webhook.'
         );
     }
-
-    // ───────────────────────── AÇÕES DOS ASSETS ─────────────────────────
 
     public function assetApprove(int $id, int $assetId)
     {
         $this->authorize('admin.cursos');
         $asset = $this->asset($id, $assetId);
         $asset->update(['status' => 'aprovado', 'feedback' => null]);
-
         $this->talvezConcluir($asset->course);
 
         return back()->with('success', $asset->typeLabel() . ' aprovado.');
@@ -176,31 +171,23 @@ class ModularCourseController extends Controller
         $asset = $this->asset($id, $assetId);
 
         $novaVersao = ((int) $asset->version) + 1;
-        $asset->update([
-            'status'   => 'gerando',
-            'feedback' => $data['feedback'],
-            'version'  => $novaVersao,
-        ]);
+        $asset->update(['status' => 'gerando', 'feedback' => $data['feedback'], 'version' => $novaVersao]);
 
         $curso = $asset->course;
         $curso->status = 'processando';
         $curso->save();
 
-        $ok = $this->dispararN8n([
-            'course_id'    => $curso->id,
-            'title'        => $curso->title,
-            'apostila_url' => $curso->apostilaUrl(),
-            'callback_url' => url('/api/n8n/cursos-modulares/assets'),
-            'type'         => $asset->type,
-            'feedback'     => $data['feedback'],
-            'version'      => $novaVersao,
-        ]);
+        $payload = $this->payloadRoteiros($curso);
+        $payload['type']     = $asset->type;
+        $payload['feedback'] = $data['feedback'];
+        $payload['version']  = $novaVersao;
+
+        $ok = $this->dispararN8n($payload, config('cursos_modulares.n8n_webhook_url'));
 
         return back()->with(
             $ok ? 'success' : 'warning',
-            $ok
-                ? $asset->typeLabel() . ' enviado para refação com seu feedback.'
-                : 'Salvei o feedback, mas não consegui acionar o n8n. Confira o webhook.'
+            $ok ? $asset->typeLabel() . ' enviado para refação com seu feedback.'
+                : 'Salvei o feedback, mas não consegui acionar o n8n.'
         );
     }
 
@@ -222,23 +209,16 @@ class ModularCourseController extends Controller
         return back()->with('success', 'Item removido.');
     }
 
-    // ─────────────────── CALLBACK DO N8N (rota de API) ──────────────────
-
     public function callback(Request $request)
     {
-        $secret = (string) config('cursos_modulares.n8n_secret');
-        abort_unless(
-            hash_equals($secret, (string) $request->header('X-Webhook-Secret')),
-            401,
-            'Secret invalido.'
-        );
+        $this->validarSecret($request);
 
         $data = $request->validate([
-            'course_id'         => ['required', 'integer'],
-            'assets'            => ['required', 'array', 'min:1'],
-            'assets.*.type'     => ['required', 'in:resumo,podcast,video'],
-            'assets.*.content'  => ['nullable', 'string'],
-            'assets.*.version'  => ['nullable', 'integer'],
+            'course_id'        => ['required', 'integer'],
+            'assets'           => ['required', 'array', 'min:1'],
+            'assets.*.type'    => ['required', 'in:resumo,podcast,video'],
+            'assets.*.content' => ['nullable', 'string'],
+            'assets.*.version' => ['nullable', 'integer'],
         ]);
 
         $curso = ModularCourse::find($data['course_id']);
@@ -249,15 +229,10 @@ class ModularCourseController extends Controller
         foreach ($data['assets'] as $a) {
             ModularCourseAsset::updateOrCreate(
                 ['modular_course_id' => $curso->id, 'type' => $a['type']],
-                [
-                    'content' => $a['content'] ?? '',
-                    'version' => $a['version'] ?? 1,
-                    'status'  => 'aguardando_revisao',
-                ]
+                ['content' => $a['content'] ?? '', 'version' => $a['version'] ?? 1, 'status' => 'aguardando_revisao']
             );
         }
 
-        // Volta o curso para um estado neutro enquanto você revisa.
         if ($curso->status === 'processando') {
             $curso->status = 'rascunho';
             $curso->save();
@@ -266,16 +241,226 @@ class ModularCourseController extends Controller
         return response()->json(['ok' => true, 'saved' => count($data['assets'])]);
     }
 
+    // ═══════════════════════ MEDIA KIT (fase 3) ════════════════════════
+
+    public function gerarMediaKit(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+        abort_unless(! empty($curso->title), 422, 'O curso precisa de um titulo.');
+
+        foreach (array_keys(self::TIPOS_MIDIA) as $tipo) {
+            MediaKitAsset::updateOrCreate(
+                ['modular_course_id' => $curso->id, 'type' => $tipo],
+                ['status' => 'gerando', 'feedback' => null]
+            );
+        }
+
+        $ok = $this->dispararN8n($this->payloadMedia($curso), $this->mediaKitWebhook());
+
+        return back()->with(
+            $ok ? 'success' : 'warning',
+            $ok ? 'Geração do media kit disparada — as artes chegam em instantes.'
+                : 'Não consegui acionar o n8n (media kit). Confira a URL do webhook.'
+        );
+    }
+
+    /** Dispara media kit E, se houver apostila, os roteiros — em sequência. */
+    public function gerarTudo(int $id)
+    {
+        $this->authorize('admin.cursos');
+        $curso = ModularCourse::findOrFail($id);
+
+        // 1) Media kit (precisa de título)
+        foreach (array_keys(self::TIPOS_MIDIA) as $tipo) {
+            MediaKitAsset::updateOrCreate(
+                ['modular_course_id' => $curso->id, 'type' => $tipo],
+                ['status' => 'gerando', 'feedback' => null]
+            );
+        }
+        $okMedia = $this->dispararN8n($this->payloadMedia($curso), $this->mediaKitWebhook());
+
+        // 2) Roteiros (precisa de apostila)
+        $okRot = null;
+        if ($curso->hasApostila()) {
+            foreach (array_keys(config('cursos_modulares.tipos')) as $tipo) {
+                ModularCourseAsset::updateOrCreate(
+                    ['modular_course_id' => $curso->id, 'type' => $tipo],
+                    ['status' => 'gerando', 'feedback' => null]
+                );
+            }
+            $curso->status = 'processando';
+            $curso->save();
+            $okRot = $this->dispararN8n($this->payloadRoteiros($curso), config('cursos_modulares.n8n_webhook_url'));
+        }
+
+        $msg = $okMedia ? 'Media kit disparado.' : 'Falha ao disparar o media kit.';
+        if ($okRot === true)  $msg .= ' Roteiros disparados.';
+        if ($okRot === false) $msg .= ' Falha ao disparar os roteiros.';
+        if ($okRot === null)  $msg .= ' (Sem apostila, os roteiros não foram disparados.)';
+
+        return back()->with(($okMedia && $okRot !== false) ? 'success' : 'warning', $msg . ' Atualize a página em instantes.');
+    }
+
+    public function mediaKitCallback(Request $request)
+    {
+        $this->validarSecret($request);
+
+        $data = $request->validate([
+            'course_id'             => ['required', 'integer'],
+            'assets'                => ['required', 'array', 'min:1'],
+            'assets.*.type'         => ['required', 'in:card,story'],
+            'assets.*.image_base64' => ['nullable', 'string'],
+            'assets.*.caption'      => ['nullable', 'string'],
+            'assets.*.version'      => ['nullable', 'integer'],
+        ]);
+
+        $curso = ModularCourse::find($data['course_id']);
+        if (! $curso) {
+            return response()->json(['ok' => false, 'error' => 'curso nao encontrado'], 404);
+        }
+
+        $dir = public_path(self::DIR_MEDIA . '/' . $curso->id);
+        if (! File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        foreach ($data['assets'] as $a) {
+            $payload = [
+                'caption' => $a['caption'] ?? null,
+                'version' => $a['version'] ?? 1,
+                'status'  => 'aguardando_revisao',
+            ];
+
+            if (! empty($a['image_base64'])) {
+                $bin = base64_decode($a['image_base64'], true);
+                if ($bin !== false) {
+                    // remove a imagem anterior, se houver
+                    $old = MediaKitAsset::where('modular_course_id', $curso->id)->where('type', $a['type'])->first();
+                    if ($old) {
+                        $this->apagarImagem($old);
+                    }
+                    $fname = $a['type'] . '-' . time() . '-' . Str::lower(Str::random(4)) . '.png';
+                    File::put($dir . '/' . $fname, $bin);
+                    $payload['image_path'] = self::DIR_MEDIA . '/' . $curso->id . '/' . $fname;
+                }
+            }
+
+            MediaKitAsset::updateOrCreate(
+                ['modular_course_id' => $curso->id, 'type' => $a['type']],
+                $payload
+            );
+        }
+
+        return response()->json(['ok' => true, 'saved' => count($data['assets'])]);
+    }
+
+    public function mediaApprove(int $id, int $assetId)
+    {
+        $this->authorize('admin.cursos');
+        $asset = $this->mediaAsset($id, $assetId);
+        $asset->update(['status' => 'aprovado', 'feedback' => null]);
+
+        return back()->with('success', $asset->typeLabel() . ' aprovado.');
+    }
+
+    public function mediaReject(Request $request, int $id, int $assetId)
+    {
+        $this->authorize('admin.cursos');
+        $data  = $request->validate(['feedback' => ['required', 'string', 'max:2000']]);
+        $asset = $this->mediaAsset($id, $assetId);
+
+        $novaVersao = ((int) $asset->version) + 1;
+        $asset->update(['status' => 'gerando', 'feedback' => $data['feedback'], 'version' => $novaVersao]);
+
+        $payload = $this->payloadMedia($asset->course);
+        $payload['type']     = $asset->type;
+        $payload['feedback'] = $data['feedback'];
+        $payload['version']  = $novaVersao;
+
+        $ok = $this->dispararN8n($payload, $this->mediaKitWebhook());
+
+        return back()->with(
+            $ok ? 'success' : 'warning',
+            $ok ? $asset->typeLabel() . ' enviado para refação com seu feedback.'
+                : 'Salvei o feedback, mas não consegui acionar o n8n.'
+        );
+    }
+
+    public function mediaUpdateCaption(Request $request, int $id, int $assetId)
+    {
+        $this->authorize('admin.cursos');
+        $data  = $request->validate(['caption' => ['nullable', 'string', 'max:3000']]);
+        $asset = $this->mediaAsset($id, $assetId);
+        $asset->update(['caption' => $data['caption'] ?? '']);
+
+        return back()->with('success', 'Legenda atualizada.');
+    }
+
+    public function mediaDestroy(int $id, int $assetId)
+    {
+        $this->authorize('admin.cursos');
+        $asset = $this->mediaAsset($id, $assetId);
+        $this->apagarImagem($asset);
+        $asset->delete();
+
+        return back()->with('success', 'Item removido.');
+    }
+
     // ──────────────────────────── HELPERS ───────────────────────────────
+
+    private function payloadRoteiros(ModularCourse $curso): array
+    {
+        return [
+            'course_id'    => $curso->id,
+            'title'        => $curso->title,
+            'apostila_url' => $curso->apostilaUrl(),
+            'callback_url' => url('/api/n8n/cursos-modulares/assets'),
+            'type'         => null,
+            'feedback'     => null,
+            'version'      => 1,
+        ];
+    }
+
+    private function payloadMedia(ModularCourse $curso): array
+    {
+        return [
+            'course_id'    => $curso->id,
+            'title'        => $curso->title,
+            'description'  => $curso->description,
+            'callback_url' => url('/api/n8n/cursos-modulares/media-kit'),
+            'type'         => null,
+            'feedback'     => null,
+            'version'      => 1,
+        ];
+    }
+
+    private function mediaKitWebhook(): string
+    {
+        return config('cursos_modulares.n8n_mediakit_webhook_url')
+            ?: 'https://n8n.unyflex.com.br/webhook/cursos-modulares/media-kit';
+    }
+
+    private function validarSecret(Request $request): void
+    {
+        $secret = (string) config('cursos_modulares.n8n_secret');
+        abort_unless(
+            hash_equals($secret, (string) $request->header('X-Webhook-Secret')),
+            401,
+            'Secret invalido.'
+        );
+    }
 
     private function asset(int $courseId, int $assetId): ModularCourseAsset
     {
-        return ModularCourseAsset::where('modular_course_id', $courseId)
-            ->where('id', $assetId)
-            ->firstOrFail();
+        return ModularCourseAsset::where('modular_course_id', $courseId)->where('id', $assetId)->firstOrFail();
     }
 
-    /** Se os 3 tipos estiverem aprovados, marca o curso como publicado. */
+    private function mediaAsset(int $courseId, int $assetId): MediaKitAsset
+    {
+        return MediaKitAsset::where('modular_course_id', $courseId)->where('id', $assetId)->firstOrFail();
+    }
+
     private function talvezConcluir(ModularCourse $curso): void
     {
         $tipos     = array_keys(config('cursos_modulares.tipos'));
@@ -287,12 +472,15 @@ class ModularCourseController extends Controller
         }
     }
 
-    private function dispararN8n(array $payload): bool
+    private function dispararN8n(array $payload, ?string $url): bool
     {
+        if (empty($url)) {
+            return false;
+        }
         try {
             $resp = Http::withHeaders(['X-Webhook-Secret' => config('cursos_modulares.n8n_secret')])
                 ->timeout(20)
-                ->post(config('cursos_modulares.n8n_webhook_url'), $payload);
+                ->post($url, $payload);
 
             return $resp->successful();
         } catch (\Throwable $e) {
@@ -307,13 +495,13 @@ class ModularCourseController extends Controller
         $nome = $base . '-' . time() . '.' . $file->getClientOriginalExtension();
         $size = $file->getSize();
 
-        $destino = public_path(self::DIR);
+        $destino = public_path(self::DIR_APOSTILA);
         if (! File::isDirectory($destino)) {
             File::makeDirectory($destino, 0755, true);
         }
         $file->move($destino, $nome);
 
-        $curso->apostila_path          = self::DIR . '/' . $nome; // ex: storage/cursos-modulares/apostilas/xxx.pdf
+        $curso->apostila_path          = self::DIR_APOSTILA . '/' . $nome;
         $curso->apostila_original_name = $file->getClientOriginalName();
         $curso->apostila_mime          = 'application/pdf';
         $curso->apostila_size          = $size;
@@ -323,6 +511,16 @@ class ModularCourseController extends Controller
     {
         if ($curso->apostila_path) {
             $full = public_path($curso->apostila_path);
+            if (File::exists($full)) {
+                File::delete($full);
+            }
+        }
+    }
+
+    private function apagarImagem(MediaKitAsset $asset): void
+    {
+        if ($asset->image_path) {
+            $full = public_path($asset->image_path);
             if (File::exists($full)) {
                 File::delete($full);
             }

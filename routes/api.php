@@ -23,3 +23,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Sem CSRF (grupo 'api'); protegido pelo header X-Webhook-Secret no controller.
 Route::post('/n8n/cursos-modulares/assets', [ModularCourseController::class, 'callback'])
     ->name('api.cursos-modulares.callback');
+
+// Callback do n8n com as artes do media kit (card / story).
+Route::post('/n8n/cursos-modulares/media-kit', [ModularCourseController::class, 'mediaKitCallback'])
+    ->name('api.cursos-modulares.media-kit');
