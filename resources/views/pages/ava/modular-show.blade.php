@@ -25,9 +25,21 @@
         </div>
     </div>
 
-    @if($resumos->isEmpty() && $cartoes->isEmpty() && !count($questions))
+    @if($resumos->isEmpty() && $cartoes->isEmpty() && !count($questions) && $audios->isEmpty() && empty($curso->apostila_path))
         <div class="ms-card">
             <p style="color:var(--fg-4);font-size:14px;margin:0;">Os materiais deste curso ainda estão sendo preparados. Volte em breve.</p>
+        </div>
+    @endif
+
+    {{-- ───────── Apostila ───────── --}}
+    @if(!empty($curso->apostila_path))
+        <h2 class="ms-sec-title">Apostila</h2>
+        <div class="ms-card">
+            <div class="ms-row">
+                <span style="font-size:18px;line-height:1;">📕</span>
+                <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $curso->apostila_original_name ?: 'Apostila do curso' }}</span>
+                <a href="{{ $curso->apostilaUrl() }}" target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Abrir apostila</a>
+            </div>
         </div>
     @endif
 
@@ -41,6 +53,21 @@
                         <span style="font-size:18px;line-height:1;">📄</span>
                         <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $r->title }}</span>
                         <a href="{{ $r->pdfUrl() }}" target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Abrir PDF</a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- ───────── Podcast ───────── --}}
+    @if($audios->isNotEmpty())
+        <h2 class="ms-sec-title">Podcast</h2>
+        <div class="ms-card">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                @foreach($audios as $au)
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--fg-1);margin-bottom:6px;">{{ $au->title ?: ('Parte ' . $au->part) }}</div>
+                        <audio controls preload="none" src="{{ $au->audioUrl() }}" style="width:100%;"></audio>
                     </div>
                 @endforeach
             </div>
