@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ava\CursosAvaController;
 use App\Http\Controllers\Ava\PlayerController;
 use App\Http\Controllers\Ava\PerfilController;
+use App\Http\Controllers\Ava\ModularStudyController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CheckoutController;
@@ -71,6 +72,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/player/{id}/concluir', [PlayerController::class, 'concluir'])->name('player.concluir');
     Route::get('/dashboard/perfil',                [PerfilController::class, 'index'])->name('perfil');
     Route::post('/dashboard/perfil',               [PerfilController::class, 'update'])->name('perfil.update');
+    Route::get('/dashboard/modulares',                 [ModularStudyController::class, 'index'])->name('ava.modulares');
+    Route::get('/dashboard/modulares/{slug}',          [ModularStudyController::class, 'show'])->name('ava.modulares.show');
+    Route::post('/dashboard/modulares/{id}/prova/resultado', [ModularStudyController::class, 'provaResultado'])->name('ava.modulares.prova')->whereNumber('id');
 
 
     // Route::get('/dashboard/player/{slug}',[PlayerController::class, 'show'])->name('player');

@@ -200,6 +200,12 @@
             <span>Minisséries</span>
         </a>
 
+        <a href="{{ route('ava.modulares') }}"
+           class="nav-item {{ request()->routeIs('ava.modulares*') ? 'active' : '' }}">
+            <i data-lucide="book-open" class="ico"></i>
+            <span>Cursos Modulares</span>
+        </a>
+
         <a href="{{ route('perfil') }}"
            class="nav-item {{ request()->routeIs('perfil*') ? 'active' : '' }}">
             <i data-lucide="user" class="ico"></i>
