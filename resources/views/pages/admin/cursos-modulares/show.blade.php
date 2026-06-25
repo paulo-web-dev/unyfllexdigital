@@ -546,6 +546,45 @@
     @endif
   </div>
 
+  {{-- ══════════════════ CAPA DO CURSO (site) ══════════════════ --}}
+  @php
+    $capaGerando = $capa->contains(fn ($x) => $x->status === 'gerando');
+    $capaPronta  = $capa->where('status', 'pronto')->first();
+    $capaErro    = ! $capaGerando && ! $capaPronta && $capa->isNotEmpty();
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Capa do curso (site)</h2>
+    <form action="{{ route('admin.cursos-modulares.capa.gerar', $curso->id) }}" method="POST" style="display:inline;"
+          onsubmit="return confirm('Gerar a capa 16:9 do curso?');">
+      @csrf
+      <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $capaPronta ? 'Regerar capa' : 'Gerar capa' }}</button>
+    </form>
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if($capaGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando a capa… atualize a página em instantes.</p>
+    @elseif($capaErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou imagem. Tente “Regerar capa”.</p>
+    @elseif(!$capaPronta)
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhuma capa gerada ainda. Clique em “Gerar capa” — é a imagem 16:9 que vai no topo do card do curso no site.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        <span style="font-size:11px;color:var(--fg-4);">1280 × 720 (16:9)</span>
+        <form action="{{ route('admin.cursos-modulares.capa.destroy', $curso->id) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir a capa?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
+        </form>
+      </div>
+      <a href="{{ $capaPronta->imageUrl() }}" target="_blank" rel="noopener" style="display:block;">
+        <img src="{{ $capaPronta->imageUrl() }}" alt="Capa do curso" style="width:100%;max-width:640px;height:auto;border-radius:10px;border:1px solid var(--line-2);display:block;" />
+      </a>
+      <div style="margin-top:12px;">
+        <a href="{{ $capaPronta->imageUrl() }}" download target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Baixar imagem</a>
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 

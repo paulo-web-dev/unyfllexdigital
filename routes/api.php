@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
 use App\Http\Controllers\Admin\AdCreativeController;
+use App\Http\Controllers\Admin\CourseCoverController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,3 +40,6 @@ Route::post('/n8n/cursos-modulares/materiais', [CourseMaterialController::class,
 
 Route::post('/n8n/cursos-modulares/ads', [AdCreativeController::class, 'adsCallback'])
     ->name('api.cursos-modulares.ads');
+
+Route::post('/n8n/cursos-modulares/capa', [CourseCoverController::class, 'capaCallback'])
+    ->name('api.cursos-modulares.capa');
