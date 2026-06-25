@@ -585,6 +585,49 @@
     @endif
   </div>
 
+  {{-- ══════════════════ ALUNOS MATRICULADOS ══════════════════ --}}
+  @php
+    $matAtivas = $matriculas->where('status', 'ativo');
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Alunos matriculados</h2>
+    <span style="font-size:11px;color:var(--fg-4);">{{ $matAtivas->count() }} {{ $matAtivas->count() === 1 ? 'ativo' : 'ativos' }}</span>
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    <form action="{{ route('admin.cursos-modulares.matriculas.store', $curso->id) }}" method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+      @csrf
+      <input type="text" name="ident" class="cm-input" placeholder="E-mail ou CPF do aluno" required style="flex:1;min-width:240px;max-width:360px;" />
+      <button type="submit" class="btn btn-sm" style="font-size:12px;">Matricular aluno</button>
+    </form>
+
+    @if($matriculas->isEmpty())
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum aluno matriculado ainda. Matricule pelo e-mail ou CPF acima.</p>
+    @else
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        @foreach($matriculas as $m)
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);flex-wrap:wrap;{{ $m->status === 'cancelado' ? 'opacity:.55;' : '' }}">
+            <div style="flex:1;min-width:200px;">
+              <div style="font-size:13px;font-weight:600;color:var(--fg-1);">{{ optional($m->student)->name ?? '—' }}</div>
+              <div style="font-size:11px;color:var(--fg-4);">{{ optional($m->student)->email ?? '' }}</div>
+            </div>
+            @php
+              $cor = $m->status === 'ativo' ? ['rgba(43,217,161,0.12)','rgba(43,217,161,0.35)','#6FE6BD'] : ($m->status === 'pendente' ? ['rgba(255,193,90,0.12)','rgba(255,193,90,0.35)','#ffd27a'] : ['rgba(255,107,107,0.12)','rgba(255,107,107,0.35)','#ff9a9a']);
+            @endphp
+            <span style="font-size:10px;color:var(--fg-4);text-transform:uppercase;letter-spacing:.05em;">{{ $m->source === 'compra' ? 'Compra' : 'Manual' }}</span>
+            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:{{ $cor[0] }};border:1px solid {{ $cor[1] }};color:{{ $cor[2] }};">{{ $m->statusLabel() }}</span>
+            @if($m->status !== 'cancelado')
+              <form action="{{ route('admin.cursos-modulares.matriculas.cancelar', [$curso->id, $m->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Cancelar a matrícula de {{ addslashes(optional($m->student)->name ?? 'aluno') }}?');">
+                @csrf @method('PATCH')
+                <button type="submit" class="btn btn-sm" style="font-size:11px;color:var(--fg-4);">Cancelar</button>
+              </form>
+            @endif
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 

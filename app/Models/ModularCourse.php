@@ -110,6 +110,11 @@ class ModularCourse extends Model
         return $this->hasMany(CourseCover::class, 'modular_course_id');
     }
 
+    public function enrollments()
+    {
+        return $this->hasMany(ModularEnrollment::class, 'modular_course_id');
+    }
+
     /** URL pública do card (usado como capa do curso no admin), se existir. */
     public function cardImageUrl(): ?string
     {
