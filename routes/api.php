@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
+use App\Http\Controllers\Admin\AdCreativeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,3 +36,6 @@ Route::post('/n8n/cursos-modulares/podcast-audio', [ModularCourseController::cla
 
 Route::post('/n8n/cursos-modulares/materiais', [CourseMaterialController::class, 'materialCallback'])
     ->name('api.cursos-modulares.materiais');
+
+Route::post('/n8n/cursos-modulares/ads', [AdCreativeController::class, 'adsCallback'])
+    ->name('api.cursos-modulares.ads');

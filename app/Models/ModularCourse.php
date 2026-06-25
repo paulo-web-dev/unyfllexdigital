@@ -100,6 +100,11 @@ class ModularCourse extends Model
         return $this->hasMany(CourseMaterial::class, 'modular_course_id');
     }
 
+    public function adCreatives()
+    {
+        return $this->hasMany(AdCreative::class, 'modular_course_id');
+    }
+
     /** URL pública do card (usado como capa do curso no admin), se existir. */
     public function cardImageUrl(): ?string
     {

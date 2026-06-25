@@ -492,6 +492,60 @@
     @endif
   </div>
 
+  {{-- ══════════════════ CRIATIVOS DE ADS ══════════════════ --}}
+  @php
+    $criativosProntos = $criativos->where('status', 'pronto')->sortBy('id');
+    $criativosGerando = $criativos->contains(fn ($x) => $x->status === 'gerando');
+    $criativosErro    = ! $criativosGerando && $criativosProntos->isEmpty() && $criativos->isNotEmpty();
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Criativos de ADS</h2>
+    <form action="{{ route('admin.cursos-modulares.ads.gerar', $curso->id) }}" method="POST" style="display:inline;"
+          onsubmit="return confirm('Gerar os criativos de ADS? O Claude vai usar as fotos do seu banco de imagens. (Pode levar 1-2 min.)');">
+      @csrf
+      <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $criativosProntos->isNotEmpty() ? 'Regerar criativos' : 'Gerar criativos' }}</button>
+    </form>
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if($criativosGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando os criativos… o Claude está montando as artes com as fotos. Pode levar 1-2 min — atualize a página.</p>
+    @elseif($criativosErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0;">A última geração não retornou criativos. Verifique se as fotos do banco abrem no navegador e tente “Regerar criativos”.</p>
+    @elseif($criativosProntos->isEmpty())
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum criativo gerado ainda. Clique em “Gerar criativos” — o Claude usa as fotos do seu banco de imagens (planilha) como fundo das artes.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        <span style="font-size:11px;color:var(--fg-4);">{{ $criativosProntos->count() }} {{ $criativosProntos->count() === 1 ? 'criativo' : 'criativos' }}</span>
+        <form action="{{ route('admin.cursos-modulares.ads.destroy', $curso->id) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Excluir todos os criativos?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir tudo</button>
+        </form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        @foreach($criativosProntos as $cr)
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:14px;background:var(--bg-2);border:1px solid var(--line-1);border-radius:var(--r-md);flex-wrap:wrap;">
+            <a href="{{ $cr->imageUrl() }}" target="_blank" rel="noopener" style="flex-shrink:0;">
+              <img src="{{ $cr->imageUrl() }}" alt="{{ $cr->tituloLabel() }}" style="width:170px;height:auto;border-radius:8px;border:1px solid var(--line-2);display:block;" />
+            </a>
+            <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:13px;font-weight:700;color:#fff;">{{ $cr->tituloLabel() }}</div>
+              @if($cr->caption)
+                <div id="cap-{{ $cr->id }}" style="font-size:12.5px;color:var(--fg-3);line-height:1.5;white-space:pre-wrap;background:var(--bg-1);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:10px 12px;">{{ $cr->caption }}</div>
+              @endif
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                @if($cr->caption)
+                  <button type="button" class="btn btn-sm" style="font-size:11px;" onclick="cmCopy('cap-{{ $cr->id }}', this)">Copiar legenda</button>
+                @endif
+                <a href="{{ $cr->imageUrl() }}" download target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Baixar imagem</a>
+              </div>
+            </div>
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
 </div>
 @endsection
 

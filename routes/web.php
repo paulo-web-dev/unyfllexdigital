@@ -19,6 +19,7 @@ use App\Http\Controllers\GuiaLicitacoesController;
 use App\Http\Controllers\Admin\LeadsGuiaController;
 use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
+use App\Http\Controllers\Admin\AdCreativeController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -183,6 +184,8 @@ Route::prefix('admin')
         Route::post('/cursos-modulares/{id}/resumo-pdf/gerar',       [CourseMaterialController::class, 'gerarResumoPdf'])->name('cursos-modulares.resumo-pdf.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::post('/cursos-modulares/{id}/cartoes/gerar',          [CourseMaterialController::class, 'gerarCartoes'])->name('cursos-modulares.cartoes.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::post('/cursos-modulares/{id}/prova/gerar',            [CourseMaterialController::class, 'gerarProva'])->name('cursos-modulares.prova.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/ads/gerar',              [AdCreativeController::class, 'gerarAds'])->name('cursos-modulares.ads.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::delete('/cursos-modulares/{id}/ads',                  [AdCreativeController::class, 'adDestroy'])->name('cursos-modulares.ads.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::delete('/cursos-modulares/{id}/materiais/{type}',     [CourseMaterialController::class, 'materialDestroy'])->name('cursos-modulares.materiais.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
 
 
