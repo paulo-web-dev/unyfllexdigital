@@ -42,6 +42,12 @@ class ModularStudyController extends Controller
 
         $audios = $curso->podcastAudios()->where('status', 'pronto')->orderBy('part')->get();
 
+        $video = $curso->videos()
+            ->where('status', 'pronto')
+            ->whereNotNull('video_url')
+            ->orderByDesc('id')
+            ->first();
+
         $tentativas = ModularProvaAttempt::where('modular_course_id', $curso->id)
             ->where('student_id', $sid)
             ->orderByDesc('id')
@@ -49,7 +55,7 @@ class ModularStudyController extends Controller
             ->get();
         $melhor = (int) ($tentativas->max('score') ?? 0);
 
-        return view('pages.ava.modular-show', compact('curso', 'resumos', 'cartoes', 'prova', 'questions', 'tentativas', 'melhor', 'audios'));
+        return view('pages.ava.modular-show', compact('curso', 'resumos', 'cartoes', 'prova', 'questions', 'tentativas', 'melhor', 'audios', 'video'));
     }
 
     public function provaResultado(Request $request, int $id)

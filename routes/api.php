@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
 use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
+use App\Http\Controllers\Admin\CourseVideoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,3 +44,7 @@ Route::post('/n8n/cursos-modulares/ads', [AdCreativeController::class, 'adsCallb
 
 Route::post('/n8n/cursos-modulares/capa', [CourseCoverController::class, 'capaCallback'])
     ->name('api.cursos-modulares.capa');
+
+// Callback do n8n com a URL do vídeo de resumo (.mp4 hospedado no video-assembler).
+Route::post('/n8n/cursos-modulares/video', [CourseVideoController::class, 'videoCallback'])
+    ->name('api.cursos-modulares.video');

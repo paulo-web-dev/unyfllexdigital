@@ -585,6 +585,52 @@
     @endif
   </div>
 
+  {{-- ══════════════════ VÍDEO DE RESUMO (estilo NotebookLM) ══════════════════ --}}
+  @php
+    $videoGerando = $videos->contains(fn ($x) => $x->status === 'gerando');
+    $videoPronto  = $videos->first(fn ($x) => $x->status === 'pronto' && ! empty($x->video_url));
+    $videoErroRow = $videos->first(fn ($x) => $x->status === 'erro');
+    $videoErro    = ! $videoGerando && ! $videoPronto && $videoErroRow;
+  @endphp
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 14px;">
+    <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff;margin:0;flex:1;">Vídeo de resumo</h2>
+    <form action="{{ route('admin.cursos-modulares.video.gerar', $curso->id) }}" method="POST" style="display:inline;"
+          onsubmit="return confirm('Gerar o vídeo de resumo? Isso leva alguns minutos (slides + narração + montagem).');">
+      @csrf
+      <button type="submit" class="btn btn-sm" style="display:inline-flex;font-size:12px;">{{ $videoPronto ? 'Regerar vídeo' : 'Gerar vídeo' }}</button>
+    </form>
+  </div>
+
+  <div class="card" style="padding:18px 20px;">
+    @if($videoGerando)
+      <p style="color:var(--brand-300);font-size:13px;margin:0;">Gerando o vídeo… o n8n monta os slides, narra com IA e renderiza o .mp4. Isso costuma levar alguns minutos — atualize a página depois.</p>
+    @elseif($videoErro)
+      <p style="color:#ff9a9a;font-size:13px;margin:0 0 6px;">A última geração não concluiu.</p>
+      @if($videoErroRow->feedback)
+        <p style="color:var(--fg-4);font-size:12px;margin:0;">{{ $videoErroRow->feedback }}</p>
+      @endif
+    @elseif(!$videoPronto)
+      <p style="color:var(--fg-4);font-size:13px;margin:0;">Nenhum vídeo gerado ainda. Clique em “Gerar vídeo” — a IA cria um resumo em slides narrados (estilo NotebookLM) a partir do título e da descrição do curso.</p>
+    @else
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(43,217,161,0.12);border:1px solid rgba(43,217,161,0.35);color:#6FE6BD;">Pronto</span>
+        @if($videoPronto->durationHuman())
+          <span style="font-size:11px;color:var(--fg-4);">{{ $videoPronto->durationHuman() }}</span>
+        @endif
+        @if($videoPronto->slides)
+          <span style="font-size:11px;color:var(--fg-4);">{{ $videoPronto->slides }} slides</span>
+        @endif
+        <form action="{{ route('admin.cursos-modulares.video.destroy', [$curso->id, $videoPronto->id]) }}" method="POST" style="display:inline;margin-left:auto;" onsubmit="return confirm('Remover este vídeo da listagem?');">@csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm" style="font-size:12px;color:var(--fg-4);">Excluir</button>
+        </form>
+      </div>
+      <video controls preload="metadata" src="{{ $videoPronto->video_url }}" style="width:100%;max-width:720px;border-radius:10px;border:1px solid var(--line-2);display:block;background:#000;"></video>
+      <div style="margin-top:12px;">
+        <a href="{{ $videoPronto->video_url }}" target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">↗ Abrir em nova aba</a>
+      </div>
+    @endif
+  </div>
+
   {{-- ══════════════════ ALUNOS MATRICULADOS ══════════════════ --}}
   @php
     $matAtivas = $matriculas->where('status', 'ativo');

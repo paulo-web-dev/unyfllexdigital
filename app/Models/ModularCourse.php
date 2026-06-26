@@ -110,6 +110,12 @@ class ModularCourse extends Model
         return $this->hasMany(CourseCover::class, 'modular_course_id');
     }
 
+    /** Vídeo(s) de resumo (estilo NotebookLM) deste curso. */
+    public function videos()
+    {
+        return $this->hasMany(CourseVideo::class, 'modular_course_id');
+    }
+
     public function enrollments()
     {
         return $this->hasMany(ModularEnrollment::class, 'modular_course_id');

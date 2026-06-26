@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    @if($resumos->isEmpty() && $cartoes->isEmpty() && !count($questions) && $audios->isEmpty() && empty($curso->apostila_path))
+    @if($resumos->isEmpty() && $cartoes->isEmpty() && !count($questions) && $audios->isEmpty() && !$video && empty($curso->apostila_path))
         <div class="ms-card">
             <p style="color:var(--fg-4);font-size:14px;margin:0;">Os materiais deste curso ainda estão sendo preparados. Volte em breve.</p>
         </div>
@@ -40,6 +40,15 @@
                 <span style="font-size:13px;font-weight:600;color:var(--fg-1);flex:1;">{{ $curso->apostila_original_name ?: 'Apostila do curso' }}</span>
                 <a href="{{ $curso->apostilaUrl() }}" target="_blank" rel="noopener" class="btn btn-sm" style="font-size:11px;text-decoration:none;">⤓ Abrir apostila</a>
             </div>
+        </div>
+    @endif
+
+    {{-- ───────── Vídeo de resumo ───────── --}}
+    @if($video)
+        <h2 class="ms-sec-title">Vídeo de resumo</h2>
+        <div class="ms-card">
+            <video controls preload="metadata" src="{{ $video->video_url }}" style="width:100%;border-radius:var(--r-md);border:1px solid var(--line-2);display:block;background:#000;"></video>
+            <p style="font-size:11px;color:var(--fg-4);margin:10px 0 0;">Resumo em slides narrados — uma visão geral rápida do curso.</p>
         </div>
     @endif
 

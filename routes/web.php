@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
 use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
+use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\ModularEnrollmentController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -194,6 +195,8 @@ Route::prefix('admin')
         Route::delete('/cursos-modulares/{id}/ads',                  [AdCreativeController::class, 'adDestroy'])->name('cursos-modulares.ads.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::post('/cursos-modulares/{id}/capa/gerar',             [CourseCoverController::class, 'gerarCapa'])->name('cursos-modulares.capa.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::delete('/cursos-modulares/{id}/capa',                 [CourseCoverController::class, 'capaDestroy'])->name('cursos-modulares.capa.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::post('/cursos-modulares/{id}/video/gerar',            [CourseVideoController::class, 'gerar'])->name('cursos-modulares.video.gerar')->middleware('admin.can:admin.cursos')->whereNumber('id');
+        Route::delete('/cursos-modulares/{id}/video/{videoId}',      [CourseVideoController::class, 'videoDestroy'])->name('cursos-modulares.video.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('videoId');
         Route::post('/cursos-modulares/{id}/matriculas',             [ModularEnrollmentController::class, 'matricular'])->name('cursos-modulares.matriculas.store')->middleware('admin.can:admin.cursos')->whereNumber('id');
         Route::patch('/cursos-modulares/{id}/matriculas/{matricula}/cancelar', [ModularEnrollmentController::class, 'cancelar'])->name('cursos-modulares.matriculas.cancelar')->middleware('admin.can:admin.cursos')->whereNumber('id')->whereNumber('matricula');
         Route::delete('/cursos-modulares/{id}/materiais/{type}',     [CourseMaterialController::class, 'materialDestroy'])->name('cursos-modulares.materiais.destroy')->middleware('admin.can:admin.cursos')->whereNumber('id');

@@ -104,9 +104,10 @@ class ModularCourseController extends Controller
         $materiais = $curso->courseMaterials()->orderBy('type')->orderBy('sort_order')->get();
         $criativos = $curso->adCreatives()->orderBy('id')->get();
         $capa = $curso->coverArt()->orderByDesc('id')->get();
+        $videos = $curso->videos()->orderByDesc('id')->get();
         $matriculas = $curso->enrollments()->with('student')->orderByDesc('id')->get();
 
-        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets', 'midia', 'audios', 'materiais', 'criativos', 'capa', 'matriculas'));
+        return view('pages.admin.cursos-modulares.show', compact('curso', 'assets', 'midia', 'audios', 'materiais', 'criativos', 'capa', 'videos', 'matriculas'));
     }
 
     public function download(int $id)
