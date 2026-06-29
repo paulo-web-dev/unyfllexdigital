@@ -106,6 +106,23 @@ if (filled($request->input('lp_hp'))) {
             Log::warning('Falha ao enviar e-mail do guia (lead '.$lead->id.'): '.$e->getMessage());
         }
 
+        try {
+            \Illuminate\Support\Facades\Http::timeout(8)
+                ->asJson()
+                ->post('https://n8n.unyflex.com.br/webhook/guia-whatsapp', [
+                    'nome'     => $lead->nome,
+                    'whatsapp' => $lead->whatsapp,
+                    'email'    => $lead->email,
+                    'cidade'   => $lead->cidade,
+                    'cargo'    => $lead->cargo,
+                    'lead_id'  => $lead->id,
+                ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'Falha ao disparar WhatsApp do guia (lead ' . $lead->id . '): ' . $e->getMessage()
+            );
+        }
+        
         $request->session()->put('guia_lead_ok', true);
         $request->session()->put('guia_lead_nome', $lead->nome);
         $request->session()->put('guia_lead_email', $lead->email);
