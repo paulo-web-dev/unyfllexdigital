@@ -24,6 +24,8 @@ use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
 use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\ModularEnrollmentController;
+use App\Http\Controllers\BlogController;
+use App\Http\Controllers\SitemapController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -36,6 +38,16 @@ Route::post('/contato',[PageController::class, 'contatoEnviar'])->name('contato.
 Route::get('/redirect',[PageController::class, 'redirect'])->name('redirect');
 Route::get('/view/minisseries/{slug}', [CursoLandingController::class, 'show'])->name('curso.show');
 Route::get('/lp/licitacoes/{slug}', [CursoLandingController::class, 'showLicitacoes'])->name('lp.licitacoes');
+
+//Blog
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
+Route::get('/categoria/{slug}', [BlogController::class, 'category'])->name('blog.category');
+Route::get('/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
+
+
 // ── Checkout ──────────────────────────────────────────────────────────────
 Route::get('/checkout',                    [CheckoutController::class, 'index'])->name('checkout');
 Route::post('/checkout',                   [CheckoutController::class, 'processar'])->name('checkout.processar');
