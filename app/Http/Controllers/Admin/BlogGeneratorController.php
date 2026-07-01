@@ -47,7 +47,7 @@ class BlogGeneratorController extends Controller
             'minisserie_url'       => $cat?->minisserie_url,
             'tamanho'              => $data['tamanho'] ?? 1800,
             'instrucoes'           => $data['instrucoes'] ?? '',
-            'callback_url'         => url('/api/n8n/blog/artigo'),
+            'callback_url'         => config('blog.callback_url') ?: url('/api/n8n/blog/artigo'),
         ]);
 
         return redirect()

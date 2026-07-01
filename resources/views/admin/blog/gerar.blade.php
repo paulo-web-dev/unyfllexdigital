@@ -3,6 +3,7 @@
 @section('section', 'Blog')
 
 @section('content')
+@include('admin.blog._field-styles')
 <div class="page">
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:12px;color:var(--fg-4);">
