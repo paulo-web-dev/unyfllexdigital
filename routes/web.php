@@ -270,6 +270,12 @@ Route::prefix('admin')
         Route::get('social/conta', [SocialAccountController::class, 'index'])->name('social.accounts.index');
         Route::put('social/conta', [SocialAccountController::class, 'update'])->name('social.accounts.update');
     
+        // Calendário editorial
+        Route::get('social/calendario', [SocialPostController::class, 'calendar'])->name('social.calendar');
+    
+        // Geração com IA (dispara para o n8n)
+        Route::post('social/gerar', [SocialGeneratorController::class, 'gerar'])->name('social.generate');
+    
         // Posts
         Route::get('social/posts', [SocialPostController::class, 'index'])->name('social.posts.index');
         Route::get('social/posts/novo', [SocialPostController::class, 'create'])->name('social.posts.create');
@@ -279,6 +285,7 @@ Route::prefix('admin')
         Route::delete('social/posts/{post}', [SocialPostController::class, 'destroy'])->name('social.posts.destroy');
         Route::delete('social/posts/{post}/media/{media}', [SocialPostController::class, 'destroyMedia'])->name('social.posts.media.destroy');
     });
+    
 
     Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
     ->name('api.social.artes');
