@@ -26,6 +26,10 @@ use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\ModularEnrollmentController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Admin\BlogPostController;
+use App\Http\Controllers\Admin\BlogCategoryController;
+use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\BlogGeneratorController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -107,6 +111,33 @@ Route::get('/comprarealizada', fn () => view('pages.compra-realizada'))->name('c
 // ADMIN — middleware 'admin' bloqueia power < 13
 // Rotas sensíveis adicionalmente protegidas por 'admin.can:gate_name'
 // ══════════════════════════════════════════════════════════════════════════
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin', 'admin.can:admin.blog'])->group(function () {
+
+    // Gerador por IA
+    Route::get('/blog/gerar',  [BlogGeneratorController::class, 'form'])->name('blog.generate.form');
+    Route::post('/blog/gerar', [BlogGeneratorController::class, 'gerar'])->name('blog.generate.run');
+
+    // Posts
+    Route::get('/blog/posts',                [BlogPostController::class, 'index'])->name('blog.posts.index');
+    Route::get('/blog/posts/criar',          [BlogPostController::class, 'create'])->name('blog.posts.create');
+    Route::post('/blog/posts',               [BlogPostController::class, 'store'])->name('blog.posts.store');
+    Route::get('/blog/posts/{post}/editar',  [BlogPostController::class, 'edit'])->name('blog.posts.edit');
+    Route::put('/blog/posts/{post}',         [BlogPostController::class, 'update'])->name('blog.posts.update');
+    Route::delete('/blog/posts/{post}',      [BlogPostController::class, 'destroy'])->name('blog.posts.destroy');
+    Route::get('/blog/posts/{post}/preview', [BlogPostController::class, 'preview'])->name('blog.posts.preview');
+
+    // Categorias
+    Route::get('/blog/categorias',               [BlogCategoryController::class, 'index'])->name('blog.categories.index');
+    Route::post('/blog/categorias',              [BlogCategoryController::class, 'store'])->name('blog.categories.store');
+    Route::put('/blog/categorias/{category}',    [BlogCategoryController::class, 'update'])->name('blog.categories.update');
+    Route::delete('/blog/categorias/{category}', [BlogCategoryController::class, 'destroy'])->name('blog.categories.destroy');
+
+    // Tags
+    Route::get('/blog/tags',          [BlogTagController::class, 'index'])->name('blog.tags.index');
+    Route::post('/blog/tags',         [BlogTagController::class, 'store'])->name('blog.tags.store');
+    Route::put('/blog/tags/{tag}',    [BlogTagController::class, 'update'])->name('blog.tags.update');
+    Route::delete('/blog/tags/{tag}', [BlogTagController::class, 'destroy'])->name('blog.tags.destroy');
+});
 Route::prefix('admin')
     ->name('admin.')
     ->middleware(['auth', 'admin'])

@@ -162,6 +162,22 @@
    </svg>
    <span>Leads Isca</span>
  </a>
+ @can('admin.blog')
+<div class="sidebar-section-label">Conteúdo</div>
+<a href="{{ route('admin.blog.posts.index') }}" class="nav-item {{ request()->routeIs('admin.blog.posts*') ? 'active' : '' }}">
+  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  <span>Blog · Posts</span>
+</a>
+<a href="{{ route('admin.blog.categories.index') }}" class="nav-item {{ request()->routeIs('admin.blog.categories*') ? 'active' : '' }}">
+  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+  <span>Blog · Categorias</span>
+</a>
+<a href="{{ route('admin.blog.tags.index') }}" class="nav-item {{ request()->routeIs('admin.blog.tags*') ? 'active' : '' }}">
+  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+  <span>Blog · Tags</span>
+</a>
+@endcan
+
     <a href="{{ route('admin.funil') }}" class="nav-item {{ request()->routeIs('admin.funil') ? 'active' : '' }}">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
         stroke-linecap="round" stroke-linejoin="round">

@@ -19,7 +19,10 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('admin.access', function (User $user) {
             return $user->power >= 13;
         });
-
+        Gate::define('admin.blog', function (User $user) {
+            return $user->power >= 14;   // super admin (mesmo nível de Cursos)
+        });
+        
         // ─────────────────────────────────────────────────────────────────
         // GATE: super admin (power >= 14)
         // Dá acesso a tudo sem restrição de carteira
