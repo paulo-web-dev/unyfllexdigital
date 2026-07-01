@@ -279,5 +279,6 @@ Route::prefix('admin')
         Route::delete('social/posts/{post}', [SocialPostController::class, 'destroy'])->name('social.posts.destroy');
         Route::delete('social/posts/{post}/media/{media}', [SocialPostController::class, 'destroyMedia'])->name('social.posts.media.destroy');
     });
+
     Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
     ->name('api.social.artes');
