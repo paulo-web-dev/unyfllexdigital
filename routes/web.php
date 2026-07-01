@@ -30,6 +30,9 @@ use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\BlogGeneratorController;
+use App\Http\Controllers\Admin\SocialAccountController;
+use App\Http\Controllers\Admin\SocialPostController;
+use App\Http\Controllers\Admin\SocialGeneratorController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -261,3 +264,20 @@ Route::prefix('admin')
         Route::get('/integ',      [AdminController::class, 'integ'])->name('integ')->middleware('admin.can:admin.integ');
         Route::get('/config',     [AdminController::class, 'config'])->name('config')->middleware('admin.can:admin.config');
     });
+    Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin', 'admin.can:admin.social'])->group(function () {
+
+        // Conta conectada
+        Route::get('social/conta', [SocialAccountController::class, 'index'])->name('social.accounts.index');
+        Route::put('social/conta', [SocialAccountController::class, 'update'])->name('social.accounts.update');
+    
+        // Posts
+        Route::get('social/posts', [SocialPostController::class, 'index'])->name('social.posts.index');
+        Route::get('social/posts/novo', [SocialPostController::class, 'create'])->name('social.posts.create');
+        Route::post('social/posts', [SocialPostController::class, 'store'])->name('social.posts.store');
+        Route::get('social/posts/{post}/editar', [SocialPostController::class, 'edit'])->name('social.posts.edit');
+        Route::put('social/posts/{post}', [SocialPostController::class, 'update'])->name('social.posts.update');
+        Route::delete('social/posts/{post}', [SocialPostController::class, 'destroy'])->name('social.posts.destroy');
+        Route::delete('social/posts/{post}/media/{media}', [SocialPostController::class, 'destroyMedia'])->name('social.posts.media.destroy');
+    });
+    Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
+    ->name('api.social.artes');
