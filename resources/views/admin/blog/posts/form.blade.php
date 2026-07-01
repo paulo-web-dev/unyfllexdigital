@@ -200,16 +200,22 @@
         </div>
 
         @if($post)
-        <form action="{{ route('admin.blog.posts.destroy', $post) }}" method="POST"
-              onsubmit="return confirm('Excluir este post? Esta ação não pode ser desfeita.')">
-          @csrf @method('DELETE')
-          <button type="submit" class="btn btn-ghost" style="width:100%;justify-content:center;color:#FF5C7A;border-color:rgba(255,92,122,0.35);">Excluir post</button>
-        </form>
+        {{-- Botão ligado ao form de exclusão que fica FORA do form de edição (HTML não permite <form> aninhado) --}}
+        <button type="submit" form="blog-delete-form"
+                onclick="return confirm('Excluir este post? Esta ação não pode ser desfeita.')"
+                class="btn btn-ghost" style="width:100%;justify-content:center;color:#FF5C7A;border-color:rgba(255,92,122,0.35);">Excluir post</button>
         @endif
 
       </div>
     </div>
   </form>
+
+  @if($post)
+  {{-- Form de exclusão isolado, FORA do form de edição, acionado pelo botão via atributo form= --}}
+  <form id="blog-delete-form" action="{{ route('admin.blog.posts.destroy', $post) }}" method="POST" style="display:none;">
+    @csrf @method('DELETE')
+  </form>
+  @endif
 </div>
 @endsection
 
