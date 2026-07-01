@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CourseMaterialController;
 use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
 use App\Http\Controllers\Admin\CourseVideoController;
+use App\Http\Controllers\Admin\BlogGeneratorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,3 +49,8 @@ Route::post('/n8n/cursos-modulares/capa', [CourseCoverController::class, 'capaCa
 // Callback do n8n com a URL do vídeo de resumo (.mp4 hospedado no video-assembler).
 Route::post('/n8n/cursos-modulares/video', [CourseVideoController::class, 'videoCallback'])
     ->name('api.cursos-modulares.video');
+
+// Callback do n8n com o artigo de blog gerado pela IA (cria rascunho).
+// Sem CSRF (grupo 'api'); protegido pelo header X-Webhook-Secret no controller.
+Route::post('/n8n/blog/artigo', [BlogGeneratorController::class, 'callback'])
+    ->name('api.blog.artigo');
