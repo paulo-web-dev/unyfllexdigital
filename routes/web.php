@@ -287,5 +287,4 @@ Route::prefix('admin')
     });
     
 
-    Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
-    ->name('api.social.artes');
+

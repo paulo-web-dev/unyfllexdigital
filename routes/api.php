@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
 use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\BlogGeneratorController;
-
+use App\Http\Controllers\Admin\SocialGeneratorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/n8n/cursos-modulares/assets', [ModularCourseController::class, 'callback'])
     ->name('api.cursos-modulares.callback');
 
+    Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
+    ->name('api.social.artes');
 // Callback do n8n com as artes do media kit (card / story).
 Route::post('/n8n/cursos-modulares/media-kit', [ModularCourseController::class, 'mediaKitCallback'])
     ->name('api.cursos-modulares.media-kit');
