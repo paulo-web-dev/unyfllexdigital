@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\CourseCoverController;
 use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\BlogGeneratorController;
 use App\Http\Controllers\Admin\SocialGeneratorController;
+use App\Http\Controllers\Admin\SocialPublisherController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -29,8 +31,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/n8n/cursos-modulares/assets', [ModularCourseController::class, 'callback'])
     ->name('api.cursos-modulares.callback');
 
-    Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
-    ->name('api.social.artes');
 // Callback do n8n com as artes do media kit (card / story).
 Route::post('/n8n/cursos-modulares/media-kit', [ModularCourseController::class, 'mediaKitCallback'])
     ->name('api.cursos-modulares.media-kit');
@@ -56,3 +56,15 @@ Route::post('/n8n/cursos-modulares/video', [CourseVideoController::class, 'video
 // Sem CSRF (grupo 'api'); protegido pelo header X-Webhook-Secret no controller.
 Route::post('/n8n/blog/artigo', [BlogGeneratorController::class, 'callback'])
     ->name('api.blog.artigo');
+
+// Callback do n8n com as artes do dia geradas pela IA (cria posts pré-agendados).
+Route::post('/n8n/social/artes', [SocialGeneratorController::class, 'callback'])
+    ->name('api.social.artes');
+
+// Fase 3 — publicação automática:
+// due: n8n pede os posts agendados vencidos (e trava como "publicando").
+Route::post('/n8n/social/due', [SocialPublisherController::class, 'due'])
+    ->name('api.social.due');
+// publicado: n8n devolve o resultado da publicação (marca publicado/falhou).
+Route::post('/n8n/social/publicado', [SocialPublisherController::class, 'publicado'])
+    ->name('api.social.publicado');
