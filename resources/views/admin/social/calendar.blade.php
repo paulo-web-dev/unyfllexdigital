@@ -79,9 +79,9 @@
 
 </div>
 
-{{-- ===================== MODAL DE GERAÇÃO ===================== --}}
-<div id="gerar-modal" style="display:none;position:fixed;inset:0;background:rgba(5,8,15,.72);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;">
-  <div class="card" style="width:600px;max-width:94vw;padding:26px;">
+{{-- ===================== MODAL DE GERAÇÃO (BRIEFING) ===================== --}}
+<div id="gerar-modal" style="display:none;position:fixed;inset:0;background:rgba(5,8,15,.72);z-index:1000;align-items:flex-start;justify-content:center;padding:36px 16px;overflow:auto;">
+  <div class="card" style="width:660px;max-width:95vw;padding:26px;">
     <form action="{{ route('admin.social.generate') }}" method="POST">
       @csrf
       <input type="hidden" name="scheduled_date" id="gerar-date">
@@ -90,9 +90,9 @@
         <h2 style="font-family:var(--font-display);font-weight:700;font-size:17px;color:#fff;margin:0;">Gerar posts com IA</h2>
         <button type="button" onclick="fecharGerar()" style="background:none;border:none;color:var(--fg-3);font-size:20px;cursor:pointer;line-height:1;">✕</button>
       </div>
-      <p style="font-size:13px;color:var(--fg-3);margin:0 0 18px;">Para o dia <strong id="gerar-date-label" style="color:var(--brand-500);"></strong>. Defina cada peça (tipo, tema e horário) — a IA escolhe a foto e monta a arte.</p>
+      <p style="font-size:13px;color:var(--fg-3);margin:0 0 18px;">Para o dia <strong id="gerar-date-label" style="color:var(--brand-500);"></strong>. Preencha o briefing de cada peça — quanto mais direção, melhor a arte.</p>
 
-      <div id="pecas-container" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+      <div id="pecas-container" style="display:flex;flex-direction:column;gap:16px;margin-bottom:14px;"></div>
 
       <button type="button" onclick="addPeca()" class="btn btn-ghost" style="width:100%;justify-content:center;margin-bottom:20px;">+ Adicionar peça</button>
 
@@ -107,24 +107,54 @@
 @push('scripts')
 <script>
   var pcaIdx = 0;
+  var CATEGORIAS = @json($categorias ?? []);
 
-  function linhaPeca(idx) {
+  function lbl(t) { return '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-4);margin-bottom:4px;">' + t + '</label>'; }
+  function opt(v, t, sel) { return '<option value="' + v + '"' + (sel ? ' selected' : '') + '>' + t + '</option>'; }
+
+  function toggleCat(sel) {
+    var grid = sel.parentElement.parentElement;
+    var wrap = grid.querySelector('.cat-wrap');
+    if (wrap) wrap.style.opacity = (sel.value === 'nao') ? '.4' : '1';
+  }
+
+  function pecaCard(idx) {
+    var n = 'items[' + idx + ']';
+    var fi = 'class="field-input" style="padding:8px 10px;font-size:13px;"';
+    var catOpts = CATEGORIAS.map(function (c) { return opt(c, c); }).join('');
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'display:grid;grid-template-columns:110px 1fr 92px 30px;gap:8px;align-items:center;';
+    wrap.style.cssText = 'border:1px solid var(--line-2);border-radius:var(--r-sm);padding:14px;background:var(--bg-1);';
     wrap.innerHTML =
-      '<select name="items[' + idx + '][tipo]" class="field-input" style="padding:8px 10px;">' +
-        '<option value="feed">Feed</option>' +
-        '<option value="story">Story</option>' +
-      '</select>' +
-      '<input type="text" name="items[' + idx + '][tema]" class="field-input" style="padding:8px 10px;" placeholder="Tema (ex: depoimento de aluno)" required>' +
-      '<input type="time" name="items[' + idx + '][horario]" class="field-input" style="padding:8px 10px;" value="09:00" required>' +
-      '<button type="button" class="rm-peca" style="background:none;border:none;color:#FF5C7A;font-size:16px;cursor:pointer;">✕</button>';
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+        '<span style="font-size:11px;font-weight:700;color:var(--brand-500);text-transform:uppercase;letter-spacing:.06em;">Briefing da peça</span>' +
+        '<button type="button" class="rm-peca" style="background:none;border:none;color:#FF5C7A;font-size:12px;cursor:pointer;">✕ remover</button>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:8px;">' +
+        '<div>' + lbl('Formato') + '<select name="' + n + '[tipo]" ' + fi + '>' + opt('feed', 'Feed (1080x1350)') + opt('story', 'Story (1080x1920)') + '</select></div>' +
+        '<div>' + lbl('Horário') + '<input type="time" name="' + n + '[horario]" ' + fi + ' value="09:00" required></div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px;">' + lbl('Pedido — o que você quer nesta arte') + '<textarea name="' + n + '[pedido]" rows="2" ' + fi + ' placeholder="Ex: divulgar a nova minissérie de Lei 14.133, com foco em urgência" required></textarea></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">' +
+        '<div>' + lbl('Objetivo') + '<select name="' + n + '[objetivo]" ' + fi + '>' + opt('Divulgar curso', 'Divulgar curso') + opt('Depoimento', 'Depoimento') + opt('Dica educativa', 'Dica educativa') + opt('Institucional', 'Institucional') + opt('Data comemorativa', 'Data comemorativa') + opt('Bastidores', 'Bastidores') + '</select></div>' +
+        '<div>' + lbl('Estilo') + '<select name="' + n + '[estilo]" ' + fi + '>' + opt('auto', 'Automático') + opt('dark', 'Dark') + opt('light', 'Light') + '</select></div>' +
+        '<div>' + lbl('Tom') + '<select name="' + n + '[tom]" ' + fi + '>' + opt('Institucional', 'Institucional') + opt('Motivacional', 'Motivacional') + opt('Urgente', 'Urgente') + '</select></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">' +
+        '<div>' + lbl('Usar foto real?') + '<select name="' + n + '[foto_real]" ' + fi + ' onchange="toggleCat(this)">' + opt('sim', 'Sim') + opt('nao', 'Não (só gráfico)') + '</select></div>' +
+        '<div class="cat-wrap">' + lbl('Categoria da foto') + '<select name="' + n + '[categoria]" ' + fi + '>' + opt('', '(qualquer)') + catOpts + '</select></div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px;">' + lbl('Elementos') + '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--fg-2);padding-top:2px;">' +
+        '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="' + n + '[elementos][]" value="logo">Logo</label>' +
+        '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="' + n + '[elementos][]" value="selo">Selo</label>' +
+        '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="' + n + '[elementos][]" value="cta" checked>CTA</label>' +
+      '</div></div>' +
+      '<div>' + lbl('Texto do CTA (opcional)') + '<input type="text" name="' + n + '[cta]" ' + fi + ' placeholder="Ex: Garanta sua vaga"></div>';
     wrap.querySelector('.rm-peca').addEventListener('click', function () { wrap.remove(); });
     return wrap;
   }
 
   function addPeca() {
-    document.getElementById('pecas-container').appendChild(linhaPeca(pcaIdx++));
+    document.getElementById('pecas-container').appendChild(pecaCard(pcaIdx++));
   }
 
   function abrirGerar(date) {

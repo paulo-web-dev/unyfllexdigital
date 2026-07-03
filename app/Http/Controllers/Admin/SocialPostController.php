@@ -8,7 +8,9 @@ use App\Models\SocialPost;
 use App\Models\SocialPostMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 
 class SocialPostController extends Controller
 {
@@ -46,7 +48,56 @@ class SocialPostController extends Controller
             'posts'     => $posts,
             'prevMes'   => $ref->copy()->subMonth()->format('Y-m'),
             'nextMes'   => $ref->copy()->addMonth()->format('Y-m'),
+            'categorias'=> $this->categoriasCatalogo(),
         ]);
+    }
+
+    /**
+     * Lê as categorias distintas do catálogo (planilha CSV), com cache de 10 min.
+     * Usado para popular o briefing. Se falhar, devolve uma lista padrão.
+     */
+    private function categoriasCatalogo(): array
+    {
+        $fallback = ['Fotos de aula', 'Identidade Visual', 'Ícones'];
+        $url = config('social.catalogo_url');
+        if (empty($url)) {
+            return $fallback;
+        }
+
+        return Cache::remember('social_catalogo_categorias', 600, function () use ($url, $fallback) {
+            try {
+                $resp = Http::timeout(12)->get($url);
+                if (!$resp->successful()) {
+                    return $fallback;
+                }
+                $csv = preg_replace('/^\xEF\xBB\xBF/', '', $resp->body()); // remove BOM
+                $linhas = preg_split('/\r?\n/', trim($csv));
+                if (count($linhas) < 2) {
+                    return $fallback;
+                }
+                $header = array_map(fn ($h) => strtolower(trim($h, " \"")), explode(',', array_shift($linhas)));
+                $idx = array_search('categoria', $header, true);
+                if ($idx === false) {
+                    return $fallback;
+                }
+                $cats = [];
+                foreach ($linhas as $l) {
+                    if (trim($l) === '') {
+                        continue;
+                    }
+                    $cols = str_getcsv($l); // lida com aspas/vírgulas
+                    $c = isset($cols[$idx]) ? trim($cols[$idx]) : '';
+                    if ($c !== '') {
+                        $cats[$c] = true;
+                    }
+                }
+                $lista = array_keys($cats);
+                sort($lista);
+                return $lista ?: $fallback;
+            } catch (\Throwable $e) {
+                return $fallback;
+            }
+        });
     }
 
     public function index(Request $request)

@@ -23,11 +23,19 @@ class SocialGeneratorController extends Controller
         $this->authorize('admin.social');
 
         $data = $request->validate([
-            'scheduled_date'  => ['required', 'date'],
-            'items'           => ['required', 'array', 'min:1', 'max:8'],
-            'items.*.tipo'    => ['required', 'in:story,feed'],
-            'items.*.tema'    => ['required', 'string', 'max:200'],
-            'items.*.horario' => ['required', 'date_format:H:i'],
+            'scheduled_date'      => ['required', 'date'],
+            'items'               => ['required', 'array', 'min:1', 'max:8'],
+            'items.*.tipo'        => ['required', 'in:story,feed'],
+            'items.*.pedido'      => ['required', 'string', 'max:500'],
+            'items.*.horario'     => ['required', 'date_format:H:i'],
+            'items.*.objetivo'    => ['nullable', 'string', 'max:40'],
+            'items.*.estilo'      => ['nullable', 'in:auto,dark,light'],
+            'items.*.foto_real'   => ['nullable', 'in:sim,nao'],
+            'items.*.categoria'   => ['nullable', 'string', 'max:60'],
+            'items.*.tom'         => ['nullable', 'string', 'max:40'],
+            'items.*.cta'         => ['nullable', 'string', 'max:60'],
+            'items.*.elementos'   => ['nullable', 'array'],
+            'items.*.elementos.*' => ['nullable', 'string', 'max:20'],
         ]);
 
         $account = SocialAccount::where('platform', 'instagram')->first();
@@ -38,10 +46,17 @@ class SocialGeneratorController extends Controller
         $items = [];
         foreach (array_values($data['items']) as $i => $it) {
             $items[] = [
-                'ref'     => 'p' . ($i + 1),
-                'tipo'    => $it['tipo'],
-                'tema'    => $it['tema'],
-                'horario' => $it['horario'],
+                'ref'       => 'p' . ($i + 1),
+                'tipo'      => $it['tipo'],
+                'pedido'    => $it['pedido'],
+                'horario'   => $it['horario'],
+                'objetivo'  => $it['objetivo'] ?? '',
+                'estilo'    => $it['estilo'] ?? 'auto',
+                'foto_real' => (($it['foto_real'] ?? 'sim') === 'sim'),
+                'categoria' => $it['categoria'] ?? '',
+                'tom'       => $it['tom'] ?? '',
+                'cta'       => $it['cta'] ?? '',
+                'elementos' => array_values($it['elementos'] ?? []),
             ];
         }
 
