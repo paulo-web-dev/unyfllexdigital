@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
+use App\Models\SocialArtDraft;
 use App\Models\SocialPost;
 use App\Models\SocialPostMedia;
 use Illuminate\Http\Request;
@@ -60,8 +61,26 @@ class SocialGeneratorController extends Controller
             ];
         }
 
+        $batchId = (int) now()->timestamp;
+
+        // Cria um rascunho por peça (fica "gerando" até o callback preencher a arte).
+        foreach ($items as $it) {
+            SocialArtDraft::create([
+                'batch_id'          => $batchId,
+                'social_account_id' => $account->id,
+                'ref'               => $it['ref'],
+                'tipo'              => $it['tipo'] === 'story' ? 'story' : 'feed_image',
+                'pedido'            => $it['pedido'],
+                'briefing'          => $it,
+                'versao'            => 1,
+                'status'            => 'gerando',
+                'scheduled_date'    => $data['scheduled_date'],
+                'horario'           => $it['horario'],
+            ]);
+        }
+
         $payload = [
-            'batch_id'       => (int) now()->timestamp,
+            'batch_id'       => $batchId,
             'scheduled_date' => $data['scheduled_date'],
             'callback_url'   => config('social.callback_url') ?: url('/api/n8n/social/artes'),
             'catalogo_url'   => config('social.catalogo_url'),
@@ -73,23 +92,27 @@ class SocialGeneratorController extends Controller
         return back()->with(
             $ok ? 'success' : 'warning',
             $ok
-                ? 'Geração disparada — as artes chegam em 1-2 min e aparecem no dia (atualize a página).'
+                ? 'Geração disparada — as artes chegam em 1-2 min na fila de Aprovação.'
                 : 'Não consegui acionar o n8n. Confira o webhook em config/social.php.'
         );
     }
 
-    /** Recebe as artes renderizadas do n8n e cria os posts pré-agendados. */
+    /** Recebe as artes renderizadas do n8n e move os rascunhos para "revisão". */
     public function callback(Request $request)
     {
         $this->validarSecret($request);
 
         $data = $request->validate([
+            'batch_id'              => ['required', 'integer'],
             'scheduled_date'        => ['required', 'date'],
             'artes'                 => ['required', 'array', 'min:1'],
+            'artes.*.ref'           => ['required', 'string'],
             'artes.*.tipo'          => ['required', 'string'],
             'artes.*.horario'       => ['nullable', 'string'],
             'artes.*.caption'       => ['nullable', 'string'],
             'artes.*.first_comment' => ['nullable', 'string'],
+            'artes.*.foto_url'      => ['nullable', 'string'],
+            'artes.*.html'          => ['nullable', 'string'],
             'artes.*.image_base64'  => ['nullable', 'string'],
         ]);
 
@@ -103,8 +126,7 @@ class SocialGeneratorController extends Controller
             File::makeDirectory($dir, 0755, true);
         }
 
-        $date = $data['scheduled_date'];
-        $criados = 0;
+        $atualizados = 0;
 
         foreach ($data['artes'] as $a) {
             $bin = !empty($a['image_base64']) ? base64_decode($a['image_base64'], true) : false;
@@ -112,42 +134,30 @@ class SocialGeneratorController extends Controller
                 continue;
             }
 
-            $tipo = strtolower($a['tipo'] ?? 'feed');
-            $type = $tipo === 'story' ? 'story' : 'feed_image';
-            $horario = $a['horario'] ?? '09:00';
-
-            try {
-                $when = Carbon::parse($date . ' ' . $horario);
-            } catch (\Throwable $e) {
-                $when = Carbon::parse($date . ' 09:00');
+            // Acha o rascunho desta peça (mais recente do lote, caso haja regeração).
+            $draft = SocialArtDraft::where('batch_id', $data['batch_id'])
+                ->where('ref', $a['ref'])
+                ->orderByDesc('id')
+                ->first();
+            if (!$draft) {
+                continue;
             }
 
-            $fname = 'gen-' . $date . '-' . Str::lower(Str::random(6)) . '.png';
+            $fname = 'gen-' . $data['scheduled_date'] . '-' . Str::lower(Str::random(6)) . '.png';
             File::put($dir . '/' . $fname, $bin);
 
-            $post = SocialPost::create([
-                'social_account_id' => $account->id,
-                'type'              => $type,
-                'status'            => 'agendado',
-                'caption'           => $a['caption'] ?? null,
-                'first_comment'     => $a['first_comment'] ?? null,
-                'scheduled_for'     => $when,
-                'source'            => 'ia',
-            ]);
+            $draft->image_path    = self::DIR . '/' . $fname;
+            $draft->html          = $a['html'] ?? null;
+            $draft->caption       = $a['caption'] ?? null;
+            $draft->first_comment = $a['first_comment'] ?? null;
+            $draft->foto_url      = $a['foto_url'] ?? null;
+            $draft->status        = 'revisao';
+            $draft->save();
 
-            SocialPostMedia::create([
-                'social_post_id' => $post->id,
-                'path'           => self::DIR . '/' . $fname,
-                'media_type'     => 'image',
-                'sort_order'     => 1,
-                'source'         => 'render',
-                'created_at'     => now(),
-            ]);
-
-            $criados++;
+            $atualizados++;
         }
 
-        return response()->json(['ok' => true, 'created' => $criados]);
+        return response()->json(['ok' => true, 'updated' => $atualizados]);
     }
 
     // -------------------- helpers --------------------

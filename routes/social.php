@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SocialAccountController;
+use App\Http\Controllers\Admin\SocialArtReviewController;
 use App\Http\Controllers\Admin\SocialGeneratorController;
 use App\Http\Controllers\Admin\SocialPostController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin', 'admin.can:
 
     // Geração com IA (dispara para o n8n)
     Route::post('social/gerar', [SocialGeneratorController::class, 'gerar'])->name('social.generate');
+
+    // Fila de aprovação das artes geradas
+    Route::get('social/aprovacao', [SocialArtReviewController::class, 'index'])->name('social.review.index');
+    Route::post('social/aprovacao/{draft}/aprovar', [SocialArtReviewController::class, 'aprovar'])->name('social.review.aprovar');
+    Route::post('social/aprovacao/{draft}/descartar', [SocialArtReviewController::class, 'descartar'])->name('social.review.descartar');
 
     // Posts
     Route::get('social/posts', [SocialPostController::class, 'index'])->name('social.posts.index');
