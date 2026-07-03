@@ -108,7 +108,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/player/{slug}/material/{materialId}/registrar', [PlayerController::class, 'registrarMaterial'])->name('player.material.registrar');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
-Route::post('/funil/registrar', [FunnelController::class, 'registrar'])->name('funil.registrar');
+// Route::post('/funil/registrar', [FunnelController::class, 'registrar'])->name('funil.registrar');
 
 Route::get('/comprarealizada', fn () => view('pages.compra-realizada'))->name('compra.realizada');
 // ══════════════════════════════════════════════════════════════════════════
