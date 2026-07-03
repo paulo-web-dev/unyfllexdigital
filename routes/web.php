@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\BlogGeneratorController;
 use App\Http\Controllers\Admin\SocialAccountController;
 use App\Http\Controllers\Admin\SocialPostController;
 use App\Http\Controllers\Admin\SocialGeneratorController;
+use App\Http\Controllers\Admin\SocialArtReviewController;
 // ── Site ──────────────────────────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/minisseries',        [CursoController::class, 'index'])->name('cursos');
@@ -264,6 +265,7 @@ Route::prefix('admin')
         Route::get('/integ',      [AdminController::class, 'integ'])->name('integ')->middleware('admin.can:admin.integ');
         Route::get('/config',     [AdminController::class, 'config'])->name('config')->middleware('admin.can:admin.config');
     });
+
     Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin', 'admin.can:admin.social'])->group(function () {
 
         // Conta conectada
@@ -276,6 +278,11 @@ Route::prefix('admin')
         // Geração com IA (dispara para o n8n)
         Route::post('social/gerar', [SocialGeneratorController::class, 'gerar'])->name('social.generate');
     
+        // Fila de aprovação das artes geradas
+        Route::get('social/aprovacao', [SocialArtReviewController::class, 'index'])->name('social.review.index');
+        Route::post('social/aprovacao/{draft}/aprovar', [SocialArtReviewController::class, 'aprovar'])->name('social.review.aprovar');
+        Route::post('social/aprovacao/{draft}/descartar', [SocialArtReviewController::class, 'descartar'])->name('social.review.descartar');
+    
         // Posts
         Route::get('social/posts', [SocialPostController::class, 'index'])->name('social.posts.index');
         Route::get('social/posts/novo', [SocialPostController::class, 'create'])->name('social.posts.create');
@@ -285,6 +292,7 @@ Route::prefix('admin')
         Route::delete('social/posts/{post}', [SocialPostController::class, 'destroy'])->name('social.posts.destroy');
         Route::delete('social/posts/{post}/media/{media}', [SocialPostController::class, 'destroyMedia'])->name('social.posts.media.destroy');
     });
+    
     
 
 
