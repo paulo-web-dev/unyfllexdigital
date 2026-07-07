@@ -1,13 +1,13 @@
 @extends('layouts.site')
 
 @section('meta_title', $curso->title . ' — Unyflex Digital')
-@section('meta_description', \Illuminate\Support\Str::limit(strip_tags($curso->info ?? $curso->subtitle ?? 'Minisérie prática para servidores públicos.'), 155))
+@section('meta_description', \Illuminate\Support\Str::limit(strip_tags($curso->info ?? $curso->subtitle ?? 'Minissérie prática para servidores públicos.'), 155))
 
 @section('content')
 
 @php
   $waBase  = 'https://api.whatsapp.com/send/?phone=554188980259&type=phone_number&app_absent=0';
-  $waCurso = $waBase . '&text=' . rawurlencode('Olá! Tenho interesse na minisérie "' . $curso->title . '". Pode me ajudar?');
+  $waCurso = $waBase . '&text=' . rawurlencode('Olá! Tenho interesse na minissérie "' . $curso->title . '". Pode me ajudar?');
   $waIcon  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
   $thumb = 'https://unyflex.com.br/storage/cursos/banner/' . $curso->photo;
   $preco = $curso->price ?? 998;
@@ -23,7 +23,7 @@
       <div class="col-lg-6">
         <div class="hero-eyebrow aos-fade">
           <span class="dot"></span>
-          <span>Minisérie prática · Certificado MEC · +49.000 servidores capacitados</span>
+          <span>Minissérie prática · Certificado MEC · +49.000 servidores capacitados</span>
         </div>
 
         <h1 class="hero-title aos-fade aos-delay-1" style="font-size:clamp(28px,4vw,44px);">
@@ -34,7 +34,7 @@
         <p class="hero-subtitle aos-fade aos-delay-2">{{ $curso->subtitle }}</p>
         @else
         <p class="hero-subtitle aos-fade aos-delay-2">
-          Domine este tema em cápsulas de 10 a 20 minutos e aplique no seu órgão
+          Domine este tema em episódios de 10 a 20 minutos e aplique no seu órgão
           <strong style="color:#fff;">já no dia seguinte</strong> — sem teoria interminável, sem juridiquês.
         </p>
         @endif
@@ -42,7 +42,7 @@
         {{-- Bullets de credibilidade --}}
         <div class="aos-fade aos-delay-3" style="display:flex;flex-direction:column;gap:10px;margin:22px 0;">
           @foreach([
-            $totalVideos . ' cápsulas diretas ao ponto, de 10 a 20 minutos cada',
+            $totalVideos . ' episódios diretos ao ponto, de 10 a 20 minutos cada',
             'Certificado reconhecido pelo MEC ao concluir',
             'Materiais, modelos e checklists prontos para usar',
             'Acesso liberado em até 5 minutos após a compra',
@@ -89,7 +89,7 @@
         <div style="display:flex;gap:0;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-lg);margin-top:14px;overflow:hidden;">
           @foreach([
             ['layers', $totalTemporadas, 'temporadas'],
-            ['play-circle', $totalVideos, 'cápsulas'],
+            ['play-circle', $totalVideos, 'episódios'],
             ['file-text', $totalMateriais, 'materiais'],
             ['clock', ($curso->workload ?? '—') . 'h', 'de conteúdo'],
           ] as $i => [$ic, $val, $lbl])
@@ -125,7 +125,7 @@
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">{{ $panel->title }}</div>
-            <div style="font-size:12.5px;color:var(--fg-4);">{{ $panel->video_lesson->count() }} cápsulas práticas @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais de apoio @endif</div>
+            <div style="font-size:12.5px;color:var(--fg-4);">{{ $panel->video_lesson->count() }} episódios práticos @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais de apoio @endif</div>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-8 aos-fade">
-        <div class="section-eyebrow">Sobre esta minisérie</div>
+        <div class="section-eyebrow">Sobre esta minissérie</div>
         <div style="font-size:16px;color:var(--fg-2);line-height:1.75;">
           {!! html_entity_decode($curso->info, ENT_QUOTES | ENT_HTML5, 'UTF-8') !!}
         </div>
@@ -167,8 +167,8 @@
   <div class="container">
     <div class="text-center mb-5 aos-fade">
       <div class="section-eyebrow">Conteúdo programático</div>
-      <h2 class="section-title">Veja tudo o que está<br><span class="text-brand-gradient">dentro da minisérie</span></h2>
-      <p class="section-subtitle mx-auto">{{ $totalTemporadas }} temporadas · {{ $totalVideos }} cápsulas · {{ $totalMateriais }} materiais de apoio</p>
+      <h2 class="section-title">Veja tudo o que está<br><span class="text-brand-gradient">dentro da minissérie</span></h2>
+      <p class="section-subtitle mx-auto">{{ $totalTemporadas }} temporadas · {{ $totalVideos }} episódios · {{ $totalMateriais }} materiais de apoio</p>
     </div>
 
     <div class="row justify-content-center">
@@ -185,7 +185,7 @@
               <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--brand-400);margin-bottom:2px;">Temporada {{ $pNum }}</div>
               <div style="font-size:15px;font-weight:700;color:#fff;">{{ $panel->title }}</div>
               <div style="font-size:12px;color:var(--fg-4);margin-top:2px;">
-                {{ $panel->video_lesson->count() }} cápsulas
+                {{ $panel->video_lesson->count() }} episódios
                 @if($panel->material->count() > 0) · {{ $panel->material->count() }} materiais @endif
               </div>
             </div>
@@ -257,7 +257,7 @@
           @foreach([
             ['1','Matricule-se','Cartão, PIX ou boleto — em até 10x sem juros.'],
             ['2','Acesse em 5 minutos','Login imediato em qualquer dispositivo.'],
-            ['3','Assista e aplique','Cápsulas curtas + materiais prontos para usar no órgão.'],
+            ['3','Assista e aplique','Episódios curtos + materiais prontos para usar no órgão.'],
             ['4','Emita o certificado','Certificado MEC gerado automaticamente ao concluir.'],
           ] as $step)
           <div style="display:flex;gap:14px;margin-bottom:14px;">
@@ -324,7 +324,7 @@
 
           <div style="display:flex;flex-direction:column;gap:9px;text-align:left;">
             @foreach([
-              'Acesso por 12 meses a todas as ' . $totalVideos . ' cápsulas',
+              'Acesso por 12 meses a todos os ' . $totalVideos . ' episódios',
               'Versão em podcast de cada aula',
               $totalMateriais . ' materiais, modelos e checklists',
               'Certificado reconhecido pelo MEC',
@@ -408,7 +408,7 @@
           Comece <span class="text-brand-gradient">{{ \Illuminate\Support\Str::limit($curso->title, 40) }}</span> ainda hoje
         </h2>
         <p style="font-size:17px;color:var(--fg-3);line-height:1.65;margin-bottom:32px;max-width:540px;margin-left:auto;margin-right:auto;">
-          {{ $totalVideos }} cápsulas práticas por 10x de R$ 98. Junte-se a mais de 49.000 servidores capacitados.
+          {{ $totalVideos }} episódios práticos por 10x de R$ 98. Junte-se a mais de 49.000 servidores capacitados.
         </p>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
@@ -460,7 +460,7 @@
   </div>
   <div class="cart-toast-body">
     <div class="cart-toast-title">Adicionado ao carrinho!</div>
-    <div class="cart-toast-sub" id="cartToastSub">Minisérie adicionada com sucesso.</div>
+    <div class="cart-toast-sub" id="cartToastSub">Minissérie adicionada com sucesso.</div>
   </div>
   <a href="{{ route('checkout') }}" class="cart-toast-action">Finalizar compra →</a>
 </div>

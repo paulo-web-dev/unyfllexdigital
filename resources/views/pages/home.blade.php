@@ -108,14 +108,14 @@ function playHeroVideo(){
 @endonce
 
 {{-- ================================================================
-     2. minissérieS — logo no começo
+     2. MINISSÉRIES — logo no começo
      ================================================================ --}}
 <section class="section-py" id="minisseries" style="background:var(--bg-1);border-top:1px solid var(--line-1);border-bottom:1px solid var(--line-1);">
   <div class="container">
     <div class="text-center mb-4 aos-fade">
       <div class="section-eyebrow">Comece agora</div>
-      <h2 class="section-title">Escolha sua minissérie<br><span class="text-brand-gradient">acesse em 5 minutos</span></h2>
-      <p class="section-subtitle mx-auto">Cápsulas de 10 a 20 minutos criadas por quem já trabalhou na gestão pública. Cada uma com certificado próprio.</p>
+      <h2 class="section-title">Escolha sua minissérie e<br><span class="text-brand-gradient">acesse em 5 minutos</span></h2>
+      <p class="section-subtitle mx-auto">Episódios de 10 a 20 minutos criados por quem já trabalhou na gestão pública. Cada uma com certificado próprio.</p>
     </div>
 
     {{-- Barra de oferta + ajuda no WhatsApp --}}
@@ -191,7 +191,7 @@ function playHeroVideo(){
     <div class="row justify-content-center text-center g-0">
       @foreach([
         ['49000','+','Servidores capacitados'],
-        ['300','+','Cápsulas disponíveis'],
+        ['300','+','Episódios disponíveis'],
         ['4.9','/5','Avaliação média'],
         ['98','%','Recomendam a outros'],
       ] as [$num,$suf,$lbl])
@@ -221,7 +221,7 @@ function playHeroVideo(){
     <div class="row g-3">
       @foreach([
         ['icon'=>'alert-triangle','dor'=>'Medo de errar e ser responsabilizado','sol'=>'Aprenda o passo a passo correto de cada processo e decida com respaldo legal.'],
-        ['icon'=>'book-open','dor'=>'Cursos longos e cheios de teoria','sol'=>'Cápsulas de 10 a 20 minutos, direto ao que se aplica na prática.'],
+        ['icon'=>'book-open','dor'=>'Cursos longos e cheios de teoria','sol'=>'Episódios de 10 a 20 minutos, direto ao que se aplica na prática.'],
         ['icon'=>'clock','dor'=>'Falta de tempo durante o expediente','sol'=>'Assista no ritmo que der, do celular ou do computador, quando quiser.'],
         ['icon'=>'file-warning','dor'=>'Insegurança com a nova Lei 14.133','sol'=>'Conteúdo atualizado com as últimas mudanças e exemplos reais de aplicação.'],
         ['icon'=>'help-circle','dor'=>'Dúvidas sem ninguém para perguntar','sol'=>'Suporte pedagógico durante todo o período de acesso.'],
@@ -265,10 +265,10 @@ function playHeroVideo(){
         <div class="section-eyebrow">Como funciona</div>
         <h2 class="section-title">Do clique à aplicação<br><span class="text-brand-gradient">em menos de 1 dia</span></h2>
         <p style="font-size:16px;color:var(--fg-3);line-height:1.65;margin-bottom:20px;">
-          Sem burocracia, sem espera. Você compra, acessa na hora e já começa a assistir as cápsulas que importam para a sua rotina.
+          Sem burocracia, sem espera. Você compra, acessa na hora e já começa a assistir os episódios que importam para a sua rotina.
         </p>
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;">
-          @foreach(['Acesso liberado em até 5 minutos','Cápsulas de 10 a 20 minutos','Certificado MEC gerado automaticamente','Suporte para dúvidas de matrícula e conteúdo'] as $item)
+          @foreach(['Acesso liberado em até 5 minutos','Episódios de 10 a 20 minutos','Certificado MEC gerado automaticamente','Suporte para dúvidas de matrícula e conteúdo'] as $item)
           <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fg-2);">
             <i data-lucide="check-circle" style="width:16px;height:16px;stroke:var(--success);fill:none;stroke-width:1.75;flex-shrink:0;"></i>
             {{ $item }}
@@ -290,7 +290,7 @@ function playHeroVideo(){
         @foreach([
           ['1','Escolha sua minissérie','Adicione ao carrinho as minisséries que se encaixam na sua rotina e finalize a compra.'],
           ['2','Acesse em 5 minutos','Pagou, liberou. Login imediato em qualquer dispositivo, sem espera.'],
-          ['3','Assista em cápsulas rápidas','10 a 20 minutos por cápsula. Densas, diretas e sem enrolação.'],
+          ['3','Assista em episódios rápidos','10 a 20 minutos por episódio. Densos, diretos e sem enrolação.'],
           ['4','Aplique e emita o certificado','Use no seu órgão no dia seguinte e baixe o certificado MEC ao concluir.'],
         ] as $step)
         <div class="how-step" style="{{ $loop->last ? 'margin-bottom:0;':'' }}">
@@ -480,7 +480,7 @@ function playHeroVideo(){
   </div>
   <div class="cart-toast-body">
     <div class="cart-toast-title">Adicionado ao carrinho!</div>
-    <div class="cart-toast-sub" id="cartToastSub">Minissérieadicionada com sucesso.</div>
+    <div class="cart-toast-sub" id="cartToastSub">Minissérie adicionada com sucesso.</div>
   </div>
   <a href="{{ route('checkout') }}" class="cart-toast-action">Ver carrinho →</a>
 </div>
