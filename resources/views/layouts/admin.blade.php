@@ -237,6 +237,13 @@
     </a>
     @endcan
 
+    @can('admin.matriculas')
+    <a href="{{ route('admin.assinaturas.index') }}" class="nav-item {{ request()->routeIs('admin.assinaturas*') ? 'active' : '' }}">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/></svg>
+      <span>Assinaturas</span>
+    </a>
+    @endcan
+
     {{-- Cursos / Materiais: apenas super admin --}}
     @can('admin.cursos')
     <a href="{{ route('admin.cursos') }}" class="nav-item {{ (request()->routeIs('admin.cursos') || request()->routeIs('admin.cursos.*')) ? 'active' : '' }}">

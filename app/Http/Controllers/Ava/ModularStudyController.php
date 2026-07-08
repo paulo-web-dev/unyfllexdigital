@@ -33,7 +33,13 @@ class ModularStudyController extends Controller
         $sid   = auth()->user()->student_id;
         $curso = ModularCourse::where('slug', $slug)->firstOrFail();
 
-        abort_unless($this->matriculado($curso->id, $sid), 403, 'Você não tem acesso a este curso.');
+        // Acesso: matrícula no curso OU assinatura ativa.
+        $student   = $sid ? \App\Models\Student::find($sid) : null;
+        $assinante = $student && $student->isAssinante();
+        abort_unless($this->matriculado($curso->id, $sid) || $assinante, 403, 'Você não tem acesso a este curso.');
+
+        // Registra o curso acessado (relatórios).
+        \App\Models\AccessLog::registrar('curso_view', $sid, auth()->id(), 'Modular: ' . $curso->title);
 
         $resumos = $curso->courseMaterials()->where('type', 'resumo')->where('status', 'pronto')->orderBy('sort_order')->get();
         $cartoes = $curso->courseMaterials()->where('type', 'cartoes')->where('status', 'pronto')->orderBy('sort_order')->get();

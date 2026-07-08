@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Ava\CursosAvaController;
 use App\Http\Controllers\Ava\PlayerController;
+use App\Http\Controllers\Ava\SubscriptionAreaController;
 use App\Http\Controllers\Ava\PerfilController;
 use App\Http\Controllers\Ava\ModularStudyController;
 use App\Http\Controllers\Admin\AdminController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Admin\AdCreativeController;
 use App\Http\Controllers\Admin\CourseCoverController;
 use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\ModularEnrollmentController;
+use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Admin\BlogPostController;
@@ -177,6 +179,14 @@ Route::prefix('admin')
         Route::get('/matriculas/{id}/editar', [AdminController::class, 'matriculaEdit'])->name('matriculas.edit');
         Route::put('/matriculas/{id}',        [AdminController::class, 'matriculaUpdate'])->name('matriculas.update');
 
+        // ── Assinaturas (modalidade que libera TODOS os cursos) ──────────
+        Route::get('/assinaturas',                [SubscriptionController::class, 'index'])->name('assinaturas.index');
+        Route::get('/assinaturas/criar',          [SubscriptionController::class, 'create'])->name('assinaturas.create');
+        Route::post('/assinaturas',               [SubscriptionController::class, 'store'])->name('assinaturas.store');
+        Route::get('/assinaturas/{id}/editar',    [SubscriptionController::class, 'edit'])->name('assinaturas.edit');
+        Route::put('/assinaturas/{id}',           [SubscriptionController::class, 'update'])->name('assinaturas.update');
+        Route::post('/assinaturas/{id}/cancelar', [SubscriptionController::class, 'cancel'])->name('assinaturas.cancel');
+
         // ── Financeiro / Analytics / Relatórios — apenas super admin ─────
         Route::get('/financeiro', [AdminController::class, 'financeiro'])->name('financeiro')->middleware('admin.can:admin.financeiro');
         Route::get('/analytics',  [AdminController::class, 'analytics'])->name('analytics')->middleware('admin.can:admin.analytics');
@@ -296,3 +306,8 @@ Route::prefix('admin')
     
 
 
+
+// ── Área do Assinante (assinatura ativa) ──────────────────────────────────
+Route::middleware(['auth', 'subscriber'])->group(function () {
+    Route::get('/assinante', [SubscriptionAreaController::class, 'home'])->name('assinante.home');
+});

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use App\Models\User;
+use App\Models\AccessLog;
 
 class AuthController extends Controller
 {
@@ -62,13 +63,28 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
+
+            $u = Auth::user();
+
+            // Registra o login do aluno (relatorios de acesso).
+            if ($u->student_id) {
+                AccessLog::registrar('login', $u->student_id, $u->id);
+            }
     
             // Admin (power >= 13) vai para o painel admin
-            if (Auth::user()->power >= 13) {
+            if ($u->power >= 13) {
                 return redirect()->route('admin.dashboard');
             }
     
-            // Aluno vai para o AVA
+            // Assinante ativo vai para a área de assinatura.
+            if ($u->student_id) {
+                $student = \App\Models\Student::find($u->student_id);
+                if ($student && $student->isAssinante()) {
+                    return redirect()->route('assinante.home');
+                }
+            }
+
+            // Aluno comum vai para o AVA
             return redirect()->intended(route('dashboard'));
         }
     

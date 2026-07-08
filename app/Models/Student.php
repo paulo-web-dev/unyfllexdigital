@@ -56,4 +56,24 @@ class Student extends Model
     {
         return $this->hasMany(Enrollment::class, 'student_id', 'id');
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class, 'student_id', 'id');
+    }
+
+    /** Assinatura vigente (ativa e dentro da validade), se houver. */
+    public function assinaturaVigente(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->vigentes()
+            ->orderByDesc('end_date')
+            ->first();
+    }
+
+    /** True se o aluno é assinante ativo. */
+    public function isAssinante(): bool
+    {
+        return $this->assinaturaVigente() !== null;
+    }
 }

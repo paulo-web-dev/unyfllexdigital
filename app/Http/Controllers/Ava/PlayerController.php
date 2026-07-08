@@ -30,7 +30,13 @@ class PlayerController extends Controller
             ->where('classes_id', $classe->id)
             ->first();
 
-        abort_unless($matricula, 403, 'Você não tem acesso a esta minissérie.');
+        // Acesso: matrícula na minissérie OU assinatura ativa.
+        $student   = $user->student_id ? \App\Models\Student::find($user->student_id) : null;
+        $assinante = $student && $student->isAssinante();
+        abort_unless($matricula || $assinante, 403, 'Você não tem acesso a esta minissérie.');
+
+        // Registra o curso acessado (relatórios).
+        \App\Models\AccessLog::registrar('curso_view', $user->student_id, $user->id, 'Minissérie: ' . $classe->title);
 
         // Carrega panels SEM eager load de relacionamentos
         $panels = Panel::where('classes_id', $classe->id)
