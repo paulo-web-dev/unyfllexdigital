@@ -87,6 +87,7 @@
                 @endif
               </td>
               <td style="padding:12px 16px;text-align:right;white-space:nowrap;">
+                <a href="{{ route('admin.assinaturas.acessos', $a->id) }}" class="btn btn-ghost" style="text-decoration:none;padding:6px 12px;font-size:12px;">Acessos</a>
                 <a href="{{ route('admin.assinaturas.edit', $a->id) }}" class="btn btn-ghost" style="text-decoration:none;padding:6px 12px;font-size:12px;">Editar</a>
                 @if($a->status === 'ativo')
                   <form action="{{ route('admin.assinaturas.cancel', $a->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Cancelar esta assinatura?');">

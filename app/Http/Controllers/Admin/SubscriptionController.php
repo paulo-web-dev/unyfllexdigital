@@ -126,4 +126,30 @@ class SubscriptionController extends Controller
 
         return back()->with('success', 'Assinatura cancelada.');
     }
+
+    /** Relatório de acessos do aluno: logins e cursos assistidos. */
+    public function acessos($id)
+    {
+        $assinatura = Subscription::with('student')->findOrFail($id);
+        $sid = $assinatura->student_id;
+
+        $totalLogins = AccessLog::where('student_id', $sid)->where('action', 'login')->count();
+
+        $logins = AccessLog::where('student_id', $sid)
+            ->where('action', 'login')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        // Cursos acessados, agrupados pelo nome (detail), com contagem e último acesso.
+        $cursos = AccessLog::where('student_id', $sid)
+            ->where('action', 'curso_view')
+            ->whereNotNull('detail')
+            ->selectRaw('detail, COUNT(*) as vezes, MAX(created_at) as ultimo')
+            ->groupBy('detail')
+            ->orderByDesc('ultimo')
+            ->get();
+
+        return view('pages.admin.assinaturas.acessos', compact('assinatura', 'logins', 'totalLogins', 'cursos'));
+    }
 }

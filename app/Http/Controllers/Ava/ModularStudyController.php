@@ -61,7 +61,9 @@ class ModularStudyController extends Controller
             ->get();
         $melhor = (int) ($tentativas->max('score') ?? 0);
 
-        return view('pages.ava.modular-show', compact('curso', 'resumos', 'cartoes', 'prova', 'questions', 'tentativas', 'melhor', 'audios', 'video'));
+        $layout = $assinante ? 'layouts.assinante' : 'layouts.app';
+
+        return view('pages.ava.modular-show', compact('curso', 'resumos', 'cartoes', 'prova', 'questions', 'tentativas', 'melhor', 'audios', 'video', 'layout'));
     }
 
     public function provaResultado(Request $request, int $id)

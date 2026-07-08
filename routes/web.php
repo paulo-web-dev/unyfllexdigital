@@ -186,6 +186,7 @@ Route::prefix('admin')
         Route::get('/assinaturas/{id}/editar',    [SubscriptionController::class, 'edit'])->name('assinaturas.edit');
         Route::put('/assinaturas/{id}',           [SubscriptionController::class, 'update'])->name('assinaturas.update');
         Route::post('/assinaturas/{id}/cancelar', [SubscriptionController::class, 'cancel'])->name('assinaturas.cancel');
+        Route::get('/assinaturas/{id}/acessos',   [SubscriptionController::class, 'acessos'])->name('assinaturas.acessos');
 
         // ── Financeiro / Analytics / Relatórios — apenas super admin ─────
         Route::get('/financeiro', [AdminController::class, 'financeiro'])->name('financeiro')->middleware('admin.can:admin.financeiro');

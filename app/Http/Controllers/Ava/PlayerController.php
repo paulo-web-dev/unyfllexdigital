@@ -137,11 +137,14 @@ class PlayerController extends Controller
         $totalAssistidos = $watchedCnt;
         $progresso       = $totalVideos > 0 ? (int) round(($watchedCnt / $totalVideos) * 100) : 0;
 
+        $layout = $assinante ? 'layouts.assinante' : 'layouts.app';
+
         return view('pages.ava.player', compact(
             'classe', 'capsulas', 'capsula', 'capsulaAtiva',
             'panels', 'materiaisVistos',
             'totalCnt', 'watchedCnt',
-            'totalVideos', 'totalAssistidos', 'progresso'
+            'totalVideos', 'totalAssistidos', 'progresso',
+            'layout'
         ));
     }
 

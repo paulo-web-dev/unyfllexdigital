@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends($layout ?? 'layouts.app')
 @section('title', $curso->title . ' — Unyflex Digital')
 
 @section('content')
