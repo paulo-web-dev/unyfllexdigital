@@ -3,24 +3,31 @@
 namespace App\Http\Controllers\Ava;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccessLog;
 use App\Models\Classes;
 use App\Models\ModularCourse;
+use App\Models\ViewsMinisserie;
 use Illuminate\Support\Facades\DB;
 
 class SubscriptionAreaController extends Controller
 {
-    /** Catálogo do assinante: minisséries + cursos gravados + cursos modulares. */
+    /** Catálogo do assinante: minisséries + cursos gravados + modulares, com marcação de assistidos. */
     public function home()
     {
-        // Minisséries (express = 1, publicadas)
+        $uid = auth()->id();
+        $sid = auth()->user()->student_id;
+
+        // Minisséries (express = 1, publicadas) — mais recentes primeiro
         $minisseries = Classes::where('express', '1')
             ->where('status', 'able')
+            ->orderByDesc('start_date')
             ->orderBy('title')
             ->get(['id', 'title', 'subtitle', 'slug', 'photo']);
 
-        // Cursos Gravados: turmas (unyflex = 1, express = 0) que possuem vídeo com link.
-        $gravados = Classes::where('express', 0)
-            ->where('unyflex', 1)
+        // Cursos Gravados: turmas (unyflex = 1, express = '0', able) com vídeo com link — recentes primeiro
+        $gravados = Classes::where('unyflex', 1)
+            ->where('express', '0')
+            ->where('status', 'able')
             ->whereExists(function ($q) {
                 $q->select(DB::raw(1))
                     ->from('video_lessons as vl')
@@ -29,6 +36,7 @@ class SubscriptionAreaController extends Controller
                     ->whereNotNull('vl.link')
                     ->where('vl.link', '<>', '');
             })
+            ->orderByDesc('start_date')
             ->orderBy('title')
             ->get(['id', 'title', 'subtitle', 'slug', 'photo']);
 
@@ -38,6 +46,28 @@ class SubscriptionAreaController extends Controller
             ->orderBy('title')
             ->get();
 
-        return view('assinante.home', compact('minisseries', 'gravados', 'modulares'));
+        // ── Assistidos ────────────────────────────────────────────────────
+        // Minisséries e gravados assistidos: via views_minisseries (classes_id).
+        $assistidasClasses = ViewsMinisserie::where('id_user', $uid)
+            ->pluck('classes_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        // Modulares assistidos: via access_logs (detail = "Modular: <título>").
+        $modularesAssistidos = AccessLog::where('student_id', $sid)
+            ->where('action', 'curso_view')
+            ->where('detail', 'like', 'Modular: %')
+            ->pluck('detail')
+            ->map(fn ($d) => trim(str_replace('Modular:', '', $d)))
+            ->unique()
+            ->values()
+            ->all();
+
+        return view('assinante.home', compact(
+            'minisseries', 'gravados', 'modulares',
+            'assistidasClasses', 'modularesAssistidos'
+        ));
     }
 }
