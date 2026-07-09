@@ -21,8 +21,9 @@ class PlayerController extends Controller
     {
         $user = Auth::user();
 
+        // Aceita minissérie (express=1) e curso gravado (express=0); o acesso é
+        // controlado logo abaixo por matrícula OU assinatura.
         $classe = Classes::where('slug', $slug)
-            ->where('express', '1')
             ->where('status', 'able')
             ->firstOrFail();
 

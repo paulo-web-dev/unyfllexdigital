@@ -15,9 +15,10 @@
 
 {{-- Barra: abas + busca --}}
 <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;">
-  <div id="tabs" style="display:flex;gap:6px;background:#0f1520;border:1px solid #1e2836;border-radius:10px;padding:4px;">
-    <button type="button" class="cat-tab active" data-filtro="todos">Todos <span class="cnt">({{ $minisseries->count() + $modulares->count() }})</span></button>
+  <div id="tabs" style="display:flex;gap:6px;background:#0f1520;border:1px solid #1e2836;border-radius:10px;padding:4px;flex-wrap:wrap;">
+    <button type="button" class="cat-tab active" data-filtro="todos">Todos <span class="cnt">({{ $minisseries->count() + $gravados->count() + $modulares->count() }})</span></button>
     <button type="button" class="cat-tab" data-filtro="minisserie">Minisséries <span class="cnt">({{ $minisseries->count() }})</span></button>
+    <button type="button" class="cat-tab" data-filtro="gravado">Cursos Gravados <span class="cnt">({{ $gravados->count() }})</span></button>
     <button type="button" class="cat-tab" data-filtro="modular">Modulares <span class="cnt">({{ $modulares->count() }})</span></button>
   </div>
   <div style="position:relative;flex:1;max-width:320px;min-width:200px;">
@@ -49,6 +50,23 @@
       <div style="padding:14px;">
         <div style="font-size:14px;font-weight:600;color:#fff;line-height:1.3;">{{ $m->title }}</div>
         @if($m->subtitle)<div style="font-size:12px;color:#8A94A6;margin-top:4px;">{{ Str::limit($m->subtitle, 60) }}</div>@endif
+      </div>
+    </a>
+  @endforeach
+
+  @foreach($gravados as $g)
+    @php $bannerG = $g->photo ? 'https://unyflex.com.br/storage/cursos/banner/' . $g->photo : null; @endphp
+    <a href="{{ route('player', $g->slug) }}" class="curso-card" data-tipo="gravado" data-nome="{{ Str::lower($g->title) }}"
+       style="{{ $card }}" onmouseover="this.style.borderColor='#00a3ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#1e2836';this.style.transform='none'">
+      <span style="{{ $badge }}background:rgba(255,181,71,.92);color:#3a2600;">Curso Gravado</span>
+      @if($bannerG)
+        <img src="{{ $bannerG }}" alt="" style="{{ $cardImg }}" loading="lazy">
+      @else
+        <div style="{{ $ph }}"><i data-lucide="video"></i></div>
+      @endif
+      <div style="padding:14px;">
+        <div style="font-size:14px;font-weight:600;color:#fff;line-height:1.3;">{{ $g->title }}</div>
+        @if($g->subtitle)<div style="font-size:12px;color:#8A94A6;margin-top:4px;">{{ Str::limit($g->subtitle, 60) }}</div>@endif
       </div>
     </a>
   @endforeach
