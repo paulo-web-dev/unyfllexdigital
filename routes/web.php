@@ -293,6 +293,7 @@ Route::prefix('admin')
         Route::get('social/aprovacao', [SocialArtReviewController::class, 'index'])->name('social.review.index');
         Route::post('social/aprovacao/{draft}/aprovar', [SocialArtReviewController::class, 'aprovar'])->name('social.review.aprovar');
         Route::post('social/aprovacao/{draft}/descartar', [SocialArtReviewController::class, 'descartar'])->name('social.review.descartar');
+        Route::post('social/aprovacao/{draft}/reprovar',  [SocialArtReviewController::class, 'reprovar'])->name('social.review.reprovar');
     
         // Posts
         Route::get('social/posts', [SocialPostController::class, 'index'])->name('social.posts.index');

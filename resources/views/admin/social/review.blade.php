@@ -68,9 +68,13 @@
                   @csrf
                   <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:9px;font-size:13px;">✓ Aprovar</button>
                 </form>
+                <button type="button" class="btn btn-ghost" style="padding:9px 12px;font-size:13px;color:#00a3ff;" title="Refazer com feedback"
+                        data-bs-toggle="modal" data-bs-target="#modalRefazer"
+                        data-action="{{ route('admin.social.review.reprovar', $draft) }}"
+                        data-pedido="{{ $draft->pedido }}">↻</button>
                 <form action="{{ route('admin.social.review.descartar', $draft) }}" method="POST" onsubmit="return confirm('Descartar esta arte?');">
                   @csrf
-                  <button type="submit" class="btn btn-ghost" style="padding:9px 12px;font-size:13px;color:#FF5C7A;">✕</button>
+                  <button type="submit" class="btn btn-ghost" style="padding:9px 12px;font-size:13px;color:#FF5C7A;" title="Descartar">✕</button>
                 </form>
               </div>
             @endif
@@ -82,7 +86,54 @@
 
 </div>
 
+{{-- Modal: refazer com feedback --}}
+<div class="modal fade" id="modalRefazer" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#0f1520;border:1px solid #1e2836;color:#fff;">
+      <form id="formRefazer" method="POST">
+        @csrf
+        <div class="modal-header" style="border-color:#1e2836;">
+          <h5 class="modal-title" style="font-size:16px;font-weight:700;">Refazer arte com feedback</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p id="refazerPedido" style="font-size:12px;color:#8A94A6;margin:0 0 16px;font-style:italic;"></p>
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#c9d1dc;margin-bottom:6px;">O que não ficou bom?</label>
+            <textarea name="nao_gostou" rows="2" required class="form-control"
+                      style="background:#0a0e15;border:1px solid #1e2836;color:#fff;font-size:13px;"
+                      placeholder="Ex: o fundo ficou escuro demais, o texto está pequeno, a foto não combina..."></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#c9d1dc;margin-bottom:6px;">O que mudar?</label>
+            <textarea name="mudanca_pedida" rows="2" required class="form-control"
+                      style="background:#0a0e15;border:1px solid #1e2836;color:#fff;font-size:13px;"
+                      placeholder="Ex: usar fundo claro, aumentar o título, trocar por uma foto mais institucional..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:#1e2836;">
+          <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">↻ Gerar nova versão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 @push('styles')
 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+@endpush
+@push('scripts')
+<script>
+  (function () {
+    var modal = document.getElementById('modalRefazer');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function (ev) {
+      var btn = ev.relatedTarget;
+      document.getElementById('formRefazer').action = btn.getAttribute('data-action');
+      document.getElementById('refazerPedido').textContent = btn.getAttribute('data-pedido') || '';
+    });
+  })();
+</script>
 @endpush
 @endsection
