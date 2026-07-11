@@ -29,7 +29,7 @@
       <div>
         <div class="offer-badge" style="margin-bottom:12px;">Lançamento desta semana</div>
         <h2 style="font-family:var(--font-display);font-weight:800;font-size:clamp(22px,2.5vw,30px);color:#fff;letter-spacing:-0.02em;margin-bottom:10px;">Assessoria de Imprensa Com Mídias Sociais</h2>
-        <p style="color:var(--fg-3);margin-bottom:18px;font-size:15px;max-width:480px;">Aprenda a transformar a comunicação pública em autoridade digital, com 6 episódios rápidos e estratégias práticas para criar conteúdos, fortalecer a imagem institucional e engajar a população nas redes sociais.</p>
+        <p style="color:var(--fg-3);margin-bottom:18px;font-size:15px;max-width:480px;">Aprenda a transformar a comunicação pública em autoridade digital, com 6 temporadas rápidas e estratégias práticas para criar conteúdos, fortalecer a imagem institucional e engajar a população nas redes sociais.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <a href="{{ route('curso.show', 'Assessoria-de-Imprensa-Com-Midias-Sociais-Janeiro-express') }}" class="btn-ux btn-ux-primary">
             <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
