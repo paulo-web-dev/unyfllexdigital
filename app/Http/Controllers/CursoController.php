@@ -15,7 +15,7 @@ class CursoController extends Controller
     public function index()
     {
 
-        $classes = Classes::where('express', '1')->where('status', 'able')->get();
+        $classes = Classes::where('express', '1')->where('status', 'able')->where('id', '>', 1900)->get();
         return view('pages.cursos',[
             'classes' => $classes
         ]);
