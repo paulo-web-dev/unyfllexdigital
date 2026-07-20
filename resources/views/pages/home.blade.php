@@ -1,7 +1,7 @@
 @extends('layouts.site')
 
 @section('meta_title', 'Unyflex Digital — Capacitação Prática para Servidores Públicos')
-@section('meta_description', 'Minisséries de 10 a 20 minutos para pregoeiros, gestores de contratos, auditores e equipes municipais. Conteúdo aplicável no órgão no dia seguinte. Reconhecido pelo MEC.')
+@section('meta_description', 'Aulas de 10 a 20 minutos para pregoeiros, gestores de contratos, auditores e equipes municipais. Conteúdo aplicável no órgão no dia seguinte. Reconhecido pelo MEC.')
 
 @section('content')
 
@@ -35,7 +35,7 @@
         </h1>
 
         <p class="hero-subtitle aos-fade aos-delay-2">
-          Minisséries de 20 minutos que ensinam exatamente o que você precisa para
+          Capacitações completas que ensinam exatamente o que você precisa para
           executar com segurança no seu órgão — sem teoria interminável, sem juridiquês.
           <strong style="color:#fff;">Aplicável já no dia seguinte.</strong>
         </p>
@@ -43,7 +43,7 @@
         <div class="hero-cta-group aos-fade aos-delay-3">
           <a href="#minisseries" class="btn-ux btn-ux-primary btn-ux-lg">
             <i data-lucide="zap" style="width:18px;height:18px;fill:currentColor;stroke:none;"></i>
-            Ver minisséries — a partir de 10x R$ 98
+            Ver minisséries — a partir de 10x R$ 99
           </a>
           <a href="{{ $waDuvidas }}" target="_blank" class="btn-ux btn-ux-ghost btn-ux-lg" style="color:#25D366;border-color:rgba(37,211,102,0.4);">
             {!! $waIcon !!}
@@ -123,7 +123,7 @@ function playHeroVideo(){
       <span style="font-size:14px;color:var(--fg-2);">
         <i data-lucide="tag" style="width:16px;height:16px;stroke:var(--brand-300);fill:none;stroke-width:1.75;vertical-align:-3px;margin-right:4px;"></i>
         De <span style="text-decoration:line-through;color:var(--fg-4);">R$ 1.990</span>
-        por <strong style="color:#fff;">10x de R$ 98</strong> ou <strong style="color:#fff;">R$ 998 à vista</strong>
+        por <strong style="color:#fff;">10x de R$ 98</strong> ou <strong style="color:#fff;">R$ 899 à vista</strong>
       </span>
       <a href="{{ $waAjuda }}" target="_blank" style="font-size:13px;color:#25D366;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
         {!! $waIcon !!}
@@ -157,7 +157,7 @@ function playHeroVideo(){
               <button class="btn-ux btn-ux-primary btn-ux-sm btn-add-to-cart" style="flex:1;justify-content:center;"
                       data-course-id="{{ $curso->id }}"
                       data-course-title="{{ $curso->title }}"
-                      data-course-price="{{ $curso->price ?? 998 }}"
+                      data-course-price="{{ $curso->price ?? 899 }}"
                       data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $curso->photo }}"
                       data-course-slug="{{ $curso->slug }}"
                       aria-label="Adicionar {{ $curso->title }} ao carrinho">
@@ -438,7 +438,7 @@ function playHeroVideo(){
           Comece hoje e aplique<br><span class="text-brand-gradient">no seu órgão amanhã</span>
         </h2>
         <p style="font-size:18px;color:var(--fg-3);line-height:1.65;margin-bottom:36px;max-width:560px;margin-left:auto;margin-right:auto;">
-          Junte-se a mais de 49.000 servidores. A partir de 10x de R$ 98 — com certificado e garantia de 7 dias.
+          Junte-se a mais de 49.000 servidores. A partir de 10x de R$ 99 — com certificado e garantia de 7 dias.
         </p>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const item = {
         id:    this.dataset.courseId,
         title: this.dataset.courseTitle,
-        price: parseFloat(this.dataset.coursePrice) || 998,
+        price: parseFloat(this.dataset.coursePrice) || 899,
         thumb: this.dataset.courseThumb,
         slug:  this.dataset.courseSlug,
       };

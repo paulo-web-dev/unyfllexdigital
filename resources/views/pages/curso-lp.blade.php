@@ -297,7 +297,7 @@
             <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--brand-300);margin-bottom:6px;">Parcelado em até</div>
             <div style="display:flex;align-items:baseline;justify-content:center;gap:5px;">
               <span style="font-family:var(--font-display);font-weight:800;font-size:30px;color:#fff;">10x</span>
-              <span style="font-family:var(--font-display);font-weight:800;font-size:50px;color:#fff;line-height:1;">R$ 98</span>
+              <span style="font-family:var(--font-display);font-weight:800;font-size:50px;color:#fff;line-height:1;">R$ 99</span>
             </div>
             <div style="font-size:11px;color:var(--fg-4);margin-top:4px;">sem juros no cartão</div>
           </div>

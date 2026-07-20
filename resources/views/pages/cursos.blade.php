@@ -19,7 +19,7 @@
       <div class="col-lg-auto text-lg-end mt-3 mt-lg-0">
         <a href="{{ route('checkout') }}" class="btn-ux btn-ux-primary btn-ux-lg">
           <i data-lucide="zap" style="width:16px;height:16px;fill:currentColor;stroke:none;"></i>
-          Explorar Minisséries — R$ 998
+          Explorar Minisséries — R$ 899
         </a>
       </div>
     </div>
@@ -38,7 +38,7 @@
           <button class="btn-ux btn-ux-ghost btn-add-to-cart"
                   data-course-id="spotlight"
                   data-course-title="Assessoria de Imprensa Com Mídias Sociais"
-                  data-course-price="998"
+                  data-course-price="899"
                   data-course-thumb="{{ asset('img/logo-unyflex.png') }}"
                   data-course-slug="Assessoria-de-Imprensa-Com-Midias-Sociais-Janeiro-express">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -127,7 +127,7 @@
                   style="flex:1;justify-content:center;"
                   data-course-id="{{ $curso->id }}"
                   data-course-title="{{ $curso->title }}"
-                  data-course-price="{{ $curso->valor ?? 998 }}"
+                  data-course-price="{{ $curso->valor ?? 899 }}"
                   data-course-thumb="https://unyflex.com.br/storage/cursos/banner/{{ $curso->photo }}"
                   data-course-slug="{{ $curso->slug }}"
                   aria-label="Adicionar {{ $curso->title }} ao carrinho">
