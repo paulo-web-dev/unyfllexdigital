@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const item = {
         id:    this.dataset.courseId,
         title: this.dataset.courseTitle,
-        price: parseFloat(this.dataset.coursePrice) || 998,
+        price: parseFloat(this.dataset.coursePrice) || 899,
         thumb: this.dataset.courseThumb,
         slug:  this.dataset.courseSlug,
       };
