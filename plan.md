@@ -8,8 +8,8 @@ O briefing foi conferido linha a linha contra o código e o schema (`COLUMNS.csv
 
 1. **"Zero código WhatsApp" é impreciso.** Não há integração Uazapi/Chatwoot, mas `whatsapp` já existe como nome de campo (`leads_guia_licitacoes`, `negociacoes_comercial`, checkout) e `GuiaLicitacoesController.php:112` posta num webhook n8n hardcoded (`n8n.unyflex.com.br/webhook/guia-whatsapp`). Não conflita com o MVP, mas não é "zero".
 2. **Não existe tabela `jobs`.** Só `failed_jobs` (migration padrão do Laravel). Migrar para `QUEUE_CONNECTION=database` exige criar `jobs` — vira o primeiro script em `database/sql/`, não é só mudança de `.env`.
-3. **Não existe model Eloquent para a maior parte das tabelas de CRM.** `app/Models` tem `Classes`, `Student`, `Enrollment`, `LeadGuia` — nada para `leads`, `negociacoes_comercial`, `contact`, `prematricula`, `courses`. O matching de CRM parte do zero. `app/Models/User.php` não tem nenhum relacionamento definido.
-4. **`tentativas_de_contato` não tem coluna de telefone.** Só chega ao número via `id_lead` → `leads.celular`. Seu `forma_de_contato` é `enum('ligacao','mensagem','email','whatsapp')` — "whatsapp" ali é valor de enum, não número.
+3. **Não existe model Eloquent para a maior parte das tabelas de CRM.** `app/Models` tem `Classes`, `Student`, `Enrollment`, `LeadGuia` — nada para `negociacoes_comercial`, `contact`, `prematricula`, `courses`. O matching de CRM parte do zero. (`leads` e `tentativas_de_contato` também não têm model, e não devem ganhar um — divergência 9.) `app/Models/User.php` não tem nenhum relacionamento definido.
+4. **`tentativas_de_contato` não tem coluna de telefone.** Só chega ao número via `id_lead` → `leads.celular`. Seu `forma_de_contato` é `enum('ligacao','mensagem','email','whatsapp')` — "whatsapp" ali é valor de enum, não número. **Com a divergência 9, esse único caminho até o número morre numa tabela vazia** — a tabela fica inalcançável para matching, tenha ela linhas ou não.
 5. **Duas colunas de telefone são numéricas — e quebram por motivos diferentes.** São as únicas duas do banco; as outras 26 são `varchar`.
    - **`contact.telefone` (`int`, `NOT NULL`) estoura.** Máximo 2147483647 = 10 dígitos; `11987654321` tem 11. Em modo estrito o insert falha; fora dele, o valor é limitado ao máximo. Qual dos dois acontece hoje **não se sabe pelo schema** — é medição da Fatia 0.
    - **`corporativos.telefone` (`bigint`, `NOT NULL`) NÃO estoura.** `bigint` vai a 9223372036854775807 (19 dígitos); nenhum telefone chega perto. A causa ali é de **representação**, não de capacidade: zero à esquerda é irrecuperável (`011…` vira `11…` em silêncio no insert), e `+`/DDI/formatação são inexprimíveis — não dá para distinguir um número já com DDI 55 de um que só por acaso tem 13 dígitos.
@@ -18,6 +18,10 @@ O briefing foi conferido linha a linha contra o código e o schema (`COLUMNS.csv
 6. **O inventário de telefone é maior que o do briefing:** 30 colunas com nome de telefone/celular/whatsapp/fone no banco, incluindo `inscritos` (duas: `celular` e `fone`), `matcursomodular.txt_telefone`, `teachers.phone`, `users.telefone`, `roleta.fone`, `lp_workshop.whats`, `solicitacao_certificado.phone`, além de backups (`students2`, `studentsbkp`, `users2`, `ativos_*`). `users.telefone` é `varchar(14)` — exatamente o tamanho de `+5511987654321`, zero folga.
 7. **`vendor/` não está instalado** (gitignored). `composer.lock` fixa `laravel/framework 10.50.2`. Métodos do framework citados neste plano precisam ser conferidos no source após `composer install` — não estão afirmados como verificados.
 8. Tudo o mais no briefing (stack, fila/scheduler vazios, ausência de suíte de testes, convenções `Admin/`/`Ava/`, `IsAdmin`/`AdminRole`/`power`, padrão de callback n8n, comportamento do webhook Asaas, nomes/colunas das demais tabelas) **confere**.
+9. **`leads` está vazia em produção.** `SELECT COUNT(*) FROM leads` retorna **0** em `unipublicabrasil3` (confirmado com o Paulo, 21/07/2026). Não é schema errado nem tabela renomeada: a estrutura está lá, com colunas e collation, e o dado não. É abandono real.
+   - **O schema não denuncia isso — só a contagem denuncia.** O levantamento inteiro deste plano foi feito sobre `COLUMNS.csv`, que mostra estrutura, não volume. Vale como aviso metodológico para as próximas tabelas: estrutura presente não é dado presente.
+   - **Consequência de desenho, não só de escopo:** `negociacoes_comercial` assume sozinha o papel de fonte do funil comercial ativo — e 70% dos seus registros têm `whatsapp` nulo (ver Fatia 4). Não sobra tabela de funil do mesmo porte para compensar.
+   - `leads` sai do escopo ativo das Fatias 4 e 9; a regra de não reativá-la sem confirmação está no `CLAUDE.md`, em "Tabelas vazias em produção".
 
 ## Convenções do repo a reusar (não inventar padrão novo)
 
@@ -37,6 +41,8 @@ O briefing foi conferido linha a linha contra o código e o schema (`COLUMNS.csv
 | Status de entrega/leitura, status de conexão da instância | Não bloqueia o MVP. Alerta de queda de instância entra depois da Fatia 8. |
 | Formato do payload de mídia | Fora do MVP. |
 | `fromMe` / `wasSentByApi` / `source` — mensagem enviada por outro cliente | **Não bloqueia.** É experimento nosso, ver Fatia 3. |
+| Por que 70% de `negociacoes_comercial.whatsapp` está nulo — migração incompleta de um sistema anterior, ou o campo só é preenchido em etapa posterior do funil? | **Fatia 4.** Define se os 70% são perda a recuperar ou estado normal do topo do funil — decisões opostas. Não é pergunta para a Uazapi: é para quem opera o funil comercial. |
+| `tentativas_de_contato` tem linhas, dado que `leads` está vazia? Se tiver, são órfãs de qual origem? | **Fatia 9**, e nem lá bloqueia — sem `leads`, a tabela é inalcançável por telefone de qualquer forma (divergência 4). É curiosidade útil sobre o histórico, não dependência. |
 
 Nenhuma foi respondida por suposição.
 
@@ -48,6 +54,9 @@ Não são bloqueios técnicos — são pedidos de acesso com tempo de resposta d
 |---|---|---|
 | Credencial de API do Chatwoot (account_id 2, inbox_id 4) — leitura basta | Fatia 8 | Gustavo, junto ao Bruno/Renato |
 | Instância + número de teste Uazapi provisionados, com token próprio | Fatia 2 em diante | Gustavo |
+| Acesso de leitura ao banco para rodar o diagnóstico da Fatia 0 | Fatia 0 | Gustavo |
+
+**Resolvida em 21/07/2026:** dos 3 schemas com as mesmas tabelas (`unipublicabrasil3`, `4`, `5`), **`unipublicabrasil3` é produção** — confirmado com o Paulo. `docs/diagnostico-telefone.sql` já foi escrito contra ele, e as collations e contagens levantadas até aqui vieram de lá, portanto valem. Os outros dois deixam de importar.
 
 A segunda linha é o pressuposto que todo o plano já faz em silêncio desde a Fatia 2. Confirmar que a instância de teste existe de fato, e que não é a de produção sob outro nome.
 
@@ -57,9 +66,11 @@ A segunda linha é o pressuposto que todo o plano já faz em silêncio desde a F
 
 Read-only, sem código de aplicação, não depende de nenhuma outra fatia — pode rodar em paralelo com a Fatia 1. Existe para desarmar cedo o maior risco de qualidade do projeto: o matching de CRM.
 
-- Comando novo em `app/Console/Commands/` (cria o diretório e a convenção). Somente leitura.
+- **Entregue como SQL revisável em `docs/diagnostico-telefone.sql`, não como comando artisan.** O plano original previa `app/Console/Commands/`; um comando aqui só somaria dependências (PHP + `vendor/` + `.env`) a um trabalho feito uma vez, cujo valor está na revisão humana das queries antes de tocarem em dado real. Vira comando se precisar ser recorrente.
+- Somente `SELECT` — nenhum `INSERT`/`UPDATE`/`DDL`. Rodar com usuário de banco somente-leitura, se existir.
 - **Saída exclusivamente agregada — nenhum dado pessoal no relatório** (LGPD).
-- **Escopo — funil comercial vivo:** `leads.celular` (varchar 50), `students.phone` (varchar 255), `negociacoes_comercial.whatsapp` (varchar 255), `leads_guia_licitacoes.whatsapp` (varchar 25), `prematricula.celular` (varchar 90), `users.telefone` (varchar 14).
+- **Escopo — funil comercial vivo:** `students.phone` (varchar 255), `negociacoes_comercial.whatsapp` (varchar 255), `leads_guia_licitacoes.whatsapp` (varchar 25), `prematricula.celular` (varchar 90), `users.telefone` (varchar 14).
+- **`leads.celular` (varchar 50) saiu do escopo ativo, mas continua nas queries do `.sql`** (divergência 9 — tabela vazia). Custo zero, e serve de verificação de schema dentro do próprio relatório: **a ausência da linha `leads.celular` em Q1/Q2/Q3 é o esperado** — tabela sem linha não vira grupo no `GROUP BY`, então o rótulo não aparece (não aparece zerado: não aparece). **A presença dela é alarme:** ou o script rodou fora de `unipublicabrasil3`, ou a tabela foi repopulada — nos dois casos o relatório não vale e para até confirmação. Sem esta nota, quem ler a query conclui que `leads` ainda é fonte de matching — não é.
 - **Fora do escopo:** backups e importações (`students2`, `studentsbkp`, `users2`, `ativos_parana`, `ativos_saoPaulo`, `ativos_santaCatarina`).
 - **Decisão explícita a tomar:** `contact.telefone` (int) e `corporativos.telefone` (bigint) provavelmente são inutilizáveis para matching confiável — o diagnóstico quantifica e decide. Ver divergência 5: os dois quebram, mas por motivos distintos.
 - **Métricas por coluna:** total, nulos/vazios, distribuição de comprimento em dígitos, % com DDI 55, % com 9º dígito, número de padrões de formatação distintos.
@@ -68,6 +79,8 @@ Read-only, sem código de aplicação, não depende de nenhuma outra fatia — p
 - **Quantificar os problemas já conhecidos:** quantas linhas de `contact.telefone` estão exatamente em 2147483647 (sinal de valor limitado no insert); **distribuição de comprimento em dígitos de `corporativos.telefone`** (é o que mostra se há perda de zero à esquerda ou DDI ausente, já que overflow ali não existe); **contagem de linhas com valor `0`** nas duas colunas; e quantas de `users.telefone` já ocupam os 14 caracteres sem folga.
 
 **Critério de pronto:** relatório agregado versionado em `docs/diagnostico-telefone.md`, com uma estimativa de cobertura de matching e a taxa de aderência de cada coluna ao **formato canônico** definido no `CLAUDE.md` (só dígitos, sem `+`, DDI 55 presente — `5511987654321`). O diagnóstico não redefine o canônico; mede a distância até ele.
+
+**A taxa de nulos de `negociacoes_comercial.whatsapp` é métrica de primeira ordem do relatório**, não mais uma linha da tabela por coluna. Com `leads` vazia, é o número que decide a viabilidade do painel de CRM — vai no topo, com o total absoluto ao lado do percentual.
 
 **Fora:** qualquer escrita, qualquer correção de dado.
 
@@ -135,9 +148,10 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - Colunas novas de telefone nascem `varchar(20)`. Nenhuma coluna legada é alterada — a normalização é na leitura.
 - **Regra do 9º dígito desde o primeiro commit desta fatia** (`CLAUDE.md`, "Comparação"): o matching é onde ela nasce, então não é algo a retrofitar na Fatia 9. Match direto primeiro; falhando, testar a variante com e sem o 9º dígito, com a guarda de faixa 6–9; só então "não identificado". Um cadastro antigo de 8 dígitos e o `chat.phone` de 13 que a Uazapi manda são o mesmo assinante, e por igualdade de string nunca batem.
 - Painel lateral na thread mostrando **apenas**: nome + qual tabela casou, ou "não identificado".
-- Models Eloquent criados só para as tabelas que o matching precisar (nenhum existe hoje para `leads`, `negociacoes_comercial`, `prematricula`).
+- Models Eloquent criados só para as tabelas que o matching precisar — **`negociacoes_comercial` primeiro**, por ser a fonte principal do funil (nenhum model existe hoje para ela nem para `prematricula`). Nada de model para `leads`: tabela vazia, ver divergência 9.
+- **Teto de cobertura conhecido, e é baixo.** Com 70% de `negociacoes_comercial.whatsapp` nulo e `leads` vazia, **"não identificado" será o estado comum, não a exceção**. Isso é fato de desenho, não defeito a corrigir depois: a UI trata esse estado como caminho normal — não como erro, não como espaço vazio num canto da tela. Se o painel só ficar apresentável quando há match, ele fica feio na maioria das conversas reais.
 
-**Critério de pronto:** abrir a conversa de teste e ver o nome real de um lead/aluno cujo telefone bate com `chat.phone`; casar também um cadastro gravado sem o 9º dígito; e o estado "não identificado" só aparecer **depois** de a variante ter sido testada.
+**Critério de pronto:** abrir a conversa de teste e ver o nome real de um registro de `negociacoes_comercial` ou `students` cujo telefone bate com `chat.phone`; casar também um cadastro gravado sem o 9º dígito; o estado "não identificado" só aparecer **depois** de a variante ter sido testada; e esse estado ser exercitado e revisado como tela, não só como ausência de dado.
 
 **Fora:** funil, histórico de compra, turma, valor — tudo isso é Fatia 9. Nenhuma escrita nas tabelas de CRM.
 
@@ -218,7 +232,7 @@ A ordem acima fica **condicionada ao resultado do teste do item 1**. Nenhuma das
 
 - Expande a Fatia 4: funil, histórico de compra, turma, valor.
 - `students` → `enrollments` → `classes` → `courses`; `negociacoes_comercial` (ligada direto a `classes_id`); `leads_guia_licitacoes` (com UTMs).
-- Tentativas de contato via `id_lead` → `leads` — `tentativas_de_contato` não tem telefone próprio (divergência 4).
+- **Fora enquanto `leads` estiver vazia:** histórico de tentativas de contato via `id_lead` → `leads`. `tentativas_de_contato` não tem telefone próprio (divergência 4) e o único caminho até o número passa por uma tabela sem linhas (divergência 9) — reativar exige a confirmação descrita em "Tabelas vazias em produção" no `CLAUDE.md`.
 - **A regra do 9º dígito vale para todas as tabelas do funil**, não só a que a Fatia 4 tocou. Cada nova tabela ligada ao painel entra pela mesma função de matching — não reimplementar comparação de telefone por tabela.
 
 **Critério de pronto:** thread mostrando origem, funil, turma e valor de um lead real de teste.

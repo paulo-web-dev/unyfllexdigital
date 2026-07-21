@@ -68,12 +68,20 @@ A validação do `token` do body do webhook segue o padrão `validarSecret()` de
 
 ## Modelo de dados (CRM comercial)
 
-Sem contato unificado — telefone espalhado em ≥5 tabelas, formatos possivelmente inconsistentes:
+Sem contato unificado — telefone espalhado em ≥5 tabelas, formatos possivelmente inconsistentes. Fontes vivas:
 
-- `leads` ← `tentativas_de_contato`
-- `negociacoes_comercial` (ligada direto a `classes_id`)
+- **`negociacoes_comercial` — fonte principal do funil comercial** (ligada direto a `classes_id`). Assumiu esse papel quando `leads` foi confirmada vazia (ver abaixo). **Limitação central: 2113 de 3003 registros (70%) têm `whatsapp` nulo.** A causa é desconhecida — pode ser migração incompleta de um sistema anterior ou preenchimento só em etapa posterior do funil; não presumir uma nem outra. Como não sobra outra tabela de funil ativo do mesmo porte, esses 70% são o teto de cobertura do matching, não um detalhe de qualidade de dado.
 - `students` → `enrollments` → `classes` → `courses`
 - `leads_guia_licitacoes` (com UTMs), `contact`, `prematricula`
+
+### Tabelas vazias em produção
+
+Estrutura presente não é dado presente. O schema não denuncia isto — só a contagem denuncia.
+
+- **`leads` está vazia** em `unipublicabrasil3` (o schema de produção): existe com colunas e collation, `COUNT(*) = 0`, confirmado em 21/07/2026. **Não é fonte de matching.**
+- **`tentativas_de_contato`** não tem coluna de telefone própria — só alcança número via `id_lead` → `leads.celular`. Com `leads` vazia, o caminho não leva a lugar nenhum, **tenha `tentativas_de_contato` linhas ou não**.
+- **Regra: nenhuma fatia futura trata `leads` como fonte válida por padrão.** Reativar exige confirmação explícita de que a tabela voltou a ser populada — ver a tabela no schema não basta, foi exatamente o que enganou antes.
+- Não criar model Eloquent para `leads` nem para `tentativas_de_contato`.
 
 ### Formato canônico de telefone
 
@@ -99,7 +107,7 @@ Toda coluna nova da inbox e todo matching de CRM usam **um único formato**: só
 - **Registrar qual forma casou** junto ao resultado, para o painel poder dizer que casou pela variante.
 - **Match pela variante não autoriza corrigir a origem.** Nada de `UPDATE` na coluna legada — normalização continua sendo na leitura.
 
-Hoje **não existem models Eloquent** para `leads`, `tentativas_de_contato`, `negociacoes_comercial`, `contact`, `prematricula` nem `courses` — só `Classes`, `Student`, `Enrollment`, `LeadGuia`. Qualquer integração que precise ler essas tabelas cria o model correspondente; não presuma que já existe.
+Hoje **não existem models Eloquent** para `negociacoes_comercial`, `contact`, `prematricula` nem `courses` — só `Classes`, `Student`, `Enrollment`, `LeadGuia`. Qualquer integração que precise ler essas tabelas cria o model correspondente; não presuma que já existe. **Exceção:** `leads` e `tentativas_de_contato` também não têm model e **não devem ganhar um** — ver "Tabelas vazias em produção".
 
 ## Regras de ouro (inbox Uazapi)
 
