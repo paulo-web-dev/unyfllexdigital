@@ -30,7 +30,7 @@
 --   CUIDADO AO LER QUALQUER TABELA VAZIA NESTE ARQUIVO — os dois
 --   comportamentos convivem aqui, e confundi-los já custou tempo:
 --     * GROUP BY sobre zero linhas NÃO produz grupo: a linha some.
---       (Q1, Q2, Q3, Q4b, Q6)
+--       (Q1, Q2, Q3, Q4b, Q6, Q8, Q8b)
 --     * Agregado escalar sem GROUP BY sobre tabela vazia produz UMA
 --       linha de zeros.  (Q4, Q5, Q7)
 --   Ausência de linha e linha zerada não são o mesmo sinal, e qual dos
@@ -46,7 +46,7 @@
 --   * Nenhuma query projeta telefone, nome, e-mail ou id de pessoa.
 --     Toda saída é COUNT/GROUP BY sobre classes.
 --   * Sem MIN/MAX em coluna de telefone (devolveria um número real).
---   * Ressalva honesta: em Q6 e Q7 os telefones normalizados transitam
+--   * Ressalva honesta: em Q6, Q7, Q8 e Q8b os telefones normalizados transitam
 --     dentro do motor, numa subquery, para poderem ser agrupados. Eles
 --     NÃO aparecem no resultado. É inevitável para contar sobreposição.
 --   * Rodar com usuário de banco somente-leitura, se existir.
@@ -59,7 +59,8 @@
 --   + as duas colunas numéricas em avaliação:
 --   contact.telefone (int), corporativos.telefone (bigint)
 --   As duas numéricas são medidas em Q4 e Q4b, e ficam FORA das uniões
---   de Q6 e Q7. Exclusão intencional — ver a nota acima de Q6.
+--   de Q6, Q7 e Q8. Exclusão intencional — ver a nota acima de Q6.
+--   (Q8b é só negociacoes_comercial, por desenho.)
 --
 -- FORA DO ESCOPO (backups e importações — não consultar):
 --   students2, studentsbkp, users2, ativos_parana, ativos_saoPaulo,
@@ -333,17 +334,26 @@ FROM users;
 -- de Q6 e Q7 de propósito. Não é omissão: é decisão registrada aqui para
 -- que uma revisão futura não a confunda com esquecimento.
 --
--- Motivo, o mesmo defeito já medido em Q4: as duas são NOT NULL sem
--- default, então ausência de telefone virou 0, e o tipo numérico perde
--- zero à esquerda. Num GROUP BY tel, todos os 0 colapsariam num único
--- "telefone" presente em várias tabelas — a sobreposição sairia inflada
--- por dado ausente, e Q7 herdaria o mesmo ruído. Uma métrica de união de
--- CRM contaminada por linha sem telefone é pior que não ter a métrica.
+-- Motivo ORIGINAL (antes da execução): as duas são NOT NULL sem default,
+-- então ausência de telefone viraria 0; num GROUP BY tel todos os 0
+-- colapsariam num único "telefone" presente em várias tabelas, inflando
+-- a sobreposição com dado ausente, e Q7 herdaria o ruído.
 --
--- Elas não foram abandonadas: continuam medidas em Q4 e Q4b, nos termos
--- próprios delas (zeros, teto do int, distribuição de comprimento).
--- Reavaliar a inclusão só depois que o diagnóstico disser quanto de cada
--- uma é 0.
+-- MEDIDO em 21/07/2026 — a contaminação por 0 NÃO se confirmou, e a
+-- exclusão continua certa por outro motivo:
+--   * corporativos.telefone: 12 linhas, zeros = 0. Sem defeito próprio
+--     além da ausência de DDI (8 linhas com 10 dígitos, 4 com 11) —
+--     exatamente o padrão das demais tabelas.
+--   * contact.telefone: 1 linha, 10 dígitos, no teto do int. O overflow
+--     previsto é real; a amostra é de uma linha.
+-- Ou seja: ficam fora por VOLUME IRRELEVANTE (1 e 12 linhas contra
+-- ~17.376 telefones distintos), não por defeito. A distinção importa —
+-- "coluna quebrada" e "coluna vazia de fato" pedem decisões diferentes
+-- se alguém um dia repovoar essas tabelas.
+--
+-- A propriedade do schema (NOT NULL sem default → 0) continua verdadeira
+-- e continua valendo como risco para inserts futuros. O que não se
+-- confirmou foi a contaminação HOJE.
 -- ---------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------
@@ -482,3 +492,119 @@ FROM (
   GROUP BY nucleo
   HAVING COUNT(DISTINCT forma) > 1
 ) z;
+
+
+-- ---------------------------------------------------------------------
+-- Q8 — Alcançabilidade da forma de 12 dígitos
+--
+-- POR QUE ESTA QUERY EXISTE. A Q7 responde "quantos assinantes estão
+-- gravados nas duas formas DENTRO da nossa base" (379). Esse não é o
+-- caso de uso do matching. A Uazapi manda `chat.phone` SEMPRE com 13
+-- dígitos; todo registro nosso que normaliza para 12 nunca casa por
+-- igualdade de string — só pela variante do 9º dígito. E a forma de 12
+-- é ~38% de tudo que é aproveitável (sem_ddi_10 + canonico12, Q3).
+--
+-- Mas a variante não se aplica a todos os 12: a guarda do CLAUDE.md só
+-- deriva quando o assinante de 8 começa em 6-9. Fixo brasileiro começa
+-- em 2-5, e inserir `9` nele inventaria um celular de outra pessoa.
+-- Fixo, portanto, é INALCANÇÁVEL por WhatsApp por este caminho.
+--
+-- É esta query que separa o teto de cobertura da cobertura real.
+--
+-- Posições no canônico de 12: 55 (1-2) + DDD (3-4) + assinante de 8 (5-12)
+--
+-- Saída: classe, telefones_distintos
+--   derivavel_celular_6a9 | fixo_2a5_inalcancavel | anomalo_0ou1
+-- ATENÇÃO: é GROUP BY — classe com zero telefone NÃO produz linha
+-- zerada, ela some. Ver VERIFICAÇÃO EMBUTIDA no cabeçalho.
+-- ---------------------------------------------------------------------
+SELECT CASE
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[6-9]$' THEN 'derivavel_celular_6a9'
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[2-5]$' THEN 'fixo_2a5_inalcancavel'
+         ELSE 'anomalo_0ou1'
+       END              AS classe,
+       COUNT(*)         AS telefones_distintos
+FROM (
+  SELECT tel
+  FROM (
+    SELECT CASE
+             WHEN d = '' OR d NOT REGEXP '^[0-9]+$'      THEN ''
+             WHEN CHAR_LENGTH(d) IN (12,13)
+                  AND LEFT(d,2) = '55'                   THEN d
+             WHEN CHAR_LENGTH(d) IN (10,11)              THEN CONCAT('55', d)
+             ELSE ''
+           END AS tel
+    FROM (
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(celular,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci AS d
+      FROM leads
+      UNION ALL
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(phone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      FROM students
+      UNION ALL
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      FROM negociacoes_comercial
+      UNION ALL
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      FROM leads_guia_licitacoes
+      UNION ALL
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(celular,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      FROM prematricula
+      UNION ALL
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(telefone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      FROM users
+    ) b
+  ) c
+  WHERE CHAR_LENGTH(tel) = 12
+  GROUP BY tel
+) q
+GROUP BY classe
+ORDER BY classe;
+
+
+-- ---------------------------------------------------------------------
+-- Q8b — O mesmo recorte, só na fonte principal do funil
+-- negociacoes_comercial concentra 754 das suas 867 linhas aproveitáveis
+-- (87%) na forma de 12. Se a maior parte disso for fixo, a cobertura de
+-- 28,8% cai muito abaixo disso — e é a tabela que sustenta o painel.
+-- Saída: mesma classificação da Q8.
+-- ---------------------------------------------------------------------
+SELECT CASE
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[6-9]$' THEN 'derivavel_celular_6a9'
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[2-5]$' THEN 'fixo_2a5_inalcancavel'
+         ELSE 'anomalo_0ou1'
+       END              AS classe,
+       COUNT(*)         AS telefones_distintos
+FROM (
+  SELECT tel
+  FROM (
+    SELECT CASE
+             WHEN d = '' OR d NOT REGEXP '^[0-9]+$'      THEN ''
+             WHEN CHAR_LENGTH(d) IN (12,13)
+                  AND LEFT(d,2) = '55'                   THEN d
+             WHEN CHAR_LENGTH(d) IN (10,11)              THEN CONCAT('55', d)
+             ELSE ''
+           END AS tel
+    FROM (
+      SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+               USING utf8mb4) COLLATE utf8mb4_unicode_ci AS d
+      FROM negociacoes_comercial
+    ) b
+  ) c
+  WHERE CHAR_LENGTH(tel) = 12
+  GROUP BY tel
+) q
+GROUP BY classe
+ORDER BY classe;
