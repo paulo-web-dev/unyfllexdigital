@@ -301,7 +301,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; NUNCA entregou no navegador — o corpo das respostas em dev sai poluído**
+## Fatia 5 — Atualização automática na tela — **CONCLUÍDA em 22/07/2026 — mensagem observada chegando sozinha**
 
 > **Entregue:** `WhatsappInboxController::mensagens()` (delta da thread) e `::novidades()` (contagem do banner da lista), rotas `admin.whatsapp.mensagens`/`novidades`, parcial `_mensagem.blade.php`, `WhatsappConversation::rotuloAtribuicao()`/`assinaturaAtribuicao()`, e JS inline nas duas telas. **Sem dependência nova, sem schema, sem config.**
 >
@@ -336,7 +336,11 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **O `CLAUDE.md` já avisava** — "polui JSON de API em dev", escrito por mim. Estava lá e não foi conectado na hora de construir o polling.
 >
-> **Sem observação de tela até agora:** o balão de mensagem nova, o rótulo de atribuição mudando sozinho, a pausa em `document.hidden` e a guarda de sobrescrita a partir da aba defasada.
+> **DESFECHO — o mesmo teste, refeito 20 minutos depois, PASSOU.** Com `display_errors = Off` desde o bootstrap (arquivo em `conf.d` do PHP local, fora do repo) e o `artisan serve` reiniciado, o corpo do delta passou a ser JSON puro desde o primeiro byte. Segunda mensagem injetada pelo mesmo caminho real (cru 70 → mensagem 161, `enviada_em 15:59:01`) **apareceu sozinha na thread aberta, com o dono do repo parado na aba, sem tocar em nada**.
+>
+> **Vale registrar como PAR, não como sucesso isolado:** mesmo código, mesma injeção, dois resultados opostos, e a única variável trocada foi o ambiente. É o que separa "identificamos a causa" de "mexemos em algo e melhorou". Se um dia o polling parar de novo, este é o primeiro lugar a olhar: o primeiro byte da resposta.
+>
+> **Continua sem observação de tela:** o rótulo de atribuição mudando sozinho, a guarda de sobrescrita a partir da aba defasada, a pausa em `document.hidden`, e a rolagem automática / botão "n novas mensagens ↓" (a thread do teste cabia na tela, então o caso de quem está lendo histórico não foi exercitado).
 
 - Polling incremental por cursor a cada 5s, seguindo o padrão já existente em `checkout.blade.php:618-656` (inline `<script>`, `fetch` com `X-CSRF-TOKEN` + `Accept: application/json`, `stopPolling()` explícito). *(Nota: o `const CSRF` do layout admin está dentro de uma IIFE e não é global — cada script lê a meta tag por conta própria.)*
 - Endpoint leve devolvendo só o delta desde a última mensagem vista.
@@ -345,9 +349,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - **Latência total resultante — o pressuposto foi aferido em 22/07/2026 e passou** (ver Fatia 3): sob php-fpm a resposta sai em ~15ms e o processamento roda logo depois, em processo, sem esperar o cron. p50 ~3,5s (ingestão + meio intervalo de polling) deixa de depender de suposição sobre o `afterResponse` — **mas o "≈1s de ingestão" continua sendo estimativa**: a duração do `ProcessarEventoWhatsapp` em si não foi cronometrada, e a aferição foi no meu fpm, não no servidor de produção. Se lá a função estiver desabilitada, o número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
 - **Reversível:** se o volume um dia justificar websocket, o broadcaster entra sem refazer modelo de dados nem processamento.
 
-**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **NÃO CUMPRIDO — e a tentativa de 22/07/2026 falhou pela causa acima.** A mensagem chegou ao banco pelo caminho real e a tela não a mostrou, porque o polling já estava desligado havia minutos.
+**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **CUMPRIDO em 22/07/2026, confirmado pelo dono do repo** — mensagem 161 ("segunda mensagem de teste às 12:59"), injetada pelo caminho real do webhook, apareceu sozinha no fim da thread, com a aba parada e sem nenhuma interação. A primeira tentativa, com o mesmo código, falhou — ver o par no bloco acima.
 
-O bloqueio agora tem nome e conserto conhecido: **corrigir o ambiente de dev** (`display_errors = Off` desde o bootstrap, via arquivo em `conf.d` do PHP local — fora do repo, não versionado) e repetir. Enquanto o corpo sair poluído, nenhuma tela desta fatia funciona em dev, e nenhum teste de servidor vai denunciar isso.
+**Pré-requisito de ambiente, e ele não é opcional em dev:** `display_errors = Off` desde o bootstrap. Sem isso o corpo sai poluído, nenhuma tela desta fatia funciona, e nenhum teste de servidor denuncia. Ver `CLAUDE.md`.
 
 **Fora:** qualquer dependência nova (Pusher/Reverb/Echo); linhas ao vivo na lista (descartado); badge de não lidas, som, notificação de desktop.
 
