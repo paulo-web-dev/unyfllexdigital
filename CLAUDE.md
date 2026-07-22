@@ -21,6 +21,8 @@ php artisan queue:work --stop-when-empty --max-time=50
 
 Não há supervisor de fila em produção — o worker roda via cron + scheduler, não como processo persistente.
 
+**PHP 8.5 emite uma deprecation em toda execução.** `config/database.php:62` usa `PDO::MYSQL_ATTR_SSL_CA`, deprecada em favor de `Pdo\Mysql::ATTR_SSL_CA`. Sai no stderr do `artisan` e, com `display_errors` ligado, **antes do corpo da resposta HTTP** — o que polui JSON de API em dev. **Não trocar:** `Pdo\Mysql::` só existe no PHP ≥ 8.4 e a troca quebraria quem estiver em 8.1–8.3, faixa que o `composer.json` (`^8.1`) permite. Só faz sentido quando o time padronizar 8.4+.
+
 ## Arquitetura e convenções vivas
 
 - **Controllers:** `app/Http/Controllers/Admin/` (área administrativa) e `app/Http/Controllers/Ava/` (área do aluno). Controllers soltos na raiz de `Controllers/` são páginas públicas/marketing.

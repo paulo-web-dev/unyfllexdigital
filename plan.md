@@ -132,9 +132,13 @@ Read-only, sem código de aplicação, não depende de nenhuma outra fatia. Exis
 
 ---
 
-## Fatia 1 — Fundação: fila como rede de segurança + contrato de provedor — **CÓDIGO ESCRITO em 22/07/2026, NÃO VERIFICADO**
+## Fatia 1 — Fundação: fila como rede de segurança + contrato de provedor — **CONCLUÍDA em 22/07/2026**
 
-> **Estado.** Todos os arquivos existem no repo. **Nenhum foi executado**: não há `php` nem `composer` na máquina onde o código foi escrito, e `vendor/` continua ausente. Isso significa que **nem `php -l` rodou** — a fatia não passou por sintaxe, muito menos pelo critério de pronto. Só a estrutura foi conferida estaticamente (todo arquivo abre com `<?php`, chaves e parênteses balanceados, nenhum `env()` fora de `config/`).
+> **Estado. Critério de pronto fechado, observado.** Ambiente montado no mesmo dia (PHP 8.5.8, Composer 2.10.2, MySQL 9.7.1 local, schema `unyflex_dev` vazio). `php artisan fila:ping` gravou a linha em `jobs`; `php artisan schedule:run` executou o `queue:work`; `laravel.log` registrou `{"despachado_em":...,"executado_em":...,"atraso_s":0.33}`; `jobs` voltou a `COUNT(*) = 0`. O ciclo inteiro rodou, não foi inferido.
+>
+> Também verificado: `0001` aplicado à mão (`mysql unyflex_dev < ...up.sql`); a guarda de ambiente do `UazapiProvider` **resolve** com instância de teste e **lança** `RuntimeException` quando `UAZAPI_INSTANCE_NAME` aponta para um valor da denylist — testado com valor sentinela, sem precisar do nome real da instância de produção; `enviarTexto()` lança `LogicException` como portão da Fatia 6.
+>
+> **Ressalva de ambiente, não da fatia:** este PHP é 8.5, mais novo que o `^8.1` do `composer.json`. Ver "Deprecation do PHP 8.5" abaixo.
 >
 > Entregue: `database/sql/0001_*`, `config/uazapi.php`, `app/Contracts/WhatsappProviderContract.php`, `app/Services/Whatsapp/UazapiProvider.php`, `app/Jobs/FilaPing.php`, `app/Console/Commands/FilaPingCommand.php`, binding em `AppServiceProvider::register()`, schedule em `app/Console/Kernel.php`, chaves `UAZAPI_*` no `.env.example`.
 
@@ -150,14 +154,27 @@ Read-only, sem código de aplicação, não depende de nenhuma outra fatia. Exis
 
 ---
 
-## Fatia 2 — Receber e persistir cru (instância de teste) — **CÓDIGO ESCRITO em 22/07/2026, NÃO VERIFICADO**
+## Fatia 2 — Receber e persistir cru (instância de teste) — **VERIFICADA POR CURL em 22/07/2026; falta a mensagem real**
 
-> **Estado.** Mesma ressalva da Fatia 1: escrito, não executado, não linteado. Entregue: `database/sql/0002_create_whatsapp_raw_events.*`, `app/Models/WhatsappRawEvent.php`, `app/Http/Controllers/Webhooks/UazapiWebhookController.php`, rota em `routes/api.php`.
+> **Estado.** `0002` aplicado; `SHOW INDEX` confirma `wa_raw_message_id` **único sobre coluna nullable** e `wa_raw_processed_at`. Testado contra `php artisan serve`:
 >
-> **Dois pontos que só a primeira mensagem real resolve:**
+> | Teste | Esperado | Observado |
+> |---|---|---|
+> | Config de token vazia | 500, não 200 | **500**, corpo `"UAZAPI_INSTANCE_TOKEN nao configurado."` — é a guarda, conferido no corpo |
+> | Token válido | 200 + 1 linha | **200**, linha com `payload` íntegro |
+> | **Replay do mesmo corpo** | 200 + **nenhuma** linha nova | **200**, nenhuma linha nova |
+> | Token errado | 401 | **401** |
+> | Dois eventos **sem** `message.id` | 2 linhas, ambas `NULL` | **2 linhas**, ambas `message_id NULL` |
+> | Contagem | distintos == com id | `total=3, com_id=1, distintos=1` |
 >
-> - **Nomes de campo não confirmados.** `instance` e `EventType` foram escritos como lista de candidatos em `primeiroPresente()`, porque nenhum payload real da Uazapi foi visto ainda. Se todos errarem, as duas colunas ficam `NULL` e **nada se perde** — o `payload` cru é a autoridade. Reduzir a lista ao nome certo assim que o primeiro payload chegar.
-> - **A armadilha do `hash_equals`.** `hash_equals('', '')` é `true`. Com `UAZAPI_INSTANCE_TOKEN` vazio, um POST sem token nenhum passaria. O controller aborta com 500 antes de comparar quando a config está vazia — config ausente é erro de servidor, nunca autorização concedida. Está no teste 3 do critério de pronto justamente porque é o tipo de coisa que passa despercebida.
+> **O que NÃO foi verificado, e por quê:**
+>
+> - **Mensagem real e mensagem de grupo.** Exigem que a Uazapi alcance a aplicação; não há rota pública nem túnel nesta máquina. São os únicos dois critérios de pronto em aberto.
+> - **Nomes de campo seguem sem confirmação.** `instance` e `event_type` gravaram nos testes, mas **os payloads de curl fui eu que escrevi, usando os próprios nomes candidatos** — isso prova o `primeiroPresente()`, não prova nada sobre a Uazapi. Se todos os candidatos errarem contra o payload real, as duas colunas ficam `NULL` e **nada se perde**: o `payload` cru é a autoridade. Reduzir a lista ao nome certo assim que o primeiro payload real chegar.
+>
+> **A armadilha do `hash_equals`.** `hash_equals('', '')` é `true`. Com `UAZAPI_INSTANCE_TOKEN` vazio, um POST sem token nenhum passaria. O `abort_if` antes da comparação é o que devolveu o 500 acima — verificado, não presumido.
+>
+> **Desvio observado:** POST com corpo vazio devolve **401, não o 400** de `Payload vazio.`. Corpo vazio não carrega token, então a validação de token dispara antes — auth primeiro é a ordem correta, mas o `abort_if(400)` só é alcançável quando o token vem por query string. Comportamento aceitável; anotado para não parecer defeito depois.
 
 Exclusivamente na **instância e número de teste**. Sem fan-out, sem tráfego de produção, sem tocar em config de instância.
 
@@ -166,15 +183,30 @@ Exclusivamente na **instância e número de teste**. Sem fan-out, sem tráfego d
 - Grupos (`wa_isGroup`, `@g.us`) são persistidos como cru normalmente. O filtro de grupo é de **exibição**, nunca de ingestão.
 - Nenhuma lógica de negócio dentro do request.
 
-**Critério de pronto:** mandar uma mensagem real para o número de teste e ver o payload persistido; replay manual do mesmo webhook não cria duplicata.
+**Critério de pronto:** mandar uma mensagem real para o número de teste e ver o payload persistido; replay manual do mesmo webhook não cria duplicata. *(Replay: fechado. Mensagem real: pendente, falta rota pública.)*
 
 **Fora:** UI, processamento estruturado, mídia, envio, tráfego de produção.
 
 ---
 
+## Deprecation do PHP 8.5 (ambiente, não código)
+
+Registrado em 22/07/2026, ao montar o ambiente com PHP 8.5.8 — mais novo que o `^8.1` do `composer.json` e que o 8.3 até onde o Laravel 10 é testado.
+
+```
+Deprecated: Constant PDO::MYSQL_ATTR_SSL_CA is deprecated since 8.5,
+use Pdo\Mysql::ATTR_SSL_CA instead in config/database.php on line 62
+```
+
+Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP com `display_errors` ligado — inclusive **antes do JSON do webhook**, o que sujaria o corpo da resposta para um cliente estrito. Em dev é ruído; em produção `display_errors` fica desligado.
+
+**Não corrigir.** `Pdo\Mysql::` só existe a partir do PHP 8.4: trocar a constante quebraria a máquina de quem estiver em 8.1–8.3. É divergência de ambiente local, não defeito do repo. Se o time padronizar PHP ≥ 8.4, aí sim vale trocar — e aí é mudança em `config/database.php`, config compartilhada, com aviso antes (regra de ouro 9).
+
+---
+
 ## Fatia 3 — Ver (processamento + lista + thread)
 
-- Processamento do cru → tabelas estruturadas (`conversations`, `messages`, via SQL versionado), disparado **logo após a resposta HTTP** do webhook com `dispatch(...)->afterResponse()` — mesmo processo, sem depender do worker. *(Conferir a assinatura do método no source após `composer install`; `vendor/` não estava instalado na verificação.)*
+- Processamento do cru → tabelas estruturadas (`conversations`, `messages`, via SQL versionado), disparado **logo após a resposta HTTP** do webhook com `dispatch(...)->afterResponse()` — mesmo processo, sem depender do worker. *(Assinatura confirmada em 22/07/2026 com `vendor/` instalado: `PendingDispatch::afterResponse()`, sem argumentos — `vendor/laravel/framework/src/Illuminate/Foundation/Bus/PendingDispatch.php:145`.)*
 - **Por que não broadcaster.** O gargalo não é o transporte até o browser, é a ingestão: com worker via cron a cada minuto, uma mensagem espera de 0 a 60s (média ~30s) para virar linha estruturada. Um websocket entregando em 50ms um dado que chegou 30s atrasado não resolve o problema, só o disfarça. O `afterResponse` deve derrubar o piso de ~60s para ~1s no caminho comum, sem daemon, sem dependência nova e sem config compartilhada nova — **expectativa a aferir, ver abaixo**, não medição feita.
 - **Durabilidade preservada.** O cru é persistido **sincronamente antes** da resposta (Fatia 2). O `afterResponse` é best-effort; o worker por cron vira **rede de segurança**, varrendo periodicamente os payloads crus ainda não processados. Se o `afterResponse` falhar, o processo morrer ou a app cair, a varredura reprocessa. A garantia do risco #2 continua de pé.
 - **Ressalva:** `afterResponse` segura o processo php-fpm enquanto roda, então o processamento precisa ser leve. Trabalho pesado (download de mídia, quando entrar) vai para a fila real.
