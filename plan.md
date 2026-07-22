@@ -276,16 +276,35 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 5 — Atualização automática na tela
+## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; falta observar em duas sessões reais**
 
-- Polling incremental por cursor a cada 5s, seguindo o padrão já existente em `checkout.blade.php:618-656` (inline `<script>`, `fetch` com `X-CSRF-TOKEN` + `Accept: application/json`, `stopPolling()` explícito).
+> **Entregue:** `WhatsappInboxController::mensagens()` (delta da thread) e `::novidades()` (contagem do banner da lista), rotas `admin.whatsapp.mensagens`/`novidades`, parcial `_mensagem.blade.php`, `WhatsappConversation::rotuloAtribuicao()`/`assinaturaAtribuicao()`, e JS inline nas duas telas. **Sem dependência nova, sem schema, sem config.**
+>
+> **Alcance decidido:** thread ao vivo; lista com **banner "N conversas com novidade" + botão Atualizar**, não linhas ao vivo — a tabela é paginada e filtrada, e reconciliar isso em JS custaria mais que o problema numa tela que ninguém opera ainda.
+>
+> **Duas armadilhas encontradas durante a construção, as duas da mesma família (perda silenciosa):**
+>
+> 1. **Cursor por tempo pularia mensagem para sempre.** `enviada_em` vem do provedor e pode ser mais antiga que uma já exibida (entrega atrasada, reprocessamento por cron). O cursor é `id` nos dois endpoints. Custo assumido: o delta pode trazer mensagem do meio da thread, e o JS insere por posição.
+> 2. **Na lista, só `updated_at` não bastava — e isso só apareceu porque um teste falhou.** `ProcessarEventoWhatsapp:116` só atualiza `ultima_mensagem_em` quando a mensagem é mais nova; a atrasada entra sem tocar a conversa, e o banner nunca a anunciaria. `novidades()` passou a contar por **duas fontes**: id de mensagem e `updated_at`. Também `>=` em vez de `>`, senão conversa tocada no mesmo segundo do render ficava fora para sempre.
+>
+> **Decisão central: o polling avisa, não sincroniza.** Ele não toca no campo escondido `atendente_atual_id` — e o payload **nem devolve o id do atendente** (só rótulo + hash), para que sincronizar não seja possível por descuido. Sincronizá-lo desarmaria a guarda check-then-write da Fatia 7: o `<select>` desatualizado de alguém passaria por cima da atribuição de outra pessoa **sem o aviso**. O polling teria piorado a corrida que a guarda estreita.
+>
+> **Verificado por teste automatizado descartável** (19 casos, `unyflex_dev`, dados fabricados, removido depois), incluindo: mensagem atrasada no delta e na contagem; balão com `data-msg-id`/`data-enviada-em`; cursor inicial = maior id, não o do último balão exibido; grupo → 404 igual ao `show()`; `power < 13` barrado; texto com `<script>` escapado; payload sem o id do atendente; cursor e `desde` com lixo (incluindo tentativa de injeção) → sem erro; e **as três telas renderizando**, que os testes de endpoint não cobriam.
+>
+> **Três mutações para provar que os testes asseveram:** cursor `>` → `>=` (reprovaram os 2 casos marcados `DEPR` pela deprecation do PHP 8.5, confirmando que eles medem algo); `novidades` só por `updated_at` (reprovou a mensagem atrasada); `>=` → `>` (reprovou o caso do mesmo segundo).
+>
+> **O que NÃO foi observado por mim:** o comportamento no navegador. Duas sessões abertas, mudança refletida sem F5, pausa em aba de fundo — é checagem humana, não tenho navegador aqui. O mecanismo está testado do lado do servidor; o que falta é ver acontecer.
+
+- Polling incremental por cursor a cada 5s, seguindo o padrão já existente em `checkout.blade.php:618-656` (inline `<script>`, `fetch` com `X-CSRF-TOKEN` + `Accept: application/json`, `stopPolling()` explícito). *(Nota: o `const CSRF` do layout admin está dentro de uma IIFE e não é global — cada script lê a meta tag por conta própria.)*
 - Endpoint leve devolvendo só o delta desde a última mensagem vista.
+- **Higiene do laço:** pausa quando `document.hidden` (o cursor é absoluto, o primeiro tick visível recupera tudo), para após 3 falhas seguidas, e para imediatamente em 401/403/419 — sessão expirada não pode virar uma requisição a cada 5s contra a tela de login.
+- **Rolagem só desce sozinha se a pessoa já estava no fim**; caso contrário, botão "n novas mensagens ↓". Puxar a tela de quem lê histórico é o jeito clássico de tornar a atualização automática irritante.
 - **Latência total resultante — número provisório, pendente da aferição da Fatia 3:** p50 ~3,5s (≈1s de ingestão + meio intervalo de polling), contra os ~30s do desenho com worker por cron. Se o `afterResponse` não flushar a resposta no ambiente real, este número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
 - **Reversível:** se o volume um dia justificar websocket, o broadcaster entra sem refazer modelo de dados nem processamento.
 
-**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s.
+**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **Não cumprido ainda** — depende de abrir o navegador, e a mensagem de teste depende da instância de teste.
 
-**Fora:** qualquer dependência nova (Pusher/Reverb/Echo).
+**Fora:** qualquer dependência nova (Pusher/Reverb/Echo); linhas ao vivo na lista (descartado); badge de não lidas, som, notificação de desktop.
 
 ---
 
@@ -334,7 +353,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Reversibilidade provada, não presumida:** `down` derruba colunas e índice, `up` recria — executados nessa ordem.
 >
-> **Em aberto:** ver a mudança refletida **em outra sessão sem F5** depende do polling da Fatia 5. Até lá, a atribuição aparece ao recarregar.
+> **Em aberto — agora só falta olhar.** O polling da Fatia 5 foi construído em 22/07/2026 e o caminho está testado do lado do servidor: mudança de atribuição aparece no payload do delta, com rótulo pronto e assinatura nova. O que resta é a observação no navegador, com duas sessões abertas.
+>
+> **E ele avisa em vez de sincronizar, de propósito:** o polling atualiza o rótulo visível e mostra o aviso, mas **não toca no campo escondido `atendente_atual_id`** — sincronizá-lo desarmaria esta guarda, fazendo o `<select>` desatualizado passar por cima do trabalho de outra pessoa sem aviso nenhum. O payload nem carrega o id do atendente, para que isso não seja possível por descuido.
 
 - Campo de atribuição próprio. `lead_assignedAttendant_id` da Uazapi é ignorado — não ler, não escrever (decisão #7).
 - Atendente = usuário em `users`, **Comercial estrito (`power === 13`)** via `AdminRole::COMERCIAL->value`. Super admin administra a inbox mas não é atribuível — decidido explicitamente, não por omissão.
@@ -346,7 +367,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
   - *Saída já escolhida, para não repensar sob pressão:* `UPDATE ... WHERE id = ? AND atendente_id <=> ?` — condicional, sem lock, e zero linhas afetadas vira o mesmo aviso que a guarda atual já mostra.
 - A mudança de atribuição também aparece no polling da Fatia 5 — não só mensagem nova.
 
-**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **Metade cumprida:** a atribuição funciona e está coberta por teste; o reflexo sem F5 espera a Fatia 5.
+**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **A parte que faltava foi construída** (Fatia 5, 22/07/2026) e testada no servidor; falta a observação no navegador com duas sessões — que é a única coisa que fecha este critério de verdade.
 
 **Fora:** filas, times, SLA.
 

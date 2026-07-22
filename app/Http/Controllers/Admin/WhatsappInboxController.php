@@ -6,6 +6,9 @@ use App\Enums\AdminRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WhatsappConversation;
+use App\Models\WhatsappMessage;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -59,7 +62,17 @@ class WhatsappInboxController extends Controller
         // sombra — que é exatamente o que esta tela existe para responder.
         $gruposOcultos = WhatsappConversation::where('is_group', true)->count();
 
-        return view('admin.whatsapp.index', compact('conversas', 'gruposOcultos', 'filtro'));
+        // Marco temporal do polling (Fatia 5). VEM DO SERVIDOR, nunca de
+        // Date.now() no cliente: relógio de máquina de escritório erra minutos,
+        // e o banner ficaria preso em "nunca tem novidade" ou em "sempre tem".
+        $desde = now()->toIso8601String();
+
+        // E um marco por ID DE MENSAGEM, porque só o tempo não basta — ver o
+        // comentário em novidades(). Vale para a base inteira, não por
+        // conversa: o que interessa é "chegou mensagem depois que eu carreguei".
+        $cursor = (int) (WhatsappMessage::max('id') ?? 0);
+
+        return view('admin.whatsapp.index', compact('conversas', 'gruposOcultos', 'filtro', 'desde', 'cursor'));
     }
 
     public function show(WhatsappConversation $conversa): View
@@ -75,7 +88,136 @@ class WhatsappInboxController extends Controller
 
         $atendentes = User::comercial()->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes'));
+        // Cursor inicial do polling: o MAIOR id já renderizado, não o id do
+        // último balão da tela. A thread é ordenada por enviada_em, então a
+        // última linha exibida pode não ser a de id mais alto — usar ela faria
+        // o primeiro delta reenviar mensagens já visíveis.
+        $cursor = (int) ($mensagens->max('id') ?? 0);
+
+        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes', 'cursor'));
+    }
+
+    /**
+     * Delta da thread — Fatia 5. Só as mensagens novas desde o cursor.
+     *
+     * O CURSOR É `whatsapp_messages.id`, NUNCA `enviada_em`. O timestamp vem do
+     * provedor e pode ser MAIS ANTIGO que uma mensagem já exibida: entrega
+     * atrasada, ou reprocessamento pela varredura por cron (rede de segurança
+     * por desenho). Um cursor por tempo pularia essa mensagem para sempre — e o
+     * sintoma seria uma mensagem que simplesmente nunca aparece, sem erro
+     * nenhum. `id` é ordem de inserção, monotônica.
+     *
+     * O preço disso é assumido: o delta pode trazer mensagem que pertence ao
+     * MEIO da thread, e por isso o JS insere por posição em vez de empilhar.
+     */
+    public function mensagens(Request $request, WhatsappConversation $conversa): JsonResponse
+    {
+        // Mesma guarda do show(). Sem ela, o grupo excluído da tela continuaria
+        // legível por este endpoint, e o filtro de exibição teria um furo.
+        abort_if($conversa->is_group, 404);
+
+        $cursor = $this->cursorDe($request->query('depois_de'));
+
+        $novas = $conversa->messages()
+            ->where('id', '>', $cursor)
+            ->orderBy('id')
+            ->get();
+
+        $conversa->load('atendente');
+
+        return response()->json([
+            'cursor'    => (int) ($novas->max('id') ?? $cursor),
+            'mensagens' => $novas
+                ->map(fn ($mensagem) => view('admin.whatsapp._mensagem', compact('mensagem'))->render())
+                ->all(),
+
+            // SÓ RÓTULO E HASH. O id do atendente NÃO vai no payload de
+            // propósito: sem ele, o JS não consegue sincronizar o campo
+            // escondido `atendente_atual_id` nem por descuido — e sincronizar
+            // esse campo desarmaria a guarda de sobrescrita da Fatia 7.
+            'atribuicao' => [
+                'rotulo'     => $conversa->rotuloAtribuicao(),
+                'assinatura' => $conversa->assinaturaAtribuicao(),
+            ],
+        ]);
+    }
+
+    /**
+     * Contagem de conversas com novidade desde o carregamento da lista —
+     * Fatia 5. Alimenta só o banner "há novidades"; a tabela não é reconstruída
+     * em JS, então paginação e filtro continuam valendo sem caso especial.
+     */
+    public function novidades(Request $request): JsonResponse
+    {
+        $desde  = $this->instanteDe($request->query('desde'));
+        $cursor = $this->cursorDe($request->query('depois_de'));
+
+        if ($desde === null) {
+            return response()->json(['novidades' => 0]);
+        }
+
+        // DUAS FONTES, E PRECISA SER DUAS.
+        //
+        // (a) Mensagem nova, por ID. Só `updated_at` NÃO cobre este caso: o
+        //     parser atualiza `ultima_mensagem_em` apenas quando a mensagem é
+        //     mais NOVA que a última (ProcessarEventoWhatsapp:116). Uma entrega
+        //     atrasada — ou o reprocessamento pela varredura por cron — insere
+        //     a mensagem sem tocar a conversa, o updated_at não sobe, e o
+        //     banner nunca anunciaria aquela conversa. É a mesma armadilha que
+        //     fez o cursor da thread ser `id` em vez de timestamp; aqui ela
+        //     reapareceu pela porta dos fundos.
+        //
+        // (b) Mudança de atribuição, por tempo. Ela não cria mensagem nenhuma,
+        //     então o id não a enxerga. É o caso da Fatia 7.
+        $comMensagemNova = WhatsappMessage::query()
+            ->where('id', '>', $cursor)
+            ->distinct()
+            ->pluck('conversation_id');
+
+        // `>=` E NÃO `>`. A coluna é TIMESTAMP (precisão de segundo, 0003) e o
+        // marco é o instante do render: com `>`, uma conversa tocada no MESMO
+        // segundo em que a página carregou ficaria de fora — e como o marco não
+        // avança sozinho, ela nunca seria anunciada. O `>=` troca isso por um
+        // banner eventualmente supérfluo no segundo do render, que some no
+        // primeiro clique em "Atualizar". Aviso a mais incomoda; novidade que
+        // some sem deixar rastro é o defeito que esta fatia existe para não ter.
+        //
+        // Sem índice em updated_at, e isso é escolha: a tabela tem dezenas de
+        // linhas. Se a inbox crescer para centenas de milhares, o índice entra
+        // aí — não agora, para não versionar SQL que ninguém precisa.
+        $novidades = WhatsappConversation::query()
+            ->where('is_group', false)
+            ->where(function ($q) use ($comMensagemNova, $desde) {
+                $q->whereIn('id', $comMensagemNova)
+                  ->orWhere('updated_at', '>=', $desde);
+            })
+            ->count();
+
+        return response()->json(['novidades' => $novidades]);
+    }
+
+    /** Cursor da querystring. Lixo vira 0 — nunca erro. */
+    private function cursorDe(mixed $bruto): int
+    {
+        return is_numeric($bruto) && (int) $bruto > 0 ? (int) $bruto : 0;
+    }
+
+    /**
+     * Instante da querystring. Entrada inválida devolve null, e o chamador
+     * responde "0 novidades" — um parâmetro de URL malformado não pode virar
+     * 500 num endpoint que roda a cada 5 segundos.
+     */
+    private function instanteDe(mixed $bruto): ?CarbonImmutable
+    {
+        if (! is_string($bruto) || $bruto === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($bruto)->setTimezone(config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

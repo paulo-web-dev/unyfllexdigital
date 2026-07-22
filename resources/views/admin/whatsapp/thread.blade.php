@@ -11,8 +11,12 @@
       <code class="small text-muted">{{ $conversa->chat_phone ?: '—' }}</code>
     </div>
     {{-- Continua sem responder: a única escrita desta tela é a atribuição, e
-         ela não sai do nosso banco. --}}
-    <span class="badge bg-secondary">Sem envio — modo sombra</span>
+         ela não sai do nosso banco. O polling da Fatia 5 não muda isso — ele
+         só lê. --}}
+    <div class="text-end">
+      <span class="badge bg-secondary">Sem envio — modo sombra</span>
+      <div class="small text-muted mt-1" id="polling-estado">Atualizando automaticamente</div>
+    </div>
   </div>
 
   {{-- Sem painel lateral de CRM: identificar o contato é Fatia 4, e ela está
@@ -28,6 +32,11 @@
     <div class="alert alert-danger py-2 small">{{ $message }}</div>
   @enderror
 
+  {{-- Aviso do polling quando a atribuição muda em outra sessão. Ele AVISA e
+       pede recarregar — o formulário abaixo não é sincronizado sozinho, ver o
+       comentário no <input hidden>. --}}
+  <div class="alert alert-warning py-2 small d-none" id="aviso-atribuicao"></div>
+
   {{-- Atribuição (Fatia 7). Atendente é usuário nosso, com power 13
        (Comercial). O lead_assignedAttendant_id da Uazapi é ignorado — não
        lemos e não escrevemos (regra de ouro 5). --}}
@@ -38,7 +47,14 @@
         @csrf
         {{-- Quem era o atendente quando esta tela carregou. O controller
              recusa a gravação se mudou nesse meio-tempo, em vez de passar por
-             cima do trabalho de outra pessoa. --}}
+             cima do trabalho de outra pessoa.
+
+             O POLLING DA FATIA 5 NÃO ATUALIZA ESTE CAMPO, e isso é a decisão
+             central daquela fatia. Ele existe para dizer "era isto que eu via
+             quando decidi". Se o polling o sincronizasse, o <select>
+             desatualizado de alguém passaria por cima da atribuição de outra
+             pessoa SEM o aviso — a atualização automática teria piorado a
+             corrida que esta guarda tenta estreitar. --}}
         <input type="hidden" name="atendente_atual_id" value="{{ $conversa->atendente_id }}">
 
         <div class="col-auto"><label class="col-form-label small text-muted" for="atendente_id">Atendente</label></div>
@@ -55,44 +71,187 @@
         <div class="col-auto">
           <button type="submit" class="btn btn-sm btn-primary">Salvar</button>
         </div>
-        <div class="col-auto small text-muted">
-          @if ($conversa->atendente_id && !$conversa->atendente)
-            {{-- Sem FK no banco (0005): usuário removido deixa id órfão.
-                 Dizer isso é melhor que mostrar um campo vazio. --}}
-            Atendente removido (id {{ $conversa->atendente_id }})
-          @elseif ($conversa->atendente)
-            Atribuída em {{ $conversa->atribuida_em?->format('d/m/Y H:i') ?: '—' }}
-          @else
-            Não atribuída
-          @endif
-        </div>
+        {{-- Rótulo vem do model (rotuloAtribuicao()), não montado aqui: o
+             polling renderiza o MESMO texto, e duas versões divergiriam na
+             primeira mudança. Inclui id órfão ("Atendente removido"), que é
+             estado previsto por não haver FK no 0005. --}}
+        <div class="col-auto small text-muted" id="rotulo-atribuicao">{{ $conversa->rotuloAtribuicao() }}</div>
       </form>
     </div>
   </div>
 
-  @if ($mensagens->isEmpty())
-    <div class="alert alert-info">Nenhuma mensagem nesta conversa.</div>
-  @else
-    <div class="d-flex flex-column gap-2">
-      @foreach ($mensagens as $mensagem)
-        <div class="d-flex {{ $mensagem->from_me ? 'justify-content-end' : 'justify-content-start' }}">
-          <div class="p-2 px-3 rounded-3 {{ $mensagem->from_me ? 'bg-primary text-white' : 'bg-light border' }}"
-               style="max-width:min(680px,80%)">
-            @if ($mensagem->texto)
-              <div style="white-space:pre-wrap;word-break:break-word">{{ $mensagem->texto }}</div>
-            @else
-              {{-- Mídia é Fatia 7. Até lá, o tipo é tudo que se pode dizer
-                   honestamente sobre uma mensagem sem texto. --}}
-              <em class="small">[{{ $mensagem->tipo ?: 'sem conteúdo de texto' }}]</em>
-            @endif
-            <div class="small mt-1 {{ $mensagem->from_me ? 'text-white-50' : 'text-muted' }}">
-              {{ $mensagem->enviada_em?->format('d/m/Y H:i') ?: 'sem data' }}
-            </div>
-          </div>
-        </div>
-      @endforeach
-    </div>
-  @endif
+  {{-- O container existe SEMPRE, mesmo sem mensagem: é nele que o polling
+       insere, e "conversa vazia agora" é justamente o caso em que a primeira
+       mensagem precisa aparecer sozinha. --}}
+  <div class="alert alert-info {{ $mensagens->isEmpty() ? '' : 'd-none' }}" id="thread-vazia">
+    Nenhuma mensagem nesta conversa.
+  </div>
+
+  <div class="d-flex flex-column gap-2"
+       id="thread-mensagens"
+       data-cursor="{{ $cursor }}"
+       data-assinatura="{{ $conversa->assinaturaAtribuicao() }}"
+       data-url="{{ route('admin.whatsapp.mensagens', $conversa) }}">
+    @foreach ($mensagens as $mensagem)
+      @include('admin.whatsapp._mensagem', ['mensagem' => $mensagem])
+    @endforeach
+  </div>
+
+  {{-- Aparece só quando chega mensagem e a pessoa NÃO está no fim da página.
+       Rolar a tela de quem está lendo histórico é o jeito clássico de tornar a
+       atualização automática irritante. --}}
+  <div class="position-sticky bottom-0 text-center py-2 d-none" id="novas-abaixo">
+    <button type="button" class="btn btn-sm btn-primary shadow" id="btn-novas-abaixo"></button>
+  </div>
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// POLLING DA THREAD — Fatia 5. Padrão do checkout.blade.php: fetch com
+// X-CSRF-TOKEN + Accept, e stopPolling() explícito.
+//
+// NOTA: o layout admin também declara uma const CSRF, mas dentro de uma IIFE
+// própria — ela não é global, então esta lê a meta tag de novo.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  const cont = document.getElementById('thread-mensagens');
+  if (!cont) return;
+
+  const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+  const URL_BASE = cont.dataset.url;
+  const vazia    = document.getElementById('thread-vazia');
+  const rotulo   = document.getElementById('rotulo-atribuicao');
+  const aviso    = document.getElementById('aviso-atribuicao');
+  const estado   = document.getElementById('polling-estado');
+  const barra    = document.getElementById('novas-abaixo');
+  const btnNovas = document.getElementById('btn-novas-abaixo');
+
+  let cursor     = Number(cont.dataset.cursor || 0);
+  let assinatura = cont.dataset.assinatura || '';
+  let falhas     = 0;
+  let naoLidas   = 0;
+  let timer      = null;
+
+  function stopPolling(motivo) {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (estado && motivo) estado.textContent = motivo;
+  }
+
+  function noFim() {
+    return (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 120);
+  }
+
+  // Insere na POSIÇÃO cronológica, não no fim. O delta vem ordenado por id
+  // (ordem de inserção), então uma entrega atrasada pode ter enviada_em mais
+  // antiga que balões já na tela. Sem data → fim, igual ao ORDER BY do
+  // servidor (enviada_em IS NULL por último).
+  function instante(el) {
+    const bruto = el.dataset.enviadaEm || '';
+    const t = bruto ? Date.parse(bruto) : NaN;
+    return isNaN(t) ? null : t;
+  }
+
+  function inserir(el) {
+    // Comparação como DATA, não como string: ISO com fusos diferentes ordena
+    // errado lexicograficamente, e não vale apostar que o fuso do servidor
+    // nunca muda.
+    const quando = instante(el);
+    if (quando !== null) {
+      for (const atual of cont.children) {
+        const dele = instante(atual);
+        if (dele !== null && dele > quando) { cont.insertBefore(el, atual); return; }
+      }
+    }
+    cont.appendChild(el);
+  }
+
+  function mostrarBarra() {
+    if (!barra || !btnNovas) return;
+    btnNovas.textContent = naoLidas === 1
+      ? '1 nova mensagem ↓'
+      : naoLidas + ' novas mensagens ↓';
+    barra.classList.remove('d-none');
+  }
+
+  btnNovas?.addEventListener('click', function () {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    naoLidas = 0;
+    barra.classList.add('d-none');
+  });
+
+  async function verificar() {
+    // Aba de fundo não gasta consulta. O cursor é absoluto, então o primeiro
+    // tick visível recupera tudo de uma vez.
+    if (document.hidden) return;
+
+    try {
+      const res = await fetch(URL_BASE + '?depois_de=' + cursor, {
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+      });
+
+      // Sessão expirada não pode virar uma requisição a cada 5s contra a tela
+      // de login.
+      if (res.status === 401 || res.status === 403 || res.status === 419) {
+        stopPolling('Sessão expirada — recarregue a página');
+        return;
+      }
+
+      if (!res.ok) {
+        if (++falhas >= 3) stopPolling('Atualização automática pausada');
+        return;
+      }
+
+      const data = await res.json();
+      falhas = 0;
+
+      const estavaNoFim = noFim();
+
+      (data.mensagens ?? []).forEach(function (html) {
+        const molde = document.createElement('template');
+        molde.innerHTML = html.trim();
+        const el = molde.content.firstElementChild;
+        if (!el) return;
+        // Guarda de idempotência na tela: se por qualquer motivo o mesmo id
+        // voltar, não duplica o balão.
+        if (cont.querySelector('[data-msg-id="' + el.dataset.msgId + '"]')) return;
+        inserir(el);
+        naoLidas++;
+      });
+
+      if ((data.mensagens ?? []).length > 0) {
+        vazia?.classList.add('d-none');
+        if (estavaNoFim) {
+          window.scrollTo({ top: document.body.scrollHeight });
+          naoLidas = 0;
+        } else {
+          mostrarBarra();
+        }
+      }
+
+      cursor = Number(data.cursor ?? cursor);
+
+      // ATRIBUIÇÃO: atualiza o rótulo visível e AVISA. Não toca no <select>
+      // nem no campo escondido atendente_atual_id — sincronizá-lo desarmaria a
+      // guarda de sobrescrita da Fatia 7. O payload nem traz o id, justamente
+      // para que isso não seja possível por descuido.
+      if (data.atribuicao && data.atribuicao.assinatura !== assinatura) {
+        assinatura = data.atribuicao.assinatura;
+        if (rotulo) rotulo.textContent = data.atribuicao.rotulo;
+        if (aviso) {
+          aviso.textContent = 'A atribuição mudou em outra sessão: ' + data.atribuicao.rotulo
+            + '. Recarregue antes de salvar, ou sua alteração será recusada.';
+          aviso.classList.remove('d-none');
+        }
+      }
+    } catch (e) {
+      if (++falhas >= 3) stopPolling('Atualização automática pausada');
+    }
+  }
+
+  timer = setInterval(verificar, 5000);
+})();
+</script>
+@endpush

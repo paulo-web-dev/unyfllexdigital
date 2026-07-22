@@ -187,6 +187,22 @@ A distinção que importa: **`fixo` é guarda intencional, `anomalo` é defeito.
 
 Hoje **não existem models Eloquent** para `negociacoes_comercial`, `contact`, `prematricula` nem `courses` — só `Classes`, `Student`, `Enrollment`, `LeadGuia`. Qualquer integração que precise ler essas tabelas cria o model correspondente; não presuma que já existe. **Exceção:** `leads` e `tentativas_de_contato` também não têm model e **não devem ganhar um** — ver "Tabelas vazias em produção".
 
+## Atualização automática da inbox (polling, Fatia 5)
+
+Sem broadcaster e sem dependência nova: `setInterval` de 5s + `fetch`, no padrão de `resources/views/pages/checkout.blade.php:618-656`. Dois endpoints somente-leitura no grupo admin — `admin.whatsapp.mensagens` (delta da thread) e `admin.whatsapp.novidades` (contagem para o banner da lista).
+
+**Cursor de atualização incremental é `id`, NUNCA timestamp.** Vale para os dois endpoints, e a razão é a mesma nos dois: `whatsapp_messages.enviada_em` vem do provedor e pode ser **mais antiga** que uma mensagem já exibida — entrega atrasada, ou reprocessamento pela varredura por cron, que é rede de segurança por desenho. Um cursor por tempo pula essa mensagem **para sempre**, e o sintoma é uma mensagem que simplesmente nunca aparece na tela, sem erro nenhum. O preço, assumido: o delta pode trazer mensagem que pertence ao **meio** da thread, então o JS insere por posição (`data-enviada-em`) em vez de empilhar.
+
+**Na lista, contar só por tempo não funciona — e o motivo não é óbvio.** `ProcessarEventoWhatsapp:116` só atualiza `ultima_mensagem_em` quando a mensagem é **mais nova** que a última. Mensagem atrasada entra na tabela sem tocar a conversa, o `updated_at` não sobe, e a conversa nunca seria anunciada. Por isso `novidades()` usa **duas fontes**: id de mensagem (pega a atrasada) e `updated_at` (pega mudança de atribuição, que não cria mensagem nenhuma).
+
+**`updated_at >= $desde`, não `>`.** A coluna é `TIMESTAMP` (precisão de segundo) e o marco é o instante do render: com `>`, conversa tocada no mesmo segundo do carregamento fica de fora, e como o marco não avança sozinho, nunca é anunciada. O `>=` troca isso por um banner eventualmente supérfluo, que some no primeiro "Atualizar".
+
+**O marco de tempo vem do servidor**, gravado num `data-` no render — nunca `Date.now()` no cliente.
+
+**Polling NÃO sincroniza campo de guarda de concorrência.** O `atendente_atual_id` escondido no formulário da thread é a guarda check-then-write da Fatia 7: ele diz "era isto que eu via quando decidi". Se o polling o atualizasse, o `<select>` desatualizado de alguém passaria por cima da atribuição de outra pessoa **sem o aviso** — a atualização automática teria piorado a corrida que a guarda tenta estreitar. O polling atualiza o rótulo visível e avisa; o payload **nem devolve o id do atendente** (só rótulo + hash md5), para que a sincronização não seja possível por descuido. Não "otimizar" isso devolvendo o id.
+
+O balão de mensagem mora em `resources/views/admin/whatsapp/_mensagem.blade.php` e é renderizado **pelo servidor nos dois caminhos** (carga da página e delta): o texto vem de estranhos no WhatsApp, e em Blade ele é escapado por padrão. Não montar balão em JS.
+
 ## Regras de ouro (inbox Uazapi)
 
 1. **Instância/número de produção nunca em dev.** Desenvolvimento e teste sempre na instância e número de teste, separados do que atende comercial hoje. Já perdemos ~23h de WhatsApp em produção por misturar isso — não repetir.

@@ -181,7 +181,15 @@ Route::prefix('admin')
         // escreve so no nosso banco: nao envia, nao responde, nada sai para o
         // WhatsApp. Envio segue exigindo checkpoint explicito (Fatias 6/8).
         Route::get('/whatsapp',            [WhatsappInboxController::class, 'index'])->name('whatsapp.index');
+
+        // ATENCAO A ORDEM: esta rota TEM que vir antes de /whatsapp/{conversa}.
+        // Laravel casa a primeira que bater; registrada depois, a palavra
+        // "novidades" cairia no route model binding e viraria 404 de "conversa
+        // nao encontrada". A ordem aqui e semantica, nao estetica.
+        Route::get('/whatsapp/novidades',  [WhatsappInboxController::class, 'novidades'])->name('whatsapp.novidades');
+
         Route::get('/whatsapp/{conversa}', [WhatsappInboxController::class, 'show'])->name('whatsapp.thread');
+        Route::get('/whatsapp/{conversa}/mensagens', [WhatsappInboxController::class, 'mensagens'])->name('whatsapp.mensagens');
         Route::post('/whatsapp/{conversa}/atendente', [WhatsappInboxController::class, 'atribuir'])->name('whatsapp.atribuir');
 
         // ── Matrículas (super admin + comercial) ──────────────────────────
