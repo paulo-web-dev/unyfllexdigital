@@ -861,3 +861,43 @@ FROM (
 ) c
 GROUP BY coluna
 ORDER BY coluna;
+
+-- =====================================================================
+-- Q11 — Assinatura das linhas com caractere de controle
+-- =====================================================================
+--
+-- RODAR SÓ SE QUISER O REGISTRO COMPLETO. A Q10 já decidiu o que
+-- importava: 2 linhas em toda a base, zero em negociacoes_comercial, e
+-- o caminho da aplicacao (TelefoneCanonico::normalizar, que limpa com
+-- preg_replace('/\D+/','')) e imune. NAO agir sobre o resultado disto.
+--
+-- O que ela acrescenta: QUAL dos tres caracteres e, e EM QUE POSICAO.
+-- A distincao muda a leitura —
+--   \n no FIM  -> passa no REGEXP '^[0-9]+$' (bug do $ do ICU), o valor
+--                 e classificado como se fosse so digitos, e vira
+--                 nao-match silencioso. E o caso descrito no item 3c.
+--   \r ou \t   -> o REGEXP REPROVA, o valor cai em `invalido`, e o
+--                 comportamento ja esta correto. Nada a registrar.
+--
+-- LGPD: projeta HEX() e comprimento. HEX nao e telefone legivel, e a
+-- saida tem no maximo 2 linhas — o mesmo volume que a Q10 ja publicou.
+--
+-- Saida: coluna, hex, bytes, caracteres
+-- ---------------------------------------------------------------------
+SELECT 'students.phone' AS coluna,
+       HEX(phone)       AS hex,
+       LENGTH(phone)    AS bytes,
+       CHAR_LENGTH(phone) AS caracteres
+FROM students
+WHERE INSTR(phone, CHAR(10)) > 0
+   OR INSTR(phone, CHAR(13)) > 0
+   OR INSTR(phone, CHAR(9))  > 0
+UNION ALL
+SELECT 'users.telefone',
+       HEX(telefone),
+       LENGTH(telefone),
+       CHAR_LENGTH(telefone)
+FROM users
+WHERE INSTR(telefone, CHAR(10)) > 0
+   OR INSTR(telefone, CHAR(13)) > 0
+   OR INSTR(telefone, CHAR(9))  > 0;

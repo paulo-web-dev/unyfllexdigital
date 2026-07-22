@@ -292,7 +292,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - Models Eloquent criados só para as tabelas que o matching precisar — **`negociacoes_comercial` primeiro**, por ser a fonte principal do funil (nenhum model existe hoje para ela nem para `prematricula`). Nada de model para `leads`: tabela vazia, ver divergência 9.
 - **Teto de cobertura conhecido, medido, e é baixo.** `negociacoes_comercial` tem **867 de 3.006 (28,8%)** de telefone aproveitável, e `leads` está vazia. **A parcela fixa dentro da forma de 12 foi medida em 22/07/2026 (Q8/Q8b) e é pequena: 589 deriváveis contra 39 fixos, de 628 telefones distintos — 93,8% deriváveis.** A regra do 9º dígito entrega o que se esperava dela.
 - **A cobertura tem duas unidades e elas não se dividem.** `867/3.006` e `754` são **linhas**; `589/628` são **telefones distintos** (Q8/Q8b deduplicam antes de classificar). As 754 linhas contêm 628 números — as 126 de diferença são repetição, não perda. **`589/754` não é taxa de nada.**
-- **A cobertura em linhas ainda NÃO fechou, e é o que trava esta fatia.** A Q8c voltou 755 contra as 754 da Q3. A lógica das duas foi **provada equivalente** contra 35 casos de fronteira num MySQL local (zero discordâncias), então a causa provável é deriva de dado: a Q3 rodou em 21/07, a Q8c em 22/07, e a tabela é escrita todo dia. **A Q9 (reconciliação atômica, as duas classificações na mesma varredura) decide.** Enquanto ela não voltar, nenhuma taxa de cobertura em linhas entra em nada.
+- **A cobertura em linhas FECHOU — Q9, 22/07/2026. Esta fatia sai de bloqueada.** A divergência do `+1` (Q8c com 755 contra as 754 da Q3) era **deriva de dado**, como se suspeitava, e não diferença de lógica. A Q9 rodou as duas classificações na **mesma varredura** e voltou `discordancias = 0`, com `q3_forma12 = q8c_forma12 = 755` (`49` canônico de 12 + `706` sem DDI de 10). O `total_linhas = 3008` contra os 3.006 de 21/07 confirma o mesmo movimento: a tabela é escrita todo dia. **Vale o método, não só o número — duas medições de `negociacoes_comercial` feitas em execuções diferentes continuam não sendo comparáveis.**
 - **Quatro categorias de não-alcançável, não duas** (tabela no `CLAUDE.md`): `invalido` e `fora_do_padrao` são ausência de dado; `fixo_2a5_inalcancavel` é **dado válido sob guarda intencional** e nunca deve ser "corrigido"; `anomalo_0ou1` (bloco de 8 começando em 0/1 — 9 na base inteira, 0 em `negociacoes_comercial`) é **dado quebrado**. O painel não precisa mostrar as quatro, mas quem escrever o matching não pode tratá-las como a mesma coisa. **"Não identificado" será o estado comum, não a exceção**. Isso é fato de desenho, não defeito a corrigir depois: a UI trata esse estado como caminho normal — não como erro, não como espaço vazio num canto da tela. Se o painel só ficar apresentável quando há match, ele fica feio na maioria das conversas reais.
 
 **Critério de pronto:** abrir a conversa de teste e ver o nome real de um registro de `negociacoes_comercial` ou `students` cujo telefone bate com `chat.phone`; casar também um cadastro gravado sem o 9º dígito; o estado "não identificado" só aparecer **depois** de a variante ter sido testada; e esse estado ser exercitado e revisado como tela, não só como ausência de dado.
@@ -412,6 +412,28 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Continua sem observação:** o rótulo mudando sozinho, a guarda check-then-write disparando a partir da aba defasada, e a pausa em `document.hidden`. Os três têm teste de servidor (tabela acima e Fatia 5); nenhum tem confirmação de tela.
 >
+> **DUAS RODADAS DE TESTE MANUAL DA GUARDA, AS DUAS INCONCLUSIVAS — 22/07/2026, fim do dia.** Registradas aqui como **inconclusivas**, não como falha da guarda, e o método foi abandonado.
+>
+> As duas terminaram em "Atribuição removida." (sucesso) em vez da recusa esperada. Como a fatia decidiu **não ter log de reatribuição**, a tabela guarda só o estado atual e não responderia nada; quem respondeu foi o **binlog do MySQL** (`log_bin=ON`, `binlog_format=ROW`), que guarda imagem antes/depois por linha. Conversa 106, hora local −03:
+>
+> | rodada | sequência de escritas | por que não valeu |
+> |---|---|---|
+> | 1ª | 13:06:18 `364→365` (aba A, ok) · 13:09:23 `365→364` (escrita fora do protocolo, sessão da aba B) · 13:19:17 `364→NULL` | no clique final o banco **já valia 364**: a escrita das 13:09 desfez a das 13:06. O form batia com o banco — a guarda não tinha o que recusar, e ninguém foi sobrescrito |
+> | 2ª | 13:33:26 `NULL→364` (reset) · 13:35:04 `364→365` (aba A, ok) · 13:37:58 `365→NULL` | a aba já estava re-renderizada: o `<select>` mostrava "Comercial Dois" **selecionado**, e o `selected` só vem do Blade — logo o `<input hidden>` do mesmo render também veio com 365 |
+>
+> **Duas maneiras diferentes de a condição defasada se desfazer sozinha**, e nenhuma delas era descuido de quem testou:
+>
+> 1. **`atribuir()` termina em `back()`** — redirect, GET novo, e o Blade re-renderiza `atendente_atual_id` fresco. **Todo save bem-sucedido tira a aba do estado defasado.** Importa se alguém um dia trocar o `back()` por outra coisa.
+> 2. Voltar para a lista e clicar em "Abrir" também recarrega (é a mesma armadilha da retratação acima).
+>
+> **E o binlog não decide a questão sozinho:** ele registra escritas, e o caminho de recusa **não escreve nada**. Um binlog compatível com "guarda funcionou e a entrada não estava defasada" é igualmente compatível com "guarda quebrada".
+>
+> **Achado que ajuda quem for conferir na tela:** o campo escondido não é inspecionável a olho, mas o **`<select>` sai do mesmo render** — ele é o indicador visível de que a aba deixou de estar defasada. Nenhum JS toca nele (o polling mexe só em `#rotulo-atribuicao` e `#aviso-atribuicao`).
+>
+> **A guarda foi então provada sem navegador, com a defasagem FABRICADA** (`tests/Feature/WhatsappGuardaAtribuicaoTest.php`, descartável, `unyflex_dev`, conversa 106 restaurada no `tearDown()`, removido depois): banco em 365, POST com `atendente_atual_id = 364` escolhido por nós. 4 casos, 10 asserções, verdes — recusa com aviso e valor intacto; o simétrico (valor visto confere → grava), sem o qual um "recusa sempre" passaria; e os dois casos do campo **vazio**, que é valor legítimo ("sem atendente"), não ausência de dado.
+>
+> **Verde confirmado por mutação, não presumido:** trocar `if ($atual !== $visto)` por `if (false)` reprova exatamente 2 dos 4 casos — os dois de recusa —, e os de gravação seguem verdes. Controller restaurado e conferido por `git diff` vazio.
+>
 > **E ele avisa em vez de sincronizar, de propósito:** o polling atualiza o rótulo visível e mostra o aviso, mas **não toca no campo escondido `atendente_atual_id`** — sincronizá-lo desarmaria esta guarda, fazendo o `<select>` desatualizado passar por cima do trabalho de outra pessoa sem aviso nenhum. O payload nem carrega o id do atendente, para que isso não seja possível por descuido.
 
 - Campo de atribuição próprio. `lead_assignedAttendant_id` da Uazapi é ignorado — não ler, não escrever (decisão #7).
@@ -424,7 +446,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
   - *Saída já escolhida, para não repensar sob pressão:* `UPDATE ... WHERE id = ? AND atendente_id <=> ?` — condicional, sem lock, e zero linhas afetadas vira o mesmo aviso que a guarda atual já mostra.
 - A mudança de atribuição também aparece no polling da Fatia 5 — não só mensagem nova.
 
-**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **NÃO CUMPRIDO.** Foi dado por cumprido em 22/07/2026 e a marcação foi **retratada no mesmo dia** — ver o bloco de retratação acima. A escrita e a guarda estão testadas; falta a mudança aparecer numa sessão parada, o que hoje é impossível em dev enquanto o corpo das respostas sair poluído.
+**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **NÃO CUMPRIDO.** Foi dado por cumprido em 22/07/2026 e a marcação foi **retratada no mesmo dia** — ver o bloco de retratação acima. A escrita e a guarda estão testadas **no servidor** (e a guarda, provada por mutação); falta a mudança aparecer numa **sessão parada**, que é o item de tela que este critério exige e que nenhuma das duas rodadas manuais chegou a exercitar.
 
 **Fora:** filas, times, SLA.
 

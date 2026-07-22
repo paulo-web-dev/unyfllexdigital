@@ -119,6 +119,23 @@ A Q8c voltou em 22/07/2026 com `derivavel 704 + fixo 51 = **755**`, contra as **
 
 **Lição que fica registrada:** número tirado de `negociacoes_comercial` **carrega data**. Comparar duas execuções separadas dessa tabela não decide nada — se duas medidas precisam ser comparadas, elas precisam sair da mesma varredura.
 
+### Resultado da Q9 — 22/07/2026. **Encerrado: era a deriva de dado.**
+
+| campo | valor |
+|---|---|
+| `total_linhas` | 3.008 |
+| `q3_canonico12` | 49 |
+| `q3_sem_ddi_10` | 706 |
+| `q3_forma12` | 755 |
+| `q8c_forma12` | 755 |
+| **`discordancias`** | **0** |
+
+Bate com o primeiro critério fixado antes de rodar, com uma linha a mais de deriva do que a previsão: `total_linhas` foi a 3.008 (contra 3.006 em 21/07 e a previsão de 3.007), coerente com uma tabela que recebe inserção do comercial todo dia. As duas lógicas particionam idêntico sobre o dado real — `q3_forma12 = q8c_forma12 = 755`, e `49 + 706 = 755` fecha por dentro.
+
+**A Q9b devolveu conjunto vazio, e isso é o resultado esperado, não uma falha da consulta.** Ela existe para dar a assinatura das linhas discordantes; com `discordancias = 0` não há o que assinar. Uma tela de "nenhum registo" aqui é a confirmação, não um problema a investigar.
+
+**Cobertura em linhas destravada.** A Fatia 4 sai de bloqueada.
+
 ---
 
 ## 3c. `REGEXP '^[0-9]+$'` não é teste estrito de "só dígitos"
@@ -136,7 +153,24 @@ O `$` do ICU — motor de regex do MySQL 8+ — casa **também antes de um termi
 
 **Isto não explica o `+1`**: Q3 e Q8c usam o mesmo `REGEXP`, então o efeito é idêntico nas duas e não produz assimetria.
 
-**Ainda não medido em produção.** A **Q10** foi acrescentada ao `.sql` para contar, por coluna, quantas linhas têm `\n`, `\r` ou `\t` sobrevivendo à limpeza (a cadeia de `REPLACE` remove espaço `-` `(` `)` `.` `+` `/` — nunca removeu controle). Se der zero em todas, é curiosidade teórica e nada muda.
+**Medido em produção em 22/07/2026 — a Q10 conta, por coluna, quantas linhas têm `\n`, `\r` ou `\t` sobrevivendo à limpeza** (a cadeia de `REPLACE` remove espaço `-` `(` `)` `.` `+` `/` — nunca removeu controle):
+
+| coluna | `linhas_com_controle` |
+|---|---|
+| `leads_guia_licitacoes.whatsapp` | 0 |
+| `negociacoes_comercial.whatsapp` | **0** |
+| `prematricula.celular` | 0 |
+| `students.phone` | **1** |
+| `users.telefone` | **1** |
+
+**O caso existe, e é desprezível: 2 linhas em ~17.376 telefones distintos.** Duas leituras que importam mais que o número:
+
+- **Zero em `negociacoes_comercial`**, que é a fonte principal do funil e a tabela de onde saem todas as taxas de cobertura deste relatório. Nenhum número publicado aqui está contaminado.
+- **O caminho da aplicação é imune, e não por sorte.** `App\Support\TelefoneCanonico::normalizar()` limpa com `preg_replace('/\D+/', '', ...)`, que remove `\n`, `\r` e `\t` junto com qualquer outro não-dígito, **antes** de medir comprimento. O risco do `$` do ICU é de validação escrita **em SQL** — ou seja, das próprias queries deste diagnóstico, não do matching da inbox.
+
+**Conclusão: nota, não tarefa.** Nada de `UPDATE` corretivo nas duas linhas — o ganho é zero e o precedente ("normalizar por `UPDATE` em massa na origem") é o que o `CLAUDE.md` proíbe.
+
+**O que ainda não se sabe:** *qual* dos três caracteres é, e *em que posição*. Q10 conta `\n`, `\r` e `\t` juntos, então "existe controle" não é o mesmo que "é o `\n` final" — se for `\r` ou `\t`, o `REGEXP '^[0-9]+$'` **reprova** o valor e ele já cai em `invalido`, que é comportamento correto. A **Q11** foi acrescentada ao `.sql` para fechar isso com `HEX()`; devolve no máximo 2 linhas e nenhum telefone legível. Só vale a pena rodar se alguém quiser o registro completo — a decisão de não agir não depende dela.
 
 **Não alterar a cadeia de limpeza por causa disto sem re-executar o diagnóstico inteiro** — mudar a limpeza muda todos os números já publicados aqui.
 
@@ -147,7 +181,7 @@ O `$` do ICU — motor de regex do MySQL 8+ — casa **também antes de um termi
 Duas perguntas legítimas e diferentes, cada uma com sua unidade:
 
 - *"Chega uma mensagem no WhatsApp — consigo identificar a pessoa?"* → **por telefone distinto.** Respondida: 93,8%.
-- *"Quanto do meu funil comercial eu alcanço?"* → **por linha de negociação.** **Ainda não respondida** — depende da **Q8c**, acrescentada ao `.sql` e ainda não executada.
+- *"Quanto do meu funil comercial eu alcanço?"* → **por linha de negociação.** **Respondida em 22/07/2026 pela Q9** (item 3b): das 3.008 linhas de `negociacoes_comercial`, **755 estão na forma de 12 dígitos** e portanto só casam com a Uazapi pela variante do 9º dígito.
 
 ---
 
@@ -190,7 +224,7 @@ Duas ressalvas honestas:
 Registrado para não passar por completo:
 
 - **Padrões de formatação distintos por coluna (Q1)** e **distribuição fina de comprimento (Q2)** — as queries existem e rodaram, mas a saída não foi transcrita aqui. Não altera nenhuma conclusão acima, que se apoia em Q3/Q4/Q5/Q6/Q7.
-- **Q8 e Q8b** — executadas em 22/07/2026, resultados no item 3. **Q8c** também, e ela **não fechou contra a Q3** (755 × 754) — ver item 3b. **Q9/Q9b** (reconciliação atômica) e **Q10** (caracteres de controle) foram escritas e **ainda não executadas**. Enquanto a Q9 não voltar, **nenhuma taxa de cobertura de `negociacoes_comercial` em linhas é válida.**
+- **Q8, Q8b, Q8c, Q9, Q9b e Q10 — todas executadas em 22/07/2026.** A Q8c não fechou contra a Q3 (755 × 754) e a **Q9 fechou a divergência**: `discordancias = 0` na mesma varredura, era deriva de dado (item 3b). A Q9b devolveu vazio, que é o esperado com zero discordâncias. A Q10 achou **2 linhas** com caractere de controle, zero na `negociacoes_comercial` (item 3c). **A cobertura em linhas está destravada.** Só a **Q11** (assinatura `HEX()` dessas 2 linhas) segue não executada, e ela é opcional — nenhuma decisão depende dela.
 - **Causa dos 70,6% de `negociacoes_comercial`** — pergunta em aberto no `plan.md`, para quem opera o funil comercial. Não é investigação de schema, e não deve ser presumida.
 
 ---
@@ -201,6 +235,6 @@ Registrado para não passar por completo:
 2. **A regra do 9º dígito é obrigatória desde o primeiro commit** — 38,2% da base útil só casa por ela, e 87% da fonte principal do funil.
 3. **"Não identificado" será o estado comum**, não a exceção — a UI trata isso como caminho normal.
 4. **A variante do 9º dígito entrega:** 93,8% dos telefones distintos de 12 dígitos em `negociacoes_comercial` são celular derivável, contra 6,2% de fixo inalcançável. O teto de 28,8% (em linhas) não é corroído de forma relevante pela parcela fixa.
-5. **Sempre rotular a unidade.** Linhas e telefones distintos convivem neste relatório e não se dividem entre si. A cobertura em linhas depende da **Q9**, ainda não executada — a Q8c sozinha não fecha contra a Q3 (item 3b).
+5. **Sempre rotular a unidade.** Linhas e telefones distintos convivem neste relatório e não se dividem entre si. A cobertura em linhas foi destravada pela **Q9** em 22/07/2026 (item 3b) — a Q8c sozinha não fechava contra a Q3, e o que resolveu foi pôr as duas classificações na **mesma varredura**, não escolher entre elas.
 7. **Número de `negociacoes_comercial` carrega data.** A tabela é escrita todo dia. Duas medições de execuções diferentes não são comparáveis; se precisam ser comparadas, têm que sair da mesma varredura.
 6. **Quatro categorias, não duas.** `fixo_2a5_inalcancavel` é guarda intencional sobre dado válido; `anomalo_0ou1` é dado quebrado. A UI e qualquer futura limpeza precisam distinguir os dois — ver `CLAUDE.md`.
