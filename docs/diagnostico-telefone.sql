@@ -30,7 +30,7 @@
 --   CUIDADO AO LER QUALQUER TABELA VAZIA NESTE ARQUIVO — os dois
 --   comportamentos convivem aqui, e confundi-los já custou tempo:
 --     * GROUP BY sobre zero linhas NÃO produz grupo: a linha some.
---       (Q1, Q2, Q3, Q4b, Q6, Q8, Q8b)
+--       (Q1, Q2, Q3, Q4b, Q6, Q8, Q8b, Q8c)
 --     * Agregado escalar sem GROUP BY sobre tabela vazia produz UMA
 --       linha de zeros.  (Q4, Q5, Q7)
 --   Ausência de linha e linha zerada não são o mesmo sinal, e qual dos
@@ -46,7 +46,7 @@
 --   * Nenhuma query projeta telefone, nome, e-mail ou id de pessoa.
 --     Toda saída é COUNT/GROUP BY sobre classes.
 --   * Sem MIN/MAX em coluna de telefone (devolveria um número real).
---   * Ressalva honesta: em Q6, Q7, Q8 e Q8b os telefones normalizados transitam
+--   * Ressalva honesta: em Q6, Q7, Q8, Q8b e Q8c os telefones normalizados transitam
 --     dentro do motor, numa subquery, para poderem ser agrupados. Eles
 --     NÃO aparecem no resultado. É inevitável para contar sobreposição.
 --   * Rodar com usuário de banco somente-leitura, se existir.
@@ -579,6 +579,13 @@ ORDER BY classe;
 -- (87%) na forma de 12. Se a maior parte disso for fixo, a cobertura de
 -- 28,8% cai muito abaixo disso — e é a tabela que sustenta o painel.
 -- Saída: mesma classificação da Q8.
+--
+-- ATENÇÃO À UNIDADE: o `GROUP BY tel` da subquery interna deduplica ANTES
+-- de classificar. O COUNT(*) externo conta TELEFONES DISTINTOS, não linhas.
+-- Executada em 22/07/2026: 589 deriváveis + 39 fixos = 628 distintos, contra
+-- as 754 LINHAS que a Q3 aponta. Os 126 de diferença são o mesmo número
+-- repetido em negociações diferentes — não são registros perdidos.
+-- Isso já foi lido como divergência uma vez. Ver Q8c logo abaixo.
 -- ---------------------------------------------------------------------
 SELECT CASE
          WHEN SUBSTRING(tel,5,1) REGEXP '^[6-9]$' THEN 'derivavel_celular_6a9'
@@ -608,3 +615,66 @@ FROM (
 ) q
 GROUP BY classe
 ORDER BY classe;
+
+
+-- ---------------------------------------------------------------------
+-- Q8c — A MESMA classificação da Q8b, mas em LINHAS
+--
+-- POR QUE ESTA QUERY EXISTE. A Q8b conta telefones distintos; todo o
+-- resto deste diagnóstico (867 de 3.006, os 754 da forma de 12) conta
+-- linhas. Misturar as duas unidades produz razões sem significado:
+-- 589/754 NÃO é taxa de cobertura, porque numerador e denominador
+-- medem coisas diferentes. Isso já foi lido como "126 registros
+-- faltando" uma vez — não faltavam, eram repetições.
+--
+-- Esta query fecha o lado em linhas, para responder "quanto do funil
+-- comercial eu alcanço?" — que é pergunta por negociação, não por
+-- telefone. A Q8b continua respondendo "uma mensagem que chega é
+-- identificada?", que é pergunta por telefone.
+--
+-- ÚNICA diferença para a Q8b: não há `GROUP BY tel` na subquery. Cada
+-- linha da tabela é classificada e contada por si.
+--
+-- Mesmas garantias do arquivo: somente leitura, nenhum telefone
+-- projetado na saída, só COUNT/GROUP BY sobre classes.
+--
+-- Saída: classe, linhas
+-- ATENÇÃO: é GROUP BY — classe com zero linha NÃO produz linha zerada.
+-- ---------------------------------------------------------------------
+SELECT CASE
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[6-9]$' THEN 'derivavel_celular_6a9'
+         WHEN SUBSTRING(tel,5,1) REGEXP '^[2-5]$' THEN 'fixo_2a5_inalcancavel'
+         ELSE 'anomalo_0ou1'
+       END              AS classe,
+       COUNT(*)         AS linhas
+FROM (
+  SELECT CASE
+           WHEN d = '' OR d NOT REGEXP '^[0-9]+$'      THEN ''
+           WHEN CHAR_LENGTH(d) IN (12,13)
+                AND LEFT(d,2) = '55'                   THEN d
+           WHEN CHAR_LENGTH(d) IN (10,11)              THEN CONCAT('55', d)
+           ELSE ''
+         END AS tel
+  FROM (
+    SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci AS d
+    FROM negociacoes_comercial
+  ) b
+) c
+WHERE CHAR_LENGTH(tel) = 12
+GROUP BY classe
+ORDER BY classe;
+
+
+-- ---------------------------------------------------------------------
+-- VERIFICAÇÃO EMBUTIDA da Q8c: a soma das suas classes deve dar
+-- exatamente 754 — o total da forma de 12 em negociacoes_comercial
+-- segundo a Q3 (sem_ddi_10 705 + canonico12 49).
+--
+-- Se der 754: Q3 e Q8c concordam, e a diferença para os 628 da Q8b está
+-- inteiramente explicada por deduplicação. Nada mais a investigar.
+--
+-- Se NÃO der 754: aí sim há divergência real de lógica entre as duas
+-- queries, e nenhuma taxa de cobertura deve ser publicada até entender.
+-- ---------------------------------------------------------------------

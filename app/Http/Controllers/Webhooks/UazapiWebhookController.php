@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessarEventoWhatsapp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,14 @@ use Illuminate\Support\Facades\DB;
  *   2. persiste o payload cru, sincronamente, antes de responder;
  *   3. responde 200.
  *
- * Nenhuma logica de negocio aqui dentro. O processamento estruturado entra na
- * Fatia 3, via afterResponse + varredura por cron como rede de seguranca
- * (regra de ouro 2). O que nao pode falhar e a gravacao do cru.
+ * Nenhuma logica de negocio aqui dentro. O processamento estruturado (Fatia 3)
+ * roda em ProcessarEventoWhatsapp, despachado com ->afterResponse() DEPOIS da
+ * gravacao do cru, com a varredura por cron (whatsapp:varrer) como rede de
+ * seguranca (regra de ouro 2). O que nao pode falhar e a gravacao do cru.
+ *
+ * ORDEM IMPORTA: cru primeiro, sincrono; despacho depois. Se o despacho
+ * falhar, o cru ja esta salvo e a varredura o repesca. Se fosse ao contrario,
+ * uma falha na gravacao deixaria um job apontando para linha inexistente.
  *
  * Grupos (wa_isGroup, @g.us) sao persistidos como qualquer outro payload: o
  * filtro de grupo e de EXIBICAO, nunca de ingestao (regra de ouro 8).
@@ -34,7 +40,7 @@ class UazapiWebhookController extends Controller
         // insertOrIgnore faz a idempotencia (regra de ouro 3) sem caminho de
         // excecao: reenvio do mesmo message.id colide com o indice unico
         // `wa_raw_message_id`, vira zero linhas afetadas e resposta 200 normal.
-        DB::table('whatsapp_raw_events')->insertOrIgnore([
+        $inseridas = DB::table('whatsapp_raw_events')->insertOrIgnore([
             'message_id'  => $this->primeiroPresente($request, ['message.id']),
             'instance'    => $this->primeiroPresente($request, ['instance', 'instance_name', 'owner']),
             'event_type'  => $this->primeiroPresente($request, ['EventType', 'event_type', 'event', 'type']),
@@ -43,6 +49,15 @@ class UazapiWebhookController extends Controller
             'created_at'  => now(),
             'updated_at'  => now(),
         ]);
+
+        // Só despacha se ALGO foi inserido. Reenvio ignorado pelo índice único
+        // já foi processado antes (ou será pela varredura) — reprocessar seria
+        // trabalho à toa. `lastInsertId` só é confiável sob esta guarda: numa
+        // linha ignorada não há id novo.
+        if ($inseridas > 0) {
+            ProcessarEventoWhatsapp::dispatch((int) DB::getPdo()->lastInsertId())
+                ->afterResponse();
+        }
 
         return response()->json(['ok' => true]);
     }

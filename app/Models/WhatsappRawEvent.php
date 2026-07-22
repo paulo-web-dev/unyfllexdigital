@@ -15,6 +15,8 @@ class WhatsappRawEvent extends Model
         'payload',
         'received_at',
         'processed_at',
+        'process_error',
+        'process_attempts',
     ];
 
     protected $casts = [

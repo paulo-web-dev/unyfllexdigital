@@ -42,6 +42,8 @@ database/sql/NNNN_descricao.down.sql
 
 Aplicado manualmente no banco (não roda via `artisan migrate`). Mantém reversibilidade sem violar a convenção do time de gerir schema fora de migrations.
 
+Pares existentes: `0001_create_jobs_table`, `0002_create_whatsapp_raw_events`, `0003_create_whatsapp_conversations_messages`, `0004_alter_whatsapp_raw_events_erro`.
+
 O diretório passou a existir em 22/07/2026, com os dois primeiros pares: `0001_create_jobs_table` (fila) e `0002_create_whatsapp_raw_events` (payload cru da Uazapi). Numeração sequencial de 4 dígitos, `CREATE TABLE IF NOT EXISTS` no `.up`, `DROP TABLE IF EXISTS` no `.down`, e um comentário de cabeçalho dizendo o que a reversão destrói quando a perda for irreversível — o cru da Uazapi não se reconstrói, o provedor não reenvia sob demanda.
 
 ## Integração Uazapi (WhatsApp)
@@ -57,6 +59,10 @@ Payload de mensagem recebida (webhook):
 - Grupos chegam pela mesma instância (`wa_isGroup`, `@g.us`).
 
 A integração fica isolada atrás de um contrato próprio (`WhatsappProviderContract` ou equivalente) — ver `plan.md`, Fatia 1 — para permitir trocar de provedor (ex. API oficial do WhatsApp) sem reescrever a aplicação.
+
+**Chave da conversa (`whatsapp_conversations.wa_chat_id`), decidida na Fatia 3:** conversa **1:1 é chaveada pelo telefone canônico**; **grupo, pelo id `@g.us`** do provedor. Grupo não tem telefone único, e o telefone é a identidade que a regra de ouro 4 manda usar. **Não fabricar um chat id sintético** (`telefone@s.whatsapp.net`): se o payload real trouxer id em formato diferente, as duas formas não colidem no índice único e a mesma conversa vira duas linhas.
+
+**Normalização de telefone tem um lugar só:** `app/Support/TelefoneCanonico.php`. Hoje só `normalizar()` (dígitos + DDI). A derivação da variante do 9º dígito é matching, entra na Fatia 4 **nessa mesma classe** — não numa segunda normalização espalhada pelo app.
 
 ### Configuração e amarração à instância de teste
 
@@ -74,7 +80,9 @@ A validação do `token` do body do webhook segue o padrão `validarSecret()` de
 
 Sem contato unificado — telefone espalhado em ≥5 tabelas, formatos possivelmente inconsistentes. Fontes vivas:
 
-- **`negociacoes_comercial` — fonte principal do funil comercial** (ligada direto a `classes_id`). Assumiu esse papel quando `leads` foi confirmada vazia (ver abaixo). **Limitação central, medida em 21/07/2026: 2.122 de 3.006 registros (70,6%) têm `whatsapp` inválido** — vazio/nulo **ou** com caractere não-dígito. Sobram **867 aproveitáveis (28,8%)**. A causa é desconhecida — pode ser migração incompleta de um sistema anterior ou preenchimento só em etapa posterior do funil; não presumir uma nem outra. Como não sobra outra tabela de funil ativo do mesmo porte, esses 28,8% são o **teto** de cobertura do matching, não um detalhe de qualidade de dado. E é teto mesmo: **754 dos 867 (87%) estão na forma de 12 dígitos**, ou seja, só casam com a Uazapi pela variante do 9º dígito — e a parcela deles que for telefone fixo não casa de jeito nenhum. Números completos em `docs/diagnostico-telefone.md`.
+- **`negociacoes_comercial` — fonte principal do funil comercial** (ligada direto a `classes_id`). Assumiu esse papel quando `leads` foi confirmada vazia (ver abaixo). **Limitação central, medida em 21/07/2026: 2.122 de 3.006 registros (70,6%) têm `whatsapp` inválido** — vazio/nulo **ou** com caractere não-dígito. Sobram **867 aproveitáveis (28,8%)**. A causa é desconhecida — pode ser migração incompleta de um sistema anterior ou preenchimento só em etapa posterior do funil; não presumir uma nem outra. Como não sobra outra tabela de funil ativo do mesmo porte, esses 28,8% são o **teto** de cobertura do matching, não um detalhe de qualidade de dado. E é teto mesmo: **754 dos 867 (87%) estão na forma de 12 dígitos**, ou seja, só casam com a Uazapi pela variante do 9º dígito. **A parcela fixa dessas foi medida em 22/07/2026 e é pequena: dos 628 telefones distintos de 12 dígitos, 589 (93,8%) são deriváveis e 39 são fixos inalcançáveis.**
+
+**CUIDADO COM A UNIDADE — isto já enganou uma leitura.** `754`, `867` e `3.006` são **linhas**. `589`, `39` e `628` são **telefones distintos** (Q8/Q8b deduplicam com `GROUP BY tel` antes de classificar). As 754 linhas contêm 628 números distintos; as 126 de diferença são o mesmo telefone repetido em negociações diferentes — não são registros perdidos. **Dividir um pelo outro (`589/754`) não produz taxa de cobertura nenhuma.** A cobertura em linhas depende da Q8c, ainda não executada. Ver `docs/diagnostico-telefone.md`.
 - `students` → `enrollments` → `classes` → `courses`
 - `leads_guia_licitacoes` (com UTMs), `contact`, `prematricula`
 
@@ -114,6 +122,21 @@ Toda coluna nova da inbox e todo matching de CRM usam **um único formato**: só
 - **Isto não é match difuso.** A adição do 9º dígito foi transformação determinística da Anatel: as duas formas são um par exato. Não usar distância de edição, não estender para "quase igual", não aceitar prefixo parcial.
 - **Registrar qual forma casou** junto ao resultado, para o painel poder dizer que casou pela variante.
 - **Match pela variante não autoriza corrigir a origem.** Nada de `UPDATE` na coluna legada — normalização continua sendo na leitura.
+
+**As quatro categorias de não-alcançável — e por que não podem ser tratadas igual.** Medidas em 22/07/2026 (Q8/Q8b). Todas terminam em "não casa", mas por motivos opostos, e confundi-las leva alguém a "consertar" o que está certo:
+
+| categoria | o que é | volume (telefones distintos) | o que fazer |
+|---|---|---|---|
+| `invalido` | vazio/nulo, ou com caractere não-dígito | 70,6% de `negociacoes_comercial` | ausência de dado — nada a derivar |
+| `fora_do_padrao` | só dígitos, comprimento que nenhuma regra recupera | 17 linhas em `negociacoes_comercial` | ausência de dado |
+| `fixo_2a5_inalcancavel` | **dado válido.** Fixo, e a guarda 6–9 proíbe derivar a variante | 436 na base; 39 em `negociacoes_comercial` | **nunca "corrigir".** Inserir o `9` inventaria o celular de outra pessoa |
+| `anomalo_0ou1` | bloco de 8 dígitos começa em **0 ou 1** | **9 na base inteira**; 0 em `negociacoes_comercial` | **dado quebrado** — nenhum número brasileiro válido começa assim. Candidato a limpeza na origem |
+
+A distinção que importa: **`fixo` é guarda intencional, `anomalo` é defeito.** O fixo está correto no banco e continua correto — só não é alcançável por WhatsApp. O anômalo não deveria existir.
+
+`anomalo_0ou1` também é sinal de que a heurística de comprimento tem limite: um valor de 10 dígitos é presumido DDD + assinante de 8, e quando a posição 5 do canônico dá 0/1 essa premissa falhou (número truncado, sem DDD, ou outra coisa). Volume desprezível, valor diagnóstico real.
+
+**Zero medido ≠ medição faltando.** `anomalo_0ou1` não aparece no resultado de `negociacoes_comercial` porque `GROUP BY` não produz grupo vazio — é zero, não lacuna. Vale para toda leitura das queries do diagnóstico.
 
 Hoje **não existem models Eloquent** para `negociacoes_comercial`, `contact`, `prematricula` nem `courses` — só `Classes`, `Student`, `Enrollment`, `LeadGuia`. Qualquer integração que precise ler essas tabelas cria o model correspondente; não presuma que já existe. **Exceção:** `leads` e `tentativas_de_contato` também não têm model e **não devem ganhar um** — ver "Tabelas vazias em produção".
 

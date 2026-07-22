@@ -204,7 +204,28 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 ---
 
-## Fatia 3 — Ver (processamento + lista + thread)
+## Fatia 3 — Ver (processamento + lista + thread) — **CONSTRUÍDA em 22/07/2026; dois critérios em aberto**
+
+> **Estado.** `0003` (conversations + messages) e `0004` (rastreio de falha no cru) aplicados em `unyflex_dev`. Entregue: `app/Support/TelefoneCanonico.php`, `app/Jobs/ProcessarEventoWhatsapp.php`, `app/Console/Commands/VarrerEventosCrus.php`, models `WhatsappConversation`/`WhatsappMessage`, `WhatsappInboxController`, views `admin/whatsapp/{index,thread}`, rotas em `routes/web.php`, agendamento de `whatsapp:varrer`, despacho `afterResponse` no webhook.
+>
+> **Verificado de fato:**
+>
+> | Teste | Observado |
+> |---|---|
+> | Processar cru → estruturado | conversa + mensagem criadas; `processed_at` preenchido |
+> | Reprocessar o mesmo cru | **nenhuma duplicata** (`updateOrCreate` contra `wa_msg_provider_id`) |
+> | Payload malformado | `process_error` gravado, `process_attempts` 1→2→3, e a **4ª varredura ignora** — o loop silencioso não acontece |
+> | Payload de grupo | persistido com `is_group=1`, **ausente da lista** e **404 por link direto** |
+> | Timestamp em ms | `1784724000000` → `2026-07-22 12:40:00`, sem cair em 1970 |
+> | Views | ambas renderizam; a lista informa quantos grupos foram capturados e ocultados |
+>
+> **Defeito de desenho achado pelo próprio teste:** a primeira versão exigia um `chat.id` no payload e falhava quando só havia `chat.phone`. Corrigido com uma regra explícita — **1:1 é chaveado pelo telefone canônico, grupo pelo id `@g.us`**. A alternativa (fabricar `telefone@s.whatsapp.net`) foi rejeitada: se o payload real trouxer id em outro formato, as duas formas não colidiriam no índice único e a mesma conversa viraria duas linhas.
+>
+> **Em aberto, e não dá para fechar nesta máquina:**
+>
+> - **Aferição do `afterResponse`.** Confirmado por execução que `function_exists('fastcgi_finish_request')` é **false** aqui. Sob `artisan serve` o processamento roda antes da resposta — passou nos testes, mas isso **não prova** o ganho de latência. **Nenhum número de latência é afirmado até medir sob php-fpm.** Plano B inalterado: se não flushar, volta para a fila por cron; a persistência síncrona do cru não muda.
+> - **Experimento `fromMe`/`wasSentByApi`/`source`** — exige mensagem real na instância de teste.
+> - **O parser foi testado contra payloads que eu mesmo escrevi.** Os campos vindos do `CLAUDE.md` (`chat.phone`, `message.id`, `sender_pn`, `wa_isGroup`, ms) são firmes; os de **texto, tipo e timestamp** são listas de candidatos, mesma família da pendência de `instance`/`EventType`. Isso exercita o código, não confirma o formato da Uazapi.
 
 - Processamento do cru → tabelas estruturadas (`conversations`, `messages`, via SQL versionado), disparado **logo após a resposta HTTP** do webhook com `dispatch(...)->afterResponse()` — mesmo processo, sem depender do worker. *(Assinatura confirmada em 22/07/2026 com `vendor/` instalado: `PendingDispatch::afterResponse()`, sem argumentos — `vendor/laravel/framework/src/Illuminate/Foundation/Bus/PendingDispatch.php:145`.)*
 - **Por que não broadcaster.** O gargalo não é o transporte até o browser, é a ingestão: com worker via cron a cada minuto, uma mensagem espera de 0 a 60s (média ~30s) para virar linha estruturada. Um websocket entregando em 50ms um dado que chegou 30s atrasado não resolve o problema, só o disfarça. O `afterResponse` deve derrubar o piso de ~60s para ~1s no caminho comum, sem daemon, sem dependência nova e sem config compartilhada nova — **expectativa a aferir, ver abaixo**, não medição feita.
@@ -238,7 +259,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - **A regra do 9º dígito é mecanismo de primeira ordem, não borda — e o número que parece dizer o contrário mede outra coisa.** A Q7 devolveu 379 núcleos (~2,2%), mas conta *duplicação interna* (o mesmo assinante nas duas formas dentro da nossa base). O que importa aqui é que a Uazapi manda 13 dígitos sempre, e **38,2% da base aproveitável normaliza para 12** — em `negociacoes_comercial`, **87% (754 de 867)**. Sem a variante, a fonte principal do funil casa praticamente nada.
 - Painel lateral na thread mostrando **apenas**: nome + qual tabela casou, ou "não identificado".
 - Models Eloquent criados só para as tabelas que o matching precisar — **`negociacoes_comercial` primeiro**, por ser a fonte principal do funil (nenhum model existe hoje para ela nem para `prematricula`). Nada de model para `leads`: tabela vazia, ver divergência 9.
-- **Teto de cobertura conhecido, medido, e é baixo.** `negociacoes_comercial` tem **867 de 3.006 (28,8%)** de telefone aproveitável, e `leads` está vazia. **Isso é teto e não previsão** — a parcela de fixos dentro da forma de 12 é inalcançável por WhatsApp, e só Q8/Q8b dizem quanto. **"Não identificado" será o estado comum, não a exceção**. Isso é fato de desenho, não defeito a corrigir depois: a UI trata esse estado como caminho normal — não como erro, não como espaço vazio num canto da tela. Se o painel só ficar apresentável quando há match, ele fica feio na maioria das conversas reais.
+- **Teto de cobertura conhecido, medido, e é baixo.** `negociacoes_comercial` tem **867 de 3.006 (28,8%)** de telefone aproveitável, e `leads` está vazia. **A parcela fixa dentro da forma de 12 foi medida em 22/07/2026 (Q8/Q8b) e é pequena: 589 deriváveis contra 39 fixos, de 628 telefones distintos — 93,8% deriváveis.** A regra do 9º dígito entrega o que se esperava dela.
+- **A cobertura tem duas unidades e elas não se dividem.** `867/3.006` e `754` são **linhas**; `589/628` são **telefones distintos** (Q8/Q8b deduplicam antes de classificar). As 754 linhas contêm 628 números — as 126 de diferença são repetição, não perda. **`589/754` não é taxa de nada.** A cobertura em linhas depende da **Q8c**, escrita em `docs/diagnostico-telefone.sql` e ainda não executada: é o que ainda trava esta fatia.
+- **Quatro categorias de não-alcançável, não duas** (tabela no `CLAUDE.md`): `invalido` e `fora_do_padrao` são ausência de dado; `fixo_2a5_inalcancavel` é **dado válido sob guarda intencional** e nunca deve ser "corrigido"; `anomalo_0ou1` (bloco de 8 começando em 0/1 — 9 na base inteira, 0 em `negociacoes_comercial`) é **dado quebrado**. O painel não precisa mostrar as quatro, mas quem escrever o matching não pode tratá-las como a mesma coisa. **"Não identificado" será o estado comum, não a exceção**. Isso é fato de desenho, não defeito a corrigir depois: a UI trata esse estado como caminho normal — não como erro, não como espaço vazio num canto da tela. Se o painel só ficar apresentável quando há match, ele fica feio na maioria das conversas reais.
 
 **Critério de pronto:** abrir a conversa de teste e ver o nome real de um registro de `negociacoes_comercial` ou `students` cujo telefone bate com `chat.phone`; casar também um cadastro gravado sem o 9º dígito; o estado "não identificado" só aparecer **depois** de a variante ter sido testada; e esse estado ser exercitado e revisado como tela, não só como ausência de dado.
 

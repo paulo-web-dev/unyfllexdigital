@@ -19,6 +19,7 @@ use App\Http\Controllers\CursoLandingController;
 use App\Http\Controllers\Admin\PropostaController;
 use App\Http\Controllers\GuiaLicitacoesController;
 use App\Http\Controllers\Admin\LeadsGuiaController;
+use App\Http\Controllers\Admin\WhatsappInboxController;
 use App\Http\Controllers\Admin\ModularCourseController;
 use App\Http\Controllers\Admin\CourseMaterialController;
 use App\Http\Controllers\Admin\AdCreativeController;
@@ -171,6 +172,13 @@ Route::prefix('admin')
         Route::get('/leads-guia/exportar',         [LeadsGuiaController::class, 'exportar'])->name('leads-guia.export');
         Route::post('/leads-guia/{id}/contatado',  [LeadsGuiaController::class, 'toggleContatado'])->name('leads-guia.toggle');
         Route::post('/leads-guia/{id}/observacao', [LeadsGuiaController::class, 'salvarObservacao'])->name('leads-guia.note');
+
+        // ── Inbox Uazapi (WhatsApp) — Fatia 3, SOMENTE LEITURA ──────────────
+        // Modo sombra: roda em paralelo ao Chatwoot, que segue sendo o
+        // atendimento de producao (regra de ouro 9). Nao ha rota de envio,
+        // resposta ou atribuicao — envio exige checkpoint explicito.
+        Route::get('/whatsapp',            [WhatsappInboxController::class, 'index'])->name('whatsapp.index');
+        Route::get('/whatsapp/{conversa}', [WhatsappInboxController::class, 'show'])->name('whatsapp.thread');
 
         // ── Matrículas (super admin + comercial) ──────────────────────────
         Route::get('/matriculas',             [AdminController::class, 'matriculas'])->name('matriculas');

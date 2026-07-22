@@ -19,6 +19,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('queue:work --stop-when-empty --max-time=50')
                  ->everyMinute()
                  ->withoutOverlapping();
+
+        // Rede de seguranca da regra de ouro 2: o afterResponse do webhook e
+        // best-effort, e esta varredura repesca o cru que ficou sem
+        // processamento. Nao substitui o afterResponse — cobre a falha dele.
+        $schedule->command('whatsapp:varrer')
+                 ->everyMinute()
+                 ->withoutOverlapping();
     }
 
     /**

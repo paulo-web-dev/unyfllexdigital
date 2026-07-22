@@ -60,11 +60,57 @@ O caso de uso real é outro. A Uazapi manda `chat.phone` **sempre com 13 dígito
 
 Conclusão: a regra do 9º dígito não é tratamento de borda, é **mecanismo de primeira ordem** do matching, e precisa existir desde o primeiro commit da Fatia 4.
 
-### O que ainda não foi medido — Q8
+### Alcançabilidade da forma de 12 — Q8 e Q8b, executadas em 22/07/2026
 
-Nem todo número de 12 dígitos é derivável para 13. A guarda do `CLAUDE.md` só permite inserir o `9` quando o assinante de 8 começa em **6–9**; fixo brasileiro começa em **2–5** e não pode ser colapsado, sob pena de inventar um celular de outra pessoa. **A parcela fixa dessas 11.515 é inalcançável por WhatsApp por este caminho.**
+Nem todo número de 12 dígitos é derivável para 13. A guarda do `CLAUDE.md` só permite inserir o `9` quando o assinante de 8 começa em **6–9**; fixo brasileiro começa em **2–5** e não pode ser colapsado, sob pena de inventar um celular de outra pessoa.
 
-Portanto **28,8% é teto, não previsão.** As queries **Q8** (base toda) e **Q8b** (só `negociacoes_comercial`) foram acrescentadas ao `.sql` para separar `derivavel_celular_6a9` de `fixo_2a5_inalcancavel`. **Ainda não executadas** — é o número que falta para a Fatia 4.
+**Resultado — e a unidade é `telefones distintos`, não linhas:**
+
+| recorte | derivável 6–9 | fixo 2–5 | anômalo 0/1 | **total distintos** | **% derivável** |
+|---|---:|---:|---:|---:|---:|
+| base toda | 6.416 | 436 | 9 | **6.861** | **93,5%** |
+| `negociacoes_comercial` | 589 | 39 | **0** | **628** | **93,8%** |
+
+**A parcela fixa é bem menor do que o item 3 temia.** O medo era que a forma de 12 fosse majoritariamente fixo, derrubando a cobertura muito abaixo do teto de 28,8%. Não é o caso: 93,8% dos distintos de 12 dígitos em `negociacoes_comercial` são celular derivável. A regra do 9º dígito **entrega** o que se esperava dela.
+
+`anomalo_0ou1` é classe nova, não prevista no `CLAUDE.md` — bloco de 8 dígitos começando em 0 ou 1, que não é fixo nem celular. **9 números na base inteira, 0 em `negociacoes_comercial`.** O zero é medido, não faltante: `GROUP BY` não gera grupo vazio (ressalva no cabeçalho do `.sql:518-519`). Ver a tabela das quatro categorias no `CLAUDE.md`.
+
+---
+
+## 3b. Os 126 que "faltavam" — reconciliação Q3 × Q8b
+
+Ao comparar Q8b com Q3 aparece um buraco: a Q3 aponta **754** candidatos de 12 dígitos em `negociacoes_comercial` (`sem_ddi_10` 705 + `canonico12` 49), mas a Q8b soma **628** (589 + 39 + 0). Faltariam 126.
+
+**Não faltam. As duas queries contam coisas diferentes:**
+
+- **Q3 conta LINHAS** — `COUNT(*)` agrupado por coluna e classe, sem deduplicação.
+- **Q8/Q8b contam TELEFONES DISTINTOS** — a subquery interna faz `WHERE CHAR_LENGTH(tel) = 12 GROUP BY tel` (`.sql:606-607`) *antes* da classificação, então o `COUNT(*)` externo já opera sobre valores únicos.
+
+```
+754 linhas  →  628 telefones distintos
+               126 = o mesmo número repetido em negociações diferentes
+```
+
+**Verificado que o mapeamento Q3→Q8 é exato**, sem vazamento de classe. Sob o `CASE` da Q8 (`.sql:530-536`), só duas classes da Q3 produzem um `tel` de 12 caracteres:
+
+| classe Q3 | `tel` resultante | entra na Q8? |
+|---|---|---|
+| `canonico12` | `d` (12) | **sim** |
+| `sem_ddi_10` | `CONCAT('55', d)` (12) | **sim** |
+| `canonico13` | `d` (13) | não |
+| `sem_ddi_11` | `CONCAT('55', d)` (13) | não |
+| `fora_do_padrao`, `invalido` | `''` | não |
+
+**Corroboração na base toda:** as 11.515 linhas do item 3 correspondem a 6.861 distintos — deduplicação de 40,4%, contra 16,7% dentro de `negociacoes_comercial` sozinha. A dedup cruzada ser bem maior que a intra-tabela é exatamente o que a Q6 previa ao medir 61% dos telefones distintos aparecendo em ≥2 tabelas. Os dois números se sustentam mutuamente.
+
+### A armadilha que isto cria
+
+**`589 / 754` não é taxa de cobertura** — numerador em telefones distintos, denominador em linhas. Nenhuma razão entre um número desta seção e um número do item 2 ou 3 significa alguma coisa.
+
+Duas perguntas legítimas e diferentes, cada uma com sua unidade:
+
+- *"Chega uma mensagem no WhatsApp — consigo identificar a pessoa?"* → **por telefone distinto.** Respondida: 93,8%.
+- *"Quanto do meu funil comercial eu alcanço?"* → **por linha de negociação.** **Ainda não respondida** — depende da **Q8c**, acrescentada ao `.sql` e ainda não executada.
 
 ---
 
@@ -107,7 +153,7 @@ Duas ressalvas honestas:
 Registrado para não passar por completo:
 
 - **Padrões de formatação distintos por coluna (Q1)** e **distribuição fina de comprimento (Q2)** — as queries existem e rodaram, mas a saída não foi transcrita aqui. Não altera nenhuma conclusão acima, que se apoia em Q3/Q4/Q5/Q6/Q7.
-- **Q8 e Q8b** — escritas, não executadas. É a lacuna que importa (item 3).
+- **Q8 e Q8b** — executadas em 22/07/2026, resultados no item 3. **Q8c** (a mesma classificação em linhas) foi escrita e **ainda não executada** — é a lacuna que resta, e é o que fecha a cobertura na unidade em que o resto deste relatório fala.
 - **Causa dos 70,6% de `negociacoes_comercial`** — pergunta em aberto no `plan.md`, para quem opera o funil comercial. Não é investigação de schema, e não deve ser presumida.
 
 ---
@@ -117,4 +163,6 @@ Registrado para não passar por completo:
 1. **Normalizar prefixando `55`** é o caminho comum (86,9%–99,2% dos registros), não um fallback.
 2. **A regra do 9º dígito é obrigatória desde o primeiro commit** — 38,2% da base útil só casa por ela, e 87% da fonte principal do funil.
 3. **"Não identificado" será o estado comum**, não a exceção — a UI trata isso como caminho normal.
-4. **Rodar Q8/Q8b antes de prometer qualquer número de cobertura.** 28,8% em `negociacoes_comercial` é teto.
+4. **A variante do 9º dígito entrega:** 93,8% dos telefones distintos de 12 dígitos em `negociacoes_comercial` são celular derivável, contra 6,2% de fixo inalcançável. O teto de 28,8% (em linhas) não é corroído de forma relevante pela parcela fixa.
+5. **Sempre rotular a unidade.** Linhas e telefones distintos convivem neste relatório e não se dividem entre si. Antes de prometer qualquer taxa de cobertura em linhas, rodar a **Q8c**.
+6. **Quatro categorias, não duas.** `fixo_2a5_inalcancavel` é guarda intencional sobre dado válido; `anomalo_0ou1` é dado quebrado. A UI e qualquer futura limpeza precisam distinguir os dois — ver `CLAUDE.md`.
