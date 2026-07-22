@@ -221,9 +221,22 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 >
 > **Defeito de desenho achado pelo próprio teste:** a primeira versão exigia um `chat.id` no payload e falhava quando só havia `chat.phone`. Corrigido com uma regra explícita — **1:1 é chaveado pelo telefone canônico, grupo pelo id `@g.us`**. A alternativa (fabricar `telefone@s.whatsapp.net`) foi rejeitada: se o payload real trouxer id em outro formato, as duas formas não colidiriam no índice único e a mesma conversa viraria duas linhas.
 >
-> **Em aberto, e não dá para fechar nesta máquina:**
+> **AFERIÇÃO DO `afterResponse`: FEITA em 22/07/2026, e PASSOU.** Eu tinha registrado que não dava para medir aqui — errado: a máquina tem `php-fpm` 8.5.8, Apache 2.4.66 e `mod_proxy_fcgi`. Subi um fpm em porta alta (config própria no scratchpad, sem `sudo`, sem tocar em nada do sistema) e rodei uma sonda descartável: rota que despacha via `afterResponse()` um job que dorme 2s, e `curl -w '%{time_total}'` como cliente.
 >
-> - **Aferição do `afterResponse`.** Confirmado por execução que `function_exists('fastcgi_finish_request')` é **false** aqui. Sob `artisan serve` o processamento roda antes da resposta — passou nos testes, mas isso **não prova** o ganho de latência. **Nenhum número de latência é afirmado até medir sob php-fpm.** Plano B inalterado: se não flushar, volta para a fila por cron; a persistência síncrona do cru não muda.
+> | SAPI | `fastcgi_finish_request` | resposta ao cliente | job conclui |
+> |---|---|---|---|
+> | **php-fpm** | `true` | **0,012–0,017s** (4 rodadas) | ~2,003s após o dispatch |
+> | `artisan serve` (cli-server) | `false` | **2,188s** — presa o `sleep` inteiro | — |
+>
+> Mesmo código, mesmo job: **a resposta sai ~2s antes do trabalho terminar sob fpm, e não sai sob `artisan serve`**. O contraste isola o mecanismo — é `fastcgi_finish_request`, não outra coisa.
+>
+> **Premissa que eu deveria ter conferido antes e conferi agora:** `ProcessarEventoWhatsapp` implementa `ShouldQueue`, então `afterResponse()` poderia significar "enfileira depois da resposta" em vez de "executa em processo". Não significa: `Dispatcher::dispatchAfterResponse()` (`vendor/laravel/framework/src/Illuminate/Bus/Dispatcher.php:264-269`) registra um callback `terminating` que chama `dispatchSync`. Confirmado também pela sonda — `jobs` ficou em 0 antes e depois.
+>
+> **O limite deste número, junto e não depois:** isto mede **um** php-fpm, o meu. Prova que o mecanismo funciona nesta SAPI com este PHP. **Não prova** que o fpm do servidor de produção não tem `fastcgi_finish_request` em `disable_functions`. O item sai de *"não medido"* para *"medido fora do servidor de produção"*, e sobra uma checagem de uma linha (`function_exists`) para quem tiver acesso ao servidor real. Plano B inalterado caso ela falhe lá.
+>
+> **O que continua NÃO medido:** a duração do próprio `ProcessarEventoWhatsapp`. O que ficou provado é que a ingestão **deixou de esperar o cron**; quanto o job leva por conta própria (algumas escritas no banco) não foi cronometrado.
+>
+> **Em aberto, e não dá para fechar nesta máquina:**
 > - **Experimento `fromMe`/`wasSentByApi`/`source`** — exige mensagem real na instância de teste. **Encolheu em 22/07/2026:** a doc confirma que os três campos existem e o que cada um significa (enviada pelo usuário / enviada via API / plataforma de origem). Falta observar os **valores** de uma mensagem mandada pelo celular contra uma mandada pela API — isso a doc não responde.
 >
 > **Resíduo fechado em 22/07/2026, junto da Fatia 7:** a inbox **não tinha entrada no menu** — existia só por URL digitada. `nav-item` acrescentado em `resources/views/layouts/admin.blade.php`, sob `@can('admin.alunos')` (power >= 13), no mesmo padrão do bloco de `admin.leads-guia`.
@@ -238,13 +251,13 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 - **Durabilidade preservada.** O cru é persistido **sincronamente antes** da resposta (Fatia 2). O `afterResponse` é best-effort; o worker por cron vira **rede de segurança**, varrendo periodicamente os payloads crus ainda não processados. Se o `afterResponse` falhar, o processo morrer ou a app cair, a varredura reprocessa. A garantia do risco #2 continua de pé.
 - **Ressalva:** `afterResponse` segura o processo php-fpm enquanto roda, então o processamento precisa ser leve. Trabalho pesado (download de mídia, quando entrar) vai para a fila real.
 
-**Aferição obrigatória antes de dar a fatia por resolvida.** `dispatch(...)->afterResponse()` roda no ciclo `terminate` e só devolve a resposta antes do trabalho se `fastcgi_finish_request` existir e estiver habilitado sob php-fpm. Em `artisan serve` (servidor embutido do PHP) a função **não existe** — o cliente espera o job terminar, e um teste ali passaria dando a impressão errada.
+**Aferição obrigatória antes de dar a fatia por resolvida — FEITA em 22/07/2026, resultado no bloco de estado acima.** `dispatch(...)->afterResponse()` roda no ciclo `terminate` e só devolve a resposta antes do trabalho se `fastcgi_finish_request` existir e estiver habilitado sob php-fpm. Em `artisan serve` (servidor embutido do PHP) a função **não existe** — o cliente espera o job terminar, e um teste ali passaria dando a impressão errada. **As duas metades foram observadas lado a lado**, e é por isso que o número vale.
 
 - Endpoint isolado e descartável que despacha via `afterResponse` um job que só dorme e loga `microtime` na conclusão; o cliente loga o instante em que recebeu a resposta.
 - **Passa** se o cliente recebe a resposta antes do log de conclusão. **Falha** se os dois instantes coincidem — a resposta ficou presa.
 - Rodar no ambiente mais próximo de produção disponível (php-fpm), nunca em `artisan serve`. Conferir `function_exists('fastcgi_finish_request')` no ambiente alvo.
-- **Plano B, se falhar:** volta para a fila via cron. Muda só a latência prometida (~30s p50), **não a segurança do dado** — o cru continua persistido sincronamente antes da resposta, e a varredura por cron continua sendo a rede de segurança.
-- Enquanto essa aferição não for feita, **todo número de latência neste plano é provisório**.
+- **Plano B, se falhar:** volta para a fila via cron. Muda só a latência prometida (~30s p50), **não a segurança do dado** — o cru continua persistido sincronamente antes da resposta, e a varredura por cron continua sendo a rede de segurança. *(Não foi preciso: a aferição passou. O plano B segue de pé para o caso de o fpm de produção desabilitar a função.)*
+- ~~Enquanto essa aferição não for feita, **todo número de latência neste plano é provisório**.~~ **Feita.** Os números deixam de ser provisórios quanto ao mecanismo; continuam sem cronometragem do job em si.
 - UI Blade: lista de conversas 1:1 (grupos persistidos, não exibidos — decisão #6) + thread com histórico. Atualização só por refresh manual nesta fatia.
 - **Experimento a fazer aqui** (não é pergunta para a Uazapi): mandar uma mensagem pelo celular físico e outra pela API na instância de teste, capturar os dois payloads e comparar `fromMe`, `wasSentByApi` e `source`. Documentar o resultado no `CLAUDE.md`.
 
@@ -254,7 +267,15 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 ---
 
-## Fatia 4 — Painel de CRM, fatia fina
+## Fatia 4 — Painel de CRM, fatia fina — **TRAVADA; só o algoritmo da variante foi adiantado**
+
+> **`TelefoneCanonico::variante()` existe desde 22/07/2026**, com `tests/Unit/TelefoneCanonicoTest.php` (13 casos, **fica no repo** — função pura, não toca banco nem dado real, mesmo critério do `UazapiEnvioTest`).
+>
+> **Por que ela pôde entrar com a Q9 pendente:** a Q9 decide **taxas de cobertura em linhas**, não o algoritmo. A derivação do 9º dígito é transformação determinística da Anatel, já fechada no `CLAUDE.md`, e não depende de número nenhum ainda por medir. **O resto da fatia continua travado:** models de CRM, painel na thread e o matching contra as tabelas.
+>
+> **Um furo nos meus próprios testes, achado quebrando o código de propósito.** A primeira versão só cobria a guarda 6-9 no sentido 12 → 13. Uma mutação que a removesse **só do lado 13 → 12** passava despercebida — e esse lado importa: `5511923456789` é celular válido hoje, mas o bloco `23456789` cai na faixa de fixo, então ele **não tem forma legada**, e derivar `551123456789` afirmaria uma equivalência inexistente contra um número que pode ser de outra pessoa. Caso acrescentado; é o único que pega essa mutação.
+>
+> **Três mutações, cada uma reprovando o teste que a defende:** guarda 6-9 removida (reprovou fixo e anômalo); guarda assimétrica (reprovou o caso novo, e só ele); exigência do `9` pós-DDD removida (reprovou o caso do 13 sem 9 na posição).
 
 Antecipado de propósito: valida o matching por telefone enquanto ainda dá tempo de corrigir o desenho, em vez de descobrir o problema no fim.
 
@@ -299,7 +320,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - Endpoint leve devolvendo só o delta desde a última mensagem vista.
 - **Higiene do laço:** pausa quando `document.hidden` (o cursor é absoluto, o primeiro tick visível recupera tudo), para após 3 falhas seguidas, e para imediatamente em 401/403/419 — sessão expirada não pode virar uma requisição a cada 5s contra a tela de login.
 - **Rolagem só desce sozinha se a pessoa já estava no fim**; caso contrário, botão "n novas mensagens ↓". Puxar a tela de quem lê histórico é o jeito clássico de tornar a atualização automática irritante.
-- **Latência total resultante — número provisório, pendente da aferição da Fatia 3:** p50 ~3,5s (≈1s de ingestão + meio intervalo de polling), contra os ~30s do desenho com worker por cron. Se o `afterResponse` não flushar a resposta no ambiente real, este número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
+- **Latência total resultante — o pressuposto foi aferido em 22/07/2026 e passou** (ver Fatia 3): sob php-fpm a resposta sai em ~15ms e o processamento roda logo depois, em processo, sem esperar o cron. p50 ~3,5s (ingestão + meio intervalo de polling) deixa de depender de suposição sobre o `afterResponse` — **mas o "≈1s de ingestão" continua sendo estimativa**: a duração do `ProcessarEventoWhatsapp` em si não foi cronometrada, e a aferição foi no meu fpm, não no servidor de produção. Se lá a função estiver desabilitada, o número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
 - **Reversível:** se o volume um dia justificar websocket, o broadcaster entra sem refazer modelo de dados nem processamento.
 
 **Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **Não cumprido ainda** — depende de abrir o navegador, e a mensagem de teste depende da instância de teste.
