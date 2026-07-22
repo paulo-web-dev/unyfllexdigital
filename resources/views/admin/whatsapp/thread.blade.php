@@ -19,8 +19,7 @@
     </div>
   </div>
 
-  {{-- Sem painel lateral de CRM: identificar o contato é Fatia 4, e ela está
-       travada até a Q9 fechar a cobertura em linhas. --}}
+  @include('admin.whatsapp._crm', ['contato' => $contato])
 
   @if (session('sucesso'))
     <div class="alert alert-success py-2 small">{{ session('sucesso') }}</div>

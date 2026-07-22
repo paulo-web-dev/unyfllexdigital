@@ -200,6 +200,25 @@ A distinção que importa: **`fixo` é guarda intencional, `anomalo` é defeito.
 
 **Zero medido ≠ medição faltando.** `anomalo_0ou1` não aparece no resultado de `negociacoes_comercial` porque `GROUP BY` não produz grupo vazio — é zero, não lacuna. Vale para toda leitura das queries do diagnóstico.
 
+### O matching vive em `app/Services/IdentificacaoContato.php` (Fatia 4)
+
+**Um lugar só, e ele só lê.** Dado o `chat_phone` (já canônico, gravado assim pelo parser), o serviço monta **exatamente quatro** candidatas — as mesmas quatro classes que a Q3 do diagnóstico mede — e compara por igualdade:
+
+| classe da Q3 | forma | de onde vem |
+|---|---|---|
+| `canonico13` | `5511987654321` | o próprio `chat_phone` |
+| `sem_ddi_11` | `11987654321` | sem os dois primeiros dígitos |
+| `canonico12` | `551187654321` | `TelefoneCanonico::variante()` |
+| `sem_ddi_10` | `1187654321` | a variante sem DDI |
+
+**Sem `REGEXP` em lugar nenhum**, de propósito: comparação por igualdade não tem a borda do `$` do ICU. A limpeza da coluna legada é a **mesma cadeia de `REPLACE` do `docs/diagnostico-telefone.sql`** (` `, `-`, `(`, `)`, `.`, `+`, `/`) — e essa identidade é o ponto: **as taxas de cobertura publicadas preveem o comportamento do matcher**. Trocar a cadeia por uma limpeza mais larga desfaz essa correspondência sem avisar ninguém.
+
+**Ordem por FORMA, não por fonte:** todas as fontes são testadas pelo canônico antes de qualquer derivação. Match direto em qualquer tabela vale mais que derivado em outra.
+
+**Varredura completa, e é escolha.** Os `REPLACE` inutilizam índice; com ~3 mil linhas em `negociacoes_comercial` isso é irrelevante. Se alguma fonte chegar a centenas de milhares, o caminho é coluna canônica materializada — **não `LIKE`**.
+
+**O `unyflex_dev` não tem tabela de CRM nenhuma** (medido em 22/07/2026): sem `students`, `negociacoes_comercial`, `prematricula`, `classes` ou `enrollments`. Qualquer trabalho de matching em dev precisa fabricar a fonte, com dado **inventado** — e o script fica fora do repo, porque `database/sql/` é para schema nosso, não para tabela legada.
+
 Hoje **não existem models Eloquent** para `negociacoes_comercial`, `contact`, `prematricula` nem `courses` — só `Classes`, `Student`, `Enrollment`, `LeadGuia`. Qualquer integração que precise ler essas tabelas cria o model correspondente; não presuma que já existe. **Exceção:** `leads` e `tentativas_de_contato` também não têm model e **não devem ganhar um** — ver "Tabelas vazias em produção".
 
 ## Atualização automática da inbox (polling, Fatia 5)

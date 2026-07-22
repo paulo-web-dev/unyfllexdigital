@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
+use App\Services\IdentificacaoContato;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,8 +25,9 @@ use Illuminate\View\View;
  * enviado ao WhatsApp. Envio continua fechado atrás do checkpoint explícito
  * das Fatias 6/8.
  *
- * SEM PAINEL DE CRM. Identificar o contato é Fatia 4, travada até a Q9
- * fechar a cobertura em linhas.
+ * O PAINEL DE CRM (Fatia 4) TAMBÉM SÓ LÊ. `IdentificacaoContato` não escreve
+ * em tabela de CRM, e match pela variante do 9º dígito não autoriza corrigir a
+ * origem — normalização é na leitura.
  */
 class WhatsappInboxController extends Controller
 {
@@ -75,7 +77,7 @@ class WhatsappInboxController extends Controller
         return view('admin.whatsapp.index', compact('conversas', 'gruposOcultos', 'filtro', 'desde', 'cursor'));
     }
 
-    public function show(WhatsappConversation $conversa): View
+    public function show(WhatsappConversation $conversa, IdentificacaoContato $identificacao): View
     {
         // Grupo não é exibido nem por link direto. Sem esta linha, o filtro da
         // lista seria contornável trocando o id na URL.
@@ -94,7 +96,13 @@ class WhatsappInboxController extends Controller
         // o primeiro delta reenviar mensagens já visíveis.
         $cursor = (int) ($mensagens->max('id') ?? 0);
 
-        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes', 'cursor'));
+        // Identificação do contato (Fatia 4). Resolvida no RENDER, não no
+        // polling: cadastro de CRM não muda enquanto a thread está aberta, e
+        // acrescentá-la ao payload do delta mexeria no contrato da Fatia 5
+        // (só rótulo + hash) sem ganho nenhum.
+        $contato = $identificacao->identificar($conversa->chat_phone);
+
+        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes', 'cursor', 'contato'));
     }
 
     /**

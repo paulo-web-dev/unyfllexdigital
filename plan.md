@@ -271,7 +271,31 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 ---
 
-## Fatia 4 — Painel de CRM, fatia fina — **TRAVADA; só o algoritmo da variante foi adiantado**
+## Fatia 4 — Painel de CRM, fatia fina — **DESTRAVADA E CONSTRUÍDA em 22/07/2026; falta a fonte principal**
+
+> **Entregue:** `App\Services\IdentificacaoContato`, `App\Support\ContatoIdentificado`, `resources/views/admin/whatsapp/_crm.blade.php`, e a chamada em `WhatsappInboxController::show()`. **Nenhuma escrita em tabela de CRM, nenhum schema novo, nenhuma config.**
+>
+> **O que FALTA, e é a fonte principal:** `negociacoes_comercial` ainda não está em `IdentificacaoContato::FONTES`. Não é esquecimento nem preguiça — **os nomes das colunas dela não podem ser adivinhados** (o `CLAUDE.md` proíbe afirmar sobre o que não se abriu), e a tabela **não existe no `unyflex_dev`**. Pedido ao Paulo: `SHOW CREATE TABLE negociacoes_comercial` — só estrutura, zero linhas, nada de LGPD. Acrescentar a fonte é **uma entrada no array**; o resto do serviço não muda.
+>
+> **O fato que mudou o planejamento, medido e não suposto: o `unyflex_dev` não tem nenhuma tabela de CRM.** Só existem `users(2)`, as três da inbox, `jobs`/`failed_jobs`, `migrations`, `password_reset_tokens`, `personal_access_tokens`, `referral_clicks` e a `_teste_normalizacao_telefone(35)` — sobra da prova da Q8c, registrada e não limpa aqui. Sem `students`, `negociacoes_comercial`, `prematricula`, `classes` nem `enrollments`. **O critério de pronto desta fatia era, até então, impossível de cumprir em dev**, e ninguém tinha percebido porque nada ainda tinha tentado ler essas tabelas. Resolvido com uma `students` **fabricada** no dev (telefones e nomes inventados, regra de ouro 9), script no scratchpad e fora do repo — `database/sql/` é para schema **nosso**, e esta é tabela legada.
+>
+> **O desenho do matching, e por que ele não inventa uma segunda normalização.** Do `chat_phone` canônico saem **exatamente quatro** strings que um cadastro legítimo poderia ter guardado, e elas são as mesmas quatro classes que a Q3 mede: `canonico13` e `sem_ddi_11` (forma direta), `canonico12` e `sem_ddi_10` (pela variante). O matching é `WHERE <coluna sem formatação> IN (as quatro)` — **determinístico, sem `REGEXP`, sem distância de edição, sem prefixo parcial**, e portanto imune à armadilha do `$` do ICU, que não é usada em lugar nenhum aqui.
+>
+> A limpeza no SQL é **deliberadamente a mesma cadeia de `REPLACE` do diagnóstico** (` `, `-`, `(`, `)`, `.`, `+`, `/`), e esse é o argumento a favor dela: **as taxas de cobertura já publicadas passam a prever o comportamento do matcher**, em vez de descrever outra coisa. Ela é mais estreita que o `preg_replace('/\D+/')` do PHP — valor com letra ou caractere de controle no meio não casa —, e isso está medido: 2 linhas na base inteira, zero em `negociacoes_comercial`.
+>
+> **Ordem por FORMA, não por fonte.** Todas as fontes são testadas pelo canônico antes de qualquer derivação. Um match direto em qualquer tabela vale mais que um derivado em outra: a variante é dedução, ainda que determinística, e deixá-la passar na frente de uma igualdade seria trocar certeza por inferência sem motivo.
+>
+> **Verificado por teste descartável** (11 casos, 31 asserções, `unyflex_dev`, dados inventados, removido depois) — inclusive **as duas telas**, que os testes de serviço não cobririam: a thread com contato identificado e a thread no estado "não identificado".
+>
+> **Três mutações, cada uma reprovando exatamente quem a defende:**
+>
+> | mutação | reprovou |
+> |---|---|
+> | laço de formas sem `'variante'` | **2** — os dois casos de variante, e só eles |
+> | candidata sem DDI removida | **4** — todos os que dependem da forma curta, que é a que mais casa na base |
+> | cadeia de `REPLACE` esvaziada | **1** — o cadastro com formatação |
+>
+> **Fora, e continua fora:** `prematricula`, `leads_guia_licitacoes`, `contact` e `corporativos` como fontes (as duas últimas por volume — 1 e 12 linhas); qualquer escrita em CRM; e a `LeadGuia::whatsappLink()`, que segue com normalização própria (registrada, fora de escopo).
 
 > **`TelefoneCanonico::variante()` existe desde 22/07/2026**, com `tests/Unit/TelefoneCanonicoTest.php` (13 casos, **fica no repo** — função pura, não toca banco nem dado real, mesmo critério do `UazapiEnvioTest`).
 >
@@ -296,6 +320,8 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - **Quatro categorias de não-alcançável, não duas** (tabela no `CLAUDE.md`): `invalido` e `fora_do_padrao` são ausência de dado; `fixo_2a5_inalcancavel` é **dado válido sob guarda intencional** e nunca deve ser "corrigido"; `anomalo_0ou1` (bloco de 8 começando em 0/1 — 9 na base inteira, 0 em `negociacoes_comercial`) é **dado quebrado**. O painel não precisa mostrar as quatro, mas quem escrever o matching não pode tratá-las como a mesma coisa. **"Não identificado" será o estado comum, não a exceção**. Isso é fato de desenho, não defeito a corrigir depois: a UI trata esse estado como caminho normal — não como erro, não como espaço vazio num canto da tela. Se o painel só ficar apresentável quando há match, ele fica feio na maioria das conversas reais.
 
 **Critério de pronto:** abrir a conversa de teste e ver o nome real de um registro de `negociacoes_comercial` ou `students` cujo telefone bate com `chat.phone`; casar também um cadastro gravado sem o 9º dígito; o estado "não identificado" só aparecer **depois** de a variante ter sido testada; e esse estado ser exercitado e revisado como tela, não só como ausência de dado.
+
+**Estado em 22/07/2026 — cumprido contra dado INVENTADO, não contra dado real.** Os três comportamentos foram observados (match direto, match pela variante nas duas direções, e "não identificado" como tela), mas a fonte era uma `students` fabricada no `unyflex_dev`. **Ninguém ainda viu este painel apontar um nome real**, e não vai ver enquanto `negociacoes_comercial` não entrar na lista de fontes — o que depende do DDL. **Não registrar isto como "funciona em produção": não foi medido lá.**
 
 **Fora:** funil, histórico de compra, turma, valor — tudo isso é Fatia 9. Nenhuma escrita nas tabelas de CRM.
 
