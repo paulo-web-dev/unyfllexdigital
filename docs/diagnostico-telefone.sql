@@ -678,3 +678,186 @@ ORDER BY classe;
 -- Se NÃO der 754: aí sim há divergência real de lógica entre as duas
 -- queries, e nenhuma taxa de cobertura deve ser publicada até entender.
 -- ---------------------------------------------------------------------
+
+
+-- =====================================================================
+-- Q9 — RECONCILIAÇÃO ATÔMICA Q3 × Q8c
+-- =====================================================================
+--
+-- POR QUE ESTA QUERY EXISTE. A Q8c voltou com 704 + 51 = 755, contra as
+-- 754 linhas de forma de 12 que a Q3 apontou (sem_ddi_10 705 +
+-- canonico12 49). A verificação embutida da Q8c manda PARAR nesse caso.
+--
+-- O DEFEITO DE MÉTODO: Q3 rodou em 21/07/2026 e Q8c em 22/07/2026, e
+-- negociacoes_comercial recebe inserção do comercial todo dia. Duas
+-- medições feitas em dias diferentes sobre uma tabela viva não podem ser
+-- subtraídas — a diferença tanto pode ser divergência de lógica quanto
+-- uma negociação nova. Comparação assim NÃO DECIDE NADA.
+--
+-- Esta query elimina o tempo como variável: calcula as DUAS
+-- classificações na MESMA varredura, sobre exatamente as mesmas linhas.
+--
+-- COMO LER O RESULTADO — critério fixado ANTES de rodar:
+--
+--   * discordancias = 0 E q3_forma12 = q8c_forma12
+--       → as lógicas concordam, e concordam sobre o mesmo instante.
+--         Se total_linhas = 3007, o +1 era a negociação nova: ENCERRADO.
+--         Se total_linhas = 3006, a premissa da deriva cai e o próximo
+--         suspeito é a Q3 e a Q8c terem rodado contra SCHEMAS DIFERENTES
+--         (unipublicabrasil3 × 4 × 5) — ver o bloco SCHEMA no cabeçalho.
+--
+--   * discordancias > 0
+--       → divergência real de lógica, com a contagem exata. Rodar a Q9b.
+--
+-- NOTA: a equivalência das duas lógicas já foi PROVADA fora de produção,
+-- em 22/07/2026, contra uma bateria de 35 casos de fronteira num MySQL
+-- local (comprimentos 0/2/9/10/11/12/13/14/20, 10 dígitos começando com
+-- 55, 11 começando com 55, separadores, controle, dígito não-ASCII, e
+-- bloco de assinante em cada faixa). Zero discordâncias. Esta query
+-- confirma isso sobre o dado real — não é o único apoio da conclusão.
+--
+-- Saída: uma linha.
+-- ---------------------------------------------------------------------
+SELECT COUNT(*)                                              AS total_linhas,
+       SUM(classe_q3 = 'canonico12')                         AS q3_canonico12,
+       SUM(classe_q3 = 'sem_ddi_10')                         AS q3_sem_ddi_10,
+       SUM(classe_q3 IN ('canonico12','sem_ddi_10'))         AS q3_forma12,
+       SUM(CHAR_LENGTH(tel) = 12)                            AS q8c_forma12,
+       SUM( (classe_q3 IN ('canonico12','sem_ddi_10'))
+            <> (CHAR_LENGTH(tel) = 12) )                     AS discordancias
+FROM (
+  SELECT CASE
+           WHEN d = '' OR d NOT REGEXP '^[0-9]+$'        THEN 'invalido'
+           WHEN CHAR_LENGTH(d) = 13 AND LEFT(d,2) = '55' THEN 'canonico13'
+           WHEN CHAR_LENGTH(d) = 12 AND LEFT(d,2) = '55' THEN 'canonico12'
+           WHEN CHAR_LENGTH(d) = 11                      THEN 'sem_ddi_11'
+           WHEN CHAR_LENGTH(d) = 10                      THEN 'sem_ddi_10'
+           ELSE 'fora_do_padrao'
+         END AS classe_q3,
+         CASE
+           WHEN d = '' OR d NOT REGEXP '^[0-9]+$'      THEN ''
+           WHEN CHAR_LENGTH(d) IN (12,13)
+                AND LEFT(d,2) = '55'                   THEN d
+           WHEN CHAR_LENGTH(d) IN (10,11)              THEN CONCAT('55', d)
+           ELSE ''
+         END AS tel
+  FROM (
+    SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci AS d
+    FROM negociacoes_comercial
+  ) b
+) c;
+
+
+-- ---------------------------------------------------------------------
+-- Q9b — Assinatura das linhas discordantes. RODAR SÓ SE Q9 der
+-- discordancias > 0; com zero, devolve conjunto vazio e não diz nada.
+--
+-- LGPD: projeta comprimento e dois booleanos. Nenhum telefone, nenhum
+-- DDD (LEFT(d,2) entra como comparação, nunca como valor).
+--
+-- Saída: digitos, tem_ddi, so_digitos, linhas
+-- ---------------------------------------------------------------------
+SELECT CHAR_LENGTH(d)                AS digitos,
+       (LEFT(d,2) = '55')            AS tem_ddi,
+       (d REGEXP '^[0-9]+$')         AS so_digitos,
+       COUNT(*)                      AS linhas
+FROM (
+  SELECT d,
+         CASE
+           WHEN d = '' OR d NOT REGEXP '^[0-9]+$'        THEN 'invalido'
+           WHEN CHAR_LENGTH(d) = 13 AND LEFT(d,2) = '55' THEN 'canonico13'
+           WHEN CHAR_LENGTH(d) = 12 AND LEFT(d,2) = '55' THEN 'canonico12'
+           WHEN CHAR_LENGTH(d) = 11                      THEN 'sem_ddi_11'
+           WHEN CHAR_LENGTH(d) = 10                      THEN 'sem_ddi_10'
+           ELSE 'fora_do_padrao'
+         END AS classe_q3,
+         CASE
+           WHEN d = '' OR d NOT REGEXP '^[0-9]+$'      THEN ''
+           WHEN CHAR_LENGTH(d) IN (12,13)
+                AND LEFT(d,2) = '55'                   THEN d
+           WHEN CHAR_LENGTH(d) IN (10,11)              THEN CONCAT('55', d)
+           ELSE ''
+         END AS tel
+  FROM (
+    SELECT CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci AS d
+    FROM negociacoes_comercial
+  ) b
+) c
+WHERE (classe_q3 IN ('canonico12','sem_ddi_10')) <> (CHAR_LENGTH(tel) = 12)
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+
+-- =====================================================================
+-- Q10 — Caracteres de controle sobrevivendo à limpeza
+-- =====================================================================
+--
+-- ACHADO INDEPENDENTE, descoberto em 22/07/2026 ao provar a equivalência
+-- Q3 × Q8c num MySQL 9.7 local:
+--
+--   SELECT '1198765432\n' REGEXP '^[0-9]+$';   -- devolve 1  (!)
+--   SELECT '1198765432\t' REGEXP '^[0-9]+$';   -- devolve 0
+--
+-- O `$` do ICU (motor de regex do MySQL 8+) casa TAMBÉM antes de um
+-- terminador de linha final. Ou seja, REGEXP '^[0-9]+$' NÃO é um teste
+-- estrito de "só dígitos": um valor terminado em \n passa.
+--
+-- CONSEQUÊNCIA, se existir na base: um celular de 10 dígitos com \n no
+-- fim tem CHAR_LENGTH 11, é classificado sem_ddi_11 em vez de
+-- sem_ddi_10, e normaliza para uma string de 13 CARACTERES com um
+-- newline dentro — que jamais casaria com o chat.phone da Uazapi. Um
+-- não-match silencioso, do tipo que o CLAUDE.md manda evitar.
+--
+-- Isto NÃO explica o +1 da Q8c: Q3 e Q8c usam o mesmo REGEXP, então o
+-- efeito é idêntico nas duas e não produz assimetria.
+--
+-- Esta query mede se o problema existe de fato ou é só teórico. A cadeia
+-- de REPLACE remove espaço - ( ) . + / — nunca removeu \n, \r, \t.
+--
+-- NÃO alterar a cadeia de limpeza por causa disto sem re-executar TODO o
+-- diagnóstico: mudar a limpeza muda todos os números já publicados.
+--
+-- Saída: coluna, linhas_com_controle
+-- ---------------------------------------------------------------------
+SELECT coluna, SUM(tem_controle) AS linhas_com_controle
+FROM (
+  SELECT coluna,
+         (INSTR(d, CHAR(10)) > 0 OR INSTR(d, CHAR(13)) > 0 OR INSTR(d, CHAR(9)) > 0) AS tem_controle
+  FROM (
+    SELECT CONVERT('students.phone' USING utf8mb4) COLLATE utf8mb4_unicode_ci AS coluna,
+           CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(phone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci                        AS d
+    FROM students
+    UNION ALL
+    SELECT CONVERT('negociacoes_comercial.whatsapp' USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+           CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci
+    FROM negociacoes_comercial
+    UNION ALL
+    SELECT CONVERT('leads_guia_licitacoes.whatsapp' USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+           CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(whatsapp,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci
+    FROM leads_guia_licitacoes
+    UNION ALL
+    SELECT CONVERT('prematricula.celular' USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+           CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(celular,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci
+    FROM prematricula
+    UNION ALL
+    SELECT CONVERT('users.telefone' USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+           CONVERT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+             COALESCE(telefone,''),' ',''),'-',''),'(',''),')',''),'.',''),'+',''),'/','')
+             USING utf8mb4) COLLATE utf8mb4_unicode_ci
+    FROM users
+  ) b
+) c
+GROUP BY coluna
+ORDER BY coluna;

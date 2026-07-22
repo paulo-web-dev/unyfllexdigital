@@ -103,6 +103,43 @@ Ao comparar Q8b com Q3 aparece um buraco: a Q3 aponta **754** candidatos de 12 d
 
 **Corroboração na base toda:** as 11.515 linhas do item 3 correspondem a 6.861 distintos — deduplicação de 40,4%, contra 16,7% dentro de `negociacoes_comercial` sozinha. A dedup cruzada ser bem maior que a intra-tabela é exatamente o que a Q6 previa ao medir 61% dos telefones distintos aparecendo em ≥2 tabelas. Os dois números se sustentam mutuamente.
 
+### O `+1` da Q8c — e o erro de método que ele expôs
+
+A Q8c voltou em 22/07/2026 com `derivavel 704 + fixo 51 = **755**`, contra as **754** linhas de forma de 12 da Q3. A verificação embutida da própria Q8c manda parar nesse caso, e é o que foi feito: **nenhuma taxa de cobertura de `negociacoes_comercial` é publicada até isto fechar.**
+
+**A lógica não é a causa — isso foi provado, não presumido.** Em 22/07/2026 as duas classificações foram executadas lado a lado num MySQL 9.7 local, sobre uma tabela fabricada com **35 casos de fronteira** (comprimentos 0/2/9/10/11/12/13/14/20; `10 dígitos começando com 55`; `11 dígitos começando com 55`; separadores conhecidos; `\n`, `\t`, `_`, letra; dígito não-ASCII; bloco de assinante em 0, 1, 5, 6 e 9; `NULL`; vazio). Resultado: **zero discordâncias**. Q3 e Q8c particionam de forma idêntica — inclusive no caso que mais parece armadilha, o valor de 10 dígitos que já começa com `55` (as duas contam) e no de 11 dígitos começando com `55` (nenhuma conta).
+
+**A causa provável é o método, não a query.** A Q3 rodou em 21/07 e a Q8c em 22/07, e `negociacoes_comercial` recebe inserção do comercial **todo dia**. Duas medições feitas em dias diferentes sobre uma tabela viva **não podem ser subtraídas** — a diferença tanto pode ser divergência de lógica quanto uma negociação nova. Uma linha em ~24h é exatamente a ordem de grandeza esperada.
+
+**A correção do método é a Q9**, acrescentada ao `.sql`: calcula as duas classificações **na mesma varredura**, com `total_linhas` e uma contagem explícita de `discordancias`. Critério de leitura fixado antes de rodar:
+
+- `discordancias = 0` e `total_linhas = 3.007` → o `+1` era a negociação nova. **Encerrado.**
+- `discordancias = 0` e `total_linhas = 3.006` → a hipótese da deriva cai; o próximo suspeito é Q3 e Q8c terem rodado contra **schemas diferentes** (`unipublicabrasil3` × `4` × `5`), risco que o cabeçalho do `.sql` já registra.
+- `discordancias > 0` → divergência real, e a Q9b dá a assinatura das linhas afetadas.
+
+**Lição que fica registrada:** número tirado de `negociacoes_comercial` **carrega data**. Comparar duas execuções separadas dessa tabela não decide nada — se duas medidas precisam ser comparadas, elas precisam sair da mesma varredura.
+
+---
+
+## 3c. `REGEXP '^[0-9]+$'` não é teste estrito de "só dígitos"
+
+Achado independente, descoberto ao montar a prova de equivalência acima. No MySQL 9.7 local:
+
+```sql
+SELECT '1198765432\n' REGEXP '^[0-9]+$';   -- 1  (!)
+SELECT '1198765432\t' REGEXP '^[0-9]+$';   -- 0
+```
+
+O `$` do ICU — motor de regex do MySQL 8+ — casa **também antes de um terminador de linha final**. Um valor terminado em `\n` passa no teste de "só dígitos" enquanto o mesmo valor com `\t` não passa.
+
+**Consequência, se existir na base:** um celular de 10 dígitos com `\n` no fim tem `CHAR_LENGTH` 11, é classificado `sem_ddi_11` em vez de `sem_ddi_10`, e normaliza para uma string de 13 **caracteres** com um newline dentro — que jamais casaria com o `chat.phone` da Uazapi. É um não-match silencioso, o tipo de falha que o `CLAUDE.md` manda evitar.
+
+**Isto não explica o `+1`**: Q3 e Q8c usam o mesmo `REGEXP`, então o efeito é idêntico nas duas e não produz assimetria.
+
+**Ainda não medido em produção.** A **Q10** foi acrescentada ao `.sql` para contar, por coluna, quantas linhas têm `\n`, `\r` ou `\t` sobrevivendo à limpeza (a cadeia de `REPLACE` remove espaço `-` `(` `)` `.` `+` `/` — nunca removeu controle). Se der zero em todas, é curiosidade teórica e nada muda.
+
+**Não alterar a cadeia de limpeza por causa disto sem re-executar o diagnóstico inteiro** — mudar a limpeza muda todos os números já publicados aqui.
+
 ### A armadilha que isto cria
 
 **`589 / 754` não é taxa de cobertura** — numerador em telefones distintos, denominador em linhas. Nenhuma razão entre um número desta seção e um número do item 2 ou 3 significa alguma coisa.
@@ -153,7 +190,7 @@ Duas ressalvas honestas:
 Registrado para não passar por completo:
 
 - **Padrões de formatação distintos por coluna (Q1)** e **distribuição fina de comprimento (Q2)** — as queries existem e rodaram, mas a saída não foi transcrita aqui. Não altera nenhuma conclusão acima, que se apoia em Q3/Q4/Q5/Q6/Q7.
-- **Q8 e Q8b** — executadas em 22/07/2026, resultados no item 3. **Q8c** (a mesma classificação em linhas) foi escrita e **ainda não executada** — é a lacuna que resta, e é o que fecha a cobertura na unidade em que o resto deste relatório fala.
+- **Q8 e Q8b** — executadas em 22/07/2026, resultados no item 3. **Q8c** também, e ela **não fechou contra a Q3** (755 × 754) — ver item 3b. **Q9/Q9b** (reconciliação atômica) e **Q10** (caracteres de controle) foram escritas e **ainda não executadas**. Enquanto a Q9 não voltar, **nenhuma taxa de cobertura de `negociacoes_comercial` em linhas é válida.**
 - **Causa dos 70,6% de `negociacoes_comercial`** — pergunta em aberto no `plan.md`, para quem opera o funil comercial. Não é investigação de schema, e não deve ser presumida.
 
 ---
@@ -164,5 +201,6 @@ Registrado para não passar por completo:
 2. **A regra do 9º dígito é obrigatória desde o primeiro commit** — 38,2% da base útil só casa por ela, e 87% da fonte principal do funil.
 3. **"Não identificado" será o estado comum**, não a exceção — a UI trata isso como caminho normal.
 4. **A variante do 9º dígito entrega:** 93,8% dos telefones distintos de 12 dígitos em `negociacoes_comercial` são celular derivável, contra 6,2% de fixo inalcançável. O teto de 28,8% (em linhas) não é corroído de forma relevante pela parcela fixa.
-5. **Sempre rotular a unidade.** Linhas e telefones distintos convivem neste relatório e não se dividem entre si. Antes de prometer qualquer taxa de cobertura em linhas, rodar a **Q8c**.
+5. **Sempre rotular a unidade.** Linhas e telefones distintos convivem neste relatório e não se dividem entre si. A cobertura em linhas depende da **Q9**, ainda não executada — a Q8c sozinha não fecha contra a Q3 (item 3b).
+7. **Número de `negociacoes_comercial` carrega data.** A tabela é escrita todo dia. Duas medições de execuções diferentes não são comparáveis; se precisam ser comparadas, têm que sair da mesma varredura.
 6. **Quatro categorias, não duas.** `fixo_2a5_inalcancavel` é guarda intencional sobre dado válido; `anomalo_0ou1` é dado quebrado. A UI e qualquer futura limpeza precisam distinguir os dois — ver `CLAUDE.md`.
