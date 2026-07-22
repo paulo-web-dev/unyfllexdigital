@@ -225,6 +225,8 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 >
 > - **Aferição do `afterResponse`.** Confirmado por execução que `function_exists('fastcgi_finish_request')` é **false** aqui. Sob `artisan serve` o processamento roda antes da resposta — passou nos testes, mas isso **não prova** o ganho de latência. **Nenhum número de latência é afirmado até medir sob php-fpm.** Plano B inalterado: se não flushar, volta para a fila por cron; a persistência síncrona do cru não muda.
 > - **Experimento `fromMe`/`wasSentByApi`/`source`** — exige mensagem real na instância de teste.
+>
+> **Resíduo fechado em 22/07/2026, junto da Fatia 7:** a inbox **não tinha entrada no menu** — existia só por URL digitada. `nav-item` acrescentado em `resources/views/layouts/admin.blade.php`, sob `@can('admin.alunos')` (power >= 13), no mesmo padrão do bloco de `admin.leads-guia`.
 > - **O parser foi testado contra payloads que eu mesmo escrevi.** Os campos vindos do `CLAUDE.md` (`chat.phone`, `message.id`, `sender_pn`, `wa_isGroup`, ms) são firmes; os de **texto, tipo e timestamp** são listas de candidatos, mesma família da pendência de `instance`/`EventType`. Isso exercita o código, não confirma o formato da Uazapi.
 
 - Processamento do cru → tabelas estruturadas (`conversations`, `messages`, via SQL versionado), disparado **logo após a resposta HTTP** do webhook com `dispatch(...)->afterResponse()` — mesmo processo, sem depender do worker. *(Assinatura confirmada em 22/07/2026 com `vendor/` instalado: `PendingDispatch::afterResponse()`, sem argumentos — `vendor/laravel/framework/src/Illuminate/Foundation/Bus/PendingDispatch.php:145`.)*
@@ -295,13 +297,37 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 7 — Atribuir atendente
+## Fatia 7 — Atribuir atendente — **CONSTRUÍDA em 22/07/2026; um critério em aberto (depende da Fatia 5)**
+
+> **Adiantada de propósito.** Não toca telefone, matching nem cobertura, então seguiu enquanto a Fatia 4 espera a Q9.
+>
+> **Entregue:** `0005_alter_whatsapp_conversations_atendente.{up,down}.sql` (aplicado em `unyflex_dev`), `User::scopeComercial()`, relações `atendente`/`atribuidaPor` e `scopeAtribuidaA` em `WhatsappConversation`, `WhatsappInboxController::atribuir()`, rota `POST admin/whatsapp/{conversa}/atendente`, form na thread, coluna + filtro (`todos|meus|sem`) na lista.
+>
+> **Verificado por teste automatizado descartável** (8 casos, `unyflex_dev`, dados fabricados, removido depois — 6 passed + 2 marcados `DEPR` pela deprecation do PHP 8.5, e confirmei que esses dois ainda asseguram: quebrar uma asserção neles reprova):
+>
+> | Teste | Observado |
+> |---|---|
+> | `<select>` de atendentes | só `power = 13`; super admin e aluno fora |
+> | Atribuir | três colunas gravadas, `atribuida_por_id` = quem clicou, ≠ atendente |
+> | POST com id de super admin | **rejeitado na validação**, nada gravado |
+> | Desatribuir | as três voltam a `NULL` **juntas** |
+> | `atendente_atual_id` defasado | recusa com aviso, valor no banco **intacto** |
+> | POST em conversa de grupo | **404**, igual ao `show()` |
+> | Filtro inválido na URL (incluindo tentativa de injeção) | cai em `todos`, sem erro |
+> | `atendente_id` órfão (sem FK) | tela renderiza "Atendente removido", não quebra |
+>
+> **Reversibilidade provada, não presumida:** `down` derruba colunas e índice, `up` recria — executados nessa ordem.
+>
+> **Em aberto:** ver a mudança refletida **em outra sessão sem F5** depende do polling da Fatia 5. Até lá, a atribuição aparece ao recarregar.
 
 - Campo de atribuição próprio. `lead_assignedAttendant_id` da Uazapi é ignorado — não ler, não escrever (decisão #7).
-- Atendente = usuário em `users`, usando `power`/`AdminRole` (13 = Comercial). Nota: `power` é `int` nullable, e `User.php` não tem nenhum relacionamento nem helper de papel definido hoje.
+- Atendente = usuário em `users`, **Comercial estrito (`power === 13`)** via `AdminRole::COMERCIAL->value`. Super admin administra a inbox mas não é atribuível — decidido explicitamente, não por omissão.
+- **Sem log de reatribuição**, decidido: só o estado atual mora na conversa. Histórico vira fatia própria se alguém pedir.
+- **Sem FK para `users`**, seguindo o `0003`. Id órfão é estado previsto e tratado na tela.
+- A guarda de sobrescrita é *check-then-write*: **estreita a janela, não fecha**. Dois POSTs simultâneos ainda podem cruzar; se um dia doer, a saída é `UPDATE` condicional.
 - A mudança de atribuição também aparece no polling da Fatia 5 — não só mensagem nova.
 
-**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta.
+**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **Metade cumprida:** a atribuição funciona e está coberta por teste; o reflexo sem F5 espera a Fatia 5.
 
 **Fora:** filas, times, SLA.
 

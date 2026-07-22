@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\AdminRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -54,6 +56,25 @@ class User extends Authenticatable
         'meta'              => 'integer',
         'power'             => 'integer',
     ];
+
+    /*
+    |----------------------------------------------------------------------
+    | Scopes
+    |----------------------------------------------------------------------
+    */
+
+    /**
+     * Usuários Comercial — os únicos elegíveis a atender uma conversa da
+     * inbox WhatsApp (Fatia 7).
+     *
+     * A regra sai de AdminRole, não de um 13 literal: power === 13 é
+     * COMERCIAL, e valores como 11/12 caem no default ALUNO do enum. Super
+     * admin (>= 14) administra a inbox mas não é atribuível.
+     */
+    public function scopeComercial(Builder $query): Builder
+    {
+        return $query->where('power', AdminRole::COMERCIAL->value);
+    }
 
     /*
     |----------------------------------------------------------------------

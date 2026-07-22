@@ -24,9 +24,24 @@
     </div>
   @endif
 
+  {{-- Filtro por atendente (Fatia 7). Whitelist de três valores; o controller
+       ignora qualquer outra coisa que venha na URL. --}}
+  <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Filtro por atendente">
+    @foreach (['todos' => 'Todas', 'meus' => 'Minhas', 'sem' => 'Sem atendente'] as $valor => $rotulo)
+      <a href="{{ route('admin.whatsapp.index', ['atendente' => $valor]) }}"
+         class="btn {{ $filtro === $valor ? 'btn-primary' : 'btn-outline-primary' }}">{{ $rotulo }}</a>
+    @endforeach
+  </div>
+
   @if ($conversas->isEmpty())
     <div class="alert alert-info">
-      Nenhuma conversa 1:1 ainda. Mande uma mensagem para o número de teste.
+      @if ($filtro === 'meus')
+        Nenhuma conversa atribuída a você.
+      @elseif ($filtro === 'sem')
+        Nenhuma conversa sem atendente.
+      @else
+        Nenhuma conversa 1:1 ainda. Mande uma mensagem para o número de teste.
+      @endif
     </div>
   @else
     <div class="table-responsive">
@@ -35,6 +50,7 @@
           <tr>
             <th scope="col">Contato</th>
             <th scope="col">Telefone</th>
+            <th scope="col">Atendente</th>
             <th scope="col">Última mensagem</th>
             <th scope="col" class="text-end">&nbsp;</th>
           </tr>
@@ -49,6 +65,18 @@
                 {{ $conversa->nome_exibicao ?: 'Não identificado' }}
               </td>
               <td><code>{{ $conversa->chat_phone ?: '—' }}</code></td>
+              <td class="small">
+                @if ($conversa->atendente)
+                  {{ $conversa->atendente->name }}
+                @elseif ($conversa->atendente_id)
+                  {{-- Id órfão: sem FK no banco (0005), por decisão. --}}
+                  <span class="text-danger">Atendente removido</span>
+                @else
+                  {{-- Estado normal, como "Não identificado": conversa nova
+                       chega sem dono. --}}
+                  <span class="text-muted">Não atribuída</span>
+                @endif
+              </td>
               <td class="text-muted small">
                 {{ $conversa->ultima_mensagem_em?->format('d/m/Y H:i') ?: 'sem data' }}
               </td>

@@ -173,12 +173,16 @@ Route::prefix('admin')
         Route::post('/leads-guia/{id}/contatado',  [LeadsGuiaController::class, 'toggleContatado'])->name('leads-guia.toggle');
         Route::post('/leads-guia/{id}/observacao', [LeadsGuiaController::class, 'salvarObservacao'])->name('leads-guia.note');
 
-        // ── Inbox Uazapi (WhatsApp) — Fatia 3, SOMENTE LEITURA ──────────────
+        // ── Inbox Uazapi (WhatsApp) — Fatias 3 (ver) e 7 (atribuir) ─────────
         // Modo sombra: roda em paralelo ao Chatwoot, que segue sendo o
-        // atendimento de producao (regra de ouro 9). Nao ha rota de envio,
-        // resposta ou atribuicao — envio exige checkpoint explicito.
+        // atendimento de producao (regra de ouro 9).
+        //
+        // A atribuicao (Fatia 7) e a PRIMEIRA rota de escrita da inbox, e
+        // escreve so no nosso banco: nao envia, nao responde, nada sai para o
+        // WhatsApp. Envio segue exigindo checkpoint explicito (Fatias 6/8).
         Route::get('/whatsapp',            [WhatsappInboxController::class, 'index'])->name('whatsapp.index');
         Route::get('/whatsapp/{conversa}', [WhatsappInboxController::class, 'show'])->name('whatsapp.thread');
+        Route::post('/whatsapp/{conversa}/atendente', [WhatsappInboxController::class, 'atribuir'])->name('whatsapp.atribuir');
 
         // ── Matrículas (super admin + comercial) ──────────────────────────
         Route::get('/matriculas',             [AdminController::class, 'matriculas'])->name('matriculas');
