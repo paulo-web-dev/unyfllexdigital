@@ -301,7 +301,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; mecanismo observado no navegador, falta ver mensagem nova chegar**
+## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; NUNCA entregou no navegador — o corpo das respostas em dev sai poluído**
 
 > **Entregue:** `WhatsappInboxController::mensagens()` (delta da thread) e `::novidades()` (contagem do banner da lista), rotas `admin.whatsapp.mensagens`/`novidades`, parcial `_mensagem.blade.php`, `WhatsappConversation::rotuloAtribuicao()`/`assinaturaAtribuicao()`, e JS inline nas duas telas. **Sem dependência nova, sem schema, sem config.**
 >
@@ -318,9 +318,25 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Três mutações para provar que os testes asseveram:** cursor `>` → `>=` (reprovaram os 2 casos marcados `DEPR` pela deprecation do PHP 8.5, confirmando que eles medem algo); `novidades` só por `updated_at` (reprovou a mensagem atrasada); `>=` → `>` (reprovou o caso do mesmo segundo).
 >
-> **Observado no navegador em 22/07/2026, pelo dono do repo — mas por UM dos dois caminhos.** Com duas sessões abertas, a mudança de atribuição apareceu na outra aba sem F5 e o banner de novidade da lista subiu. Isso prova o laço de polling, o cursor, o endpoint e o render **em uso real** — não é pouco, e retira a ressalva genérica de "nada foi visto".
+> **RETRATAÇÃO E DIAGNÓSTICO — 22/07/2026.** Um bloco anterior afirmou que o laço tinha sido "observado em uso real". **Não foi.** Nenhum poll jamais entregou nada num navegador, e o motivo é de ambiente:
 >
-> **O que continua sem observação, e é justamente o critério desta fatia:** o balão de **mensagem nova** chegando na thread aberta. A atribuição e a mensagem passam pelo mesmo laço, mas por ramos diferentes do payload (rótulo/assinatura × HTML do balão inserido por posição), e o ramo do balão nunca rodou num navegador. Também sem observação: a pausa em `document.hidden` e a guarda de sobrescrita disparando a partir da aba defasada.
+> ```
+> $ curl -s 'http://127.0.0.1:8000/admin/whatsapp/106/mensagens?depois_de=56'
+> <br /><b>Deprecated</b>: Constant PDO::MYSQL_ATTR_SSL_CA is deprecated since 8.5 ... <br />
+> {"message":"Unauthenticated."}
+> ```
+>
+> **Toda** resposta HTTP em dev — inclusive a página de login — sai com esse HTML colado **antes** do corpo. `config/database.php:62` é lida em `LoadConfiguration`, que roda **antes** de `HandleExceptions` desligar o `display_errors`, então a deprecation escapa para a resposta. No cliente: `await res.json()` (`thread.blade.php:207`) estoura → `catch` (`:249`) → `falhas++` → no terceiro tick, **15s após carregar a página**, `stopPolling()` mata o laço. Depois disso a tela nunca mais pede nada.
+>
+> **O experimento que expôs isso** (22/07/2026): mensagem de teste injetada pelo caminho real do webhook com a thread aberta. Ela **não apareceu** sem F5.
+>
+> **E ele provou algo valioso ao mesmo tempo: o servidor está inteiro e correto.** A cadeia webhook → cru → `afterResponse` → parser → tabelas rodou toda — cru 69 com `processed_at` e `process_error` nulo, mensagem 160 na conversa 106 com `enviada_em` real, `jobs = 0` (rodou em processo), `nome_exibicao` extraído do push name, e **nenhuma conversa duplicada**. O cliente também está certo: falhar diante de JSON inválido é o comportamento correto. **Quem quebra os dois é o ambiente.**
+>
+> **A lição, que é transferível e não vale só aqui:** um endpoint JSON pode estar perfeito no servidor e chegar quebrado ao cliente. Os 19 casos verdes desta fatia batiam no controller pelo test client do Laravel, que nunca vê o corpo bruto da resposta HTTP — por isso passaram todos e o recurso nunca funcionou uma vez sequer num navegador. **`assertJson` verde não é o mesmo que JSON válido no fio.**
+>
+> **O `CLAUDE.md` já avisava** — "polui JSON de API em dev", escrito por mim. Estava lá e não foi conectado na hora de construir o polling.
+>
+> **Sem observação de tela até agora:** o balão de mensagem nova, o rótulo de atribuição mudando sozinho, a pausa em `document.hidden` e a guarda de sobrescrita a partir da aba defasada.
 
 - Polling incremental por cursor a cada 5s, seguindo o padrão já existente em `checkout.blade.php:618-656` (inline `<script>`, `fetch` com `X-CSRF-TOKEN` + `Accept: application/json`, `stopPolling()` explícito). *(Nota: o `const CSRF` do layout admin está dentro de uma IIFE e não é global — cada script lê a meta tag por conta própria.)*
 - Endpoint leve devolvendo só o delta desde a última mensagem vista.
@@ -329,10 +345,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - **Latência total resultante — o pressuposto foi aferido em 22/07/2026 e passou** (ver Fatia 3): sob php-fpm a resposta sai em ~15ms e o processamento roda logo depois, em processo, sem esperar o cron. p50 ~3,5s (ingestão + meio intervalo de polling) deixa de depender de suposição sobre o `afterResponse` — **mas o "≈1s de ingestão" continua sendo estimativa**: a duração do `ProcessarEventoWhatsapp` em si não foi cronometrada, e a aferição foi no meu fpm, não no servidor de produção. Se lá a função estiver desabilitada, o número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
 - **Reversível:** se o volume um dia justificar websocket, o broadcaster entra sem refazer modelo de dados nem processamento.
 
-**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **Não cumprido ainda — mas o bloqueio mudou.** O navegador deixou de ser o obstáculo (observação de 22/07/2026, acima); falta a mensagem, e ela pode vir por dois caminhos que fecham coisas diferentes:
+**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **NÃO CUMPRIDO — e a tentativa de 22/07/2026 falhou pela causa acima.** A mensagem chegou ao banco pelo caminho real e a tela não a mostrou, porque o polling já estava desligado havia minutos.
 
-- **Linha inserida em `whatsapp_messages` com a tela aberta** — fecha este critério (o ramo do balão no polling), e só ele. Dado fabricado em `unyflex_dev`, sem tocar provedor.
-- **Mensagem real na instância de teste** — fecha este e, de quebra, o que a Fatia 2 espera (ingestão ponta a ponta) e o experimento `fromMe` da Fatia 3.
+O bloqueio agora tem nome e conserto conhecido: **corrigir o ambiente de dev** (`display_errors = Off` desde o bootstrap, via arquivo em `conf.d` do PHP local — fora do repo, não versionado) e repetir. Enquanto o corpo sair poluído, nenhuma tela desta fatia funciona em dev, e nenhum teste de servidor vai denunciar isso.
 
 **Fora:** qualquer dependência nova (Pusher/Reverb/Echo); linhas ao vivo na lista (descartado); badge de não lidas, som, notificação de desktop.
 
@@ -362,7 +377,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 7 — Atribuir atendente — **CONCLUÍDA em 22/07/2026 — observada no navegador**
+## Fatia 7 — Atribuir atendente — **CONSTRUÍDA em 22/07/2026; critério de pronto NÃO cumprido — o polling não entrega em dev**
 
 > **Adiantada de propósito.** Não toca telefone, matching nem cobertura, então seguiu enquanto a Fatia 4 espera a Q9.
 >
@@ -383,9 +398,15 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Reversibilidade provada, não presumida:** `down` derruba colunas e índice, `up` recria — executados nessa ordem.
 >
-> **OBSERVADO NO NAVEGADOR em 22/07/2026, pelo dono do repo** — não por mim, e a distinção importa: eu não tenho navegador, e o que faltava aqui era exatamente ver acontecer. Duas sessões simultâneas (`comercial1@teste.local` e `comercial2@teste.local`, ambos `power = 13`, criados em `unyflex_dev` para este teste). A reatribuição feita numa aba **apareceu na outra sem F5**, e o banner de novidade da lista subiu como esperado. O caminho já estava testado do lado do servidor desde a Fatia 5; isto fecha o critério.
+> **RETRATAÇÃO — 22/07/2026.** Este bloco afirmou, e o commit `a919283` registrou, que a reatribuição foi **observada no navegador sem F5** e que isso fechava o critério. **Estava errado, e o critério continua aberto.**
 >
-> **Não observado nesta rodada, e continua não observado:** a guarda check-then-write disparando o aviso a partir da aba defasada, e a pausa do polling em `document.hidden`. Os dois têm teste de servidor (tabela acima e Fatia 5); nenhum dos dois tem confirmação de tela.
+> O que aconteceu de fato: na aba parada **nada mudou sozinho**. O que pareceu atualização ao vivo foi voltar para a lista e clicar em "Abrir" de novo — o que recarrega a página. **Reflexo depois de reload não é reflexo sem F5**, e é exatamente o que esta fatia precisa demonstrar.
+>
+> **Causa técnica, achada depois** (detalhe na Fatia 5): em dev, toda resposta HTTP sai com a deprecation do PHP 8.5 em HTML **antes do corpo**, então `res.json()` estoura no cliente e o polling se desliga sozinho 15s depois de carregar a página. Nenhum poll jamais entregou nada — não havia como a atribuição aparecer sozinha.
+>
+> **Como eu deixei isso virar registro:** aceitei "funcionou" como observação verificada sem perguntar *o que exatamente* mudou na tela e *sem tocar em nada*. Relato de comportamento e verificação de critério não são a mesma coisa, e a diferença entre os dois era uma pergunta.
+>
+> **Continua sem observação:** o rótulo mudando sozinho, a guarda check-then-write disparando a partir da aba defasada, e a pausa em `document.hidden`. Os três têm teste de servidor (tabela acima e Fatia 5); nenhum tem confirmação de tela.
 >
 > **E ele avisa em vez de sincronizar, de propósito:** o polling atualiza o rótulo visível e mostra o aviso, mas **não toca no campo escondido `atendente_atual_id`** — sincronizá-lo desarmaria esta guarda, fazendo o `<select>` desatualizado passar por cima do trabalho de outra pessoa sem aviso nenhum. O payload nem carrega o id do atendente, para que isso não seja possível por descuido.
 
@@ -399,7 +420,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
   - *Saída já escolhida, para não repensar sob pressão:* `UPDATE ... WHERE id = ? AND atendente_id <=> ?` — condicional, sem lock, e zero linhas afetadas vira o mesmo aviso que a guarda atual já mostra.
 - A mudança de atribuição também aparece no polling da Fatia 5 — não só mensagem nova.
 
-**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **CUMPRIDO em 22/07/2026** — duas abas, reatribuição refletida sem F5, verificado pelo dono do repo no navegador.
+**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **NÃO CUMPRIDO.** Foi dado por cumprido em 22/07/2026 e a marcação foi **retratada no mesmo dia** — ver o bloco de retratação acima. A escrita e a guarda estão testadas; falta a mudança aparecer numa sessão parada, o que hoje é impossível em dev enquanto o corpo das respostas sair poluído.
 
 **Fora:** filas, times, SLA.
 
