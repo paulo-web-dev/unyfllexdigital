@@ -48,7 +48,7 @@ O diretório passou a existir em 22/07/2026, com os dois primeiros pares: `0001_
 
 ## Integração Uazapi (WhatsApp)
 
-Provedor: Uazapi (`https://unyflexdigital.uazapi.com`, doc em `https://docs.uazapi.com/`). Hoje o fluxo em produção é `Uazapi → Chatwoot (account_id 2, inbox_id 4, canal Channel::Api) → webhook Chatwoot → n8n`. O `Channel::Api` sugere integração nativa Uazapi↔Chatwoot, não bridge via n8n — **confirmar antes de mexer em config de instância**.
+Provedor: Uazapi (`https://unyflexdigital.uazapi.com`, doc em `https://docs.uazapi.com/`). **A doc é um SPA e não entrega conteúdo por fetch/curl — o spec real está em `https://docs.uazapi.com/openapi-bundled.json`** (uazapiGO 2.1.1, OpenAPI 3.1, schemas `Message`, `Chat`, `WebhookEvent`). Quem tentar ler a doc pela URL de cima recebe só o título da página e conclui, errado, que não há documentação. Hoje o fluxo em produção é `Uazapi → Chatwoot (account_id 2, inbox_id 4, canal Channel::Api) → webhook Chatwoot → n8n`. O `Channel::Api` sugere integração nativa Uazapi↔Chatwoot, não bridge via n8n — **confirmar antes de mexer em config de instância**.
 
 Payload de mensagem recebida (webhook):
 
@@ -57,6 +57,26 @@ Payload de mensagem recebida (webhook):
 - Timestamps em milissegundos.
 - Telefone real do remetente: `body.chat.phone` (limpo) ou `body.message.sender_pn`. **Nunca** `body.message.sender`/`sender_lid` — isso é um LID interno da Uazapi, não telefone.
 - Grupos chegam pela mesma instância (`wa_isGroup`, `@g.us`).
+
+**Nomes de campo conferidos contra o spec em 22/07/2026.** Antes disso o parser carregava listas de candidatos inventadas a partir do briefing. O que a doc fechou e o que ela derrubou:
+
+| o que | nome real (schema) | o que saiu do código |
+|---|---|---|
+| texto | `message.text` | `body`, `caption` — **não existem**; e `content` é "conteúdo bruto (JSON serializado ou texto)", que como fallback gravaria JSON dentro de `texto` |
+| tipo | `message.messageType` | `type`, `mediaType` — não existem |
+| timestamp | `message.messageTimestamp` (integer, ms explícito) | `timestamp`, `t` — não existem |
+| grupo, na mensagem | `message.isGroup` | `message.wa_isGroup` — o prefixo `wa_` só existe no schema `Chat` |
+| nome exibido | `chat.name` → `chat.wa_contactName` → `chat.wa_name` (push name) → `message.senderName` | — |
+
+**`chat.id` NÃO é o JID.** A doc define `chat.id` como "ID único da conversa (`r` + 7 bytes aleatórios em hex)" — id interno da Uazapi. O JID completo é **`chat.wa_chatid`**. O parser chegou a ter `chat.id` em primeiro lugar na busca do chat id, o que teria chaveado grupo por `r1a2b3c4` em vez do `@g.us`, contra a regra logo abaixo. Falha silenciosa: a coluna preenche, o índice único não reclama, e só aparece ao cruzar com o provedor. **Não reintroduzir `chat.id` como identificador de conversa.** O mesmo vale para `message.id`, que é interno (`messageid` é o do provedor).
+
+**O que a doc NÃO resolveu, e continua lista de candidatos:**
+
+- **O envelope.** O schema `WebhookEvent` declara `{event, instance, data}` com `data` livre ("segue o que o backend envia em `callHook`") e **não traz exemplo de payload de mensagem**. Nosso código lê a forma plana (`message.*`, `chat.*`), vinda do briefing. A doc não confirma nem refuta — então o parser tenta os dois, plana primeiro e `data.` depois (`ProcessarEventoWhatsapp::caminhos()`). Um dos dois lados morre no primeiro payload real.
+- **A chave de idempotência.** A doc separa `message.id` (interno) de `message.messageid` (do provedor); este arquivo diz que `message.id` chega como `owner:messageid`. Os dois são únicos, então a dedução funciona de qualquer jeito — **mas não trocar a chave do índice único com linhas já gravadas por causa de leitura de doc**. Decide o primeiro payload real.
+- **`fromMe` / `wasSentByApi` / `source` existem e estão documentados** (respectivamente: enviada pelo usuário, enviada via API, plataforma de origem). O experimento da Fatia 3 encolheu para observar os **valores** numa mensagem real — os nomes já estão confirmados.
+
+**Configuração de webhook — uma recomendação e uma armadilha.** A doc recomenda `excludeMessages: ["wasSentByApi"]` para evitar loop quando a automação envia pela API (vale para a Fatia 6). A **mesma** lista de filtros oferece `isGroupNo`, que **descartaria mensagem de grupo na ingestão e violaria a regra de ouro 8** — grupo não é exibido, mas é sempre persistido. Não marcar. Ambiguidade a resolver ao configurar a instância: a config usa `events: ["messages"]` (plural), o enum de `WebhookEvent` diz `"message"` (singular).
 
 A integração fica isolada atrás de um contrato próprio (`WhatsappProviderContract` ou equivalente) — ver `plan.md`, Fatia 1 — para permitir trocar de provedor (ex. API oficial do WhatsApp) sem reescrever a aplicação.
 
