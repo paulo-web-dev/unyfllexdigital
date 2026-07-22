@@ -23,6 +23,17 @@ Não há supervisor de fila em produção — o worker roda via cron + scheduler
 
 **PHP 8.5 emite uma deprecation em toda execução.** `config/database.php:62` usa `PDO::MYSQL_ATTR_SSL_CA`, deprecada em favor de `Pdo\Mysql::ATTR_SSL_CA`. Sai no stderr do `artisan` e, com `display_errors` ligado, **antes do corpo da resposta HTTP** — o que polui JSON de API em dev. **Não trocar:** `Pdo\Mysql::` só existe no PHP ≥ 8.4 e a troca quebraria quem estiver em 8.1–8.3, faixa que o `composer.json` (`^8.1`) permite. Só faz sentido quando o time padronizar 8.4+.
 
+**Isto já quebrou uma feature inteira, em silêncio — leia antes de debugar qualquer coisa que consuma JSON em dev.** Em 22/07/2026 a poluição do corpo derrubou o polling da inbox (Fatia 5): `res.json()` estoura no cliente, o laço conta 3 falhas e se desliga sozinho **15 segundos** depois de carregar a página. Não há erro no servidor, não há log, e o único sinal na tela é um texto cinza no canto trocando "Atualizando automaticamente" por "Atualização automática pausada". O recurso nunca funcionou uma vez no navegador, e **19 testes de servidor passaram verdes o tempo todo** — o test client do Laravel entrega o objeto de resposta, nunca os bytes brutos. **`assertJson` verde não é o mesmo que JSON válido no fio.** Sintoma a reconhecer: tudo certo no banco, tudo certo no controller, e a tela não atualiza.
+
+Correção **local, fora do repo, não versionada** — cada um faz na sua máquina, e o PHP do Homebrew não cria esse diretório sozinho:
+
+```ini
+; /opt/homebrew/etc/php/8.5/conf.d/99-display-errors-off.ini   (mkdir -p no conf.d)
+display_errors = Off
+```
+
+Espelha o que o `HandleExceptions` do Laravel faz de qualquer jeito, só que desde o começo do bootstrap — `LoadConfiguration` roda **antes** dele, e é essa janela que deixa a deprecation escapar. Os erros continuam no `error_log` (terminal), só saem do corpo HTTP. Depois de criar, **reiniciar o `artisan serve`**: o processo em execução carregou o ini antigo. Teste que vale: `curl -s <endpoint> | head -c 1` tem que devolver `{` — verificar "tem JSON no meio" não serve, porque tinha.
+
 ## Arquitetura e convenções vivas
 
 - **Controllers:** `app/Http/Controllers/Admin/` (área administrativa) e `app/Http/Controllers/Ava/` (área do aluno). Controllers soltos na raiz de `Controllers/` são páginas públicas/marketing.
