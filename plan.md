@@ -204,7 +204,7 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 ---
 
-## Fatia 3 — Ver (processamento + lista + thread) — **CONSTRUÍDA em 22/07/2026; dois critérios em aberto**
+## Fatia 3 — Ver (processamento + lista + thread) — **CONSTRUÍDA em 22/07/2026; um critério em aberto**
 
 > **Estado.** `0003` (conversations + messages) e `0004` (rastreio de falha no cru) aplicados em `unyflex_dev`. Entregue: `app/Support/TelefoneCanonico.php`, `app/Jobs/ProcessarEventoWhatsapp.php`, `app/Console/Commands/VarrerEventosCrus.php`, models `WhatsappConversation`/`WhatsappMessage`, `WhatsappInboxController`, views `admin/whatsapp/{index,thread}`, rotas em `routes/web.php`, agendamento de `whatsapp:varrer`, despacho `afterResponse` no webhook.
 >
@@ -263,6 +263,10 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 **Critério de pronto:** abrir o painel e ver a conversa de teste com texto correto e ordem cronológica; o experimento `fromMe` documentado; e a aferição do `afterResponse` feita sob php-fpm, com o número de latência confirmado ou corrigido.
 
+> **Onde cada parte está.** A aferição do `afterResponse`: **feita** (bloco de estado acima). O experimento `fromMe`: **em aberto**, e é o único que resta — exige mensagem real na instância de teste.
+>
+> A primeira parte foi **encostada mas não fechada** em 22/07/2026: as duas telas foram abertas num navegador de verdade, logadas, e se comportaram. Mas o conteúdo era dado **que eu fabriquei** — uma conversa, uma mensagem, com `enviada_em` nulo. Ver "ordem cronológica correta" com uma única mensagem sem timestamp não é ver ordem cronológica. O que ficou provado é que a tela não quebra em uso real; o critério continua esperando conversa com histórico de verdade.
+
 **Fora:** atualização automática, resposta, atribuição, mídia.
 
 ---
@@ -297,7 +301,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; falta observar em duas sessões reais**
+## Fatia 5 — Atualização automática na tela — **CONSTRUÍDA em 22/07/2026; mecanismo observado no navegador, falta ver mensagem nova chegar**
 
 > **Entregue:** `WhatsappInboxController::mensagens()` (delta da thread) e `::novidades()` (contagem do banner da lista), rotas `admin.whatsapp.mensagens`/`novidades`, parcial `_mensagem.blade.php`, `WhatsappConversation::rotuloAtribuicao()`/`assinaturaAtribuicao()`, e JS inline nas duas telas. **Sem dependência nova, sem schema, sem config.**
 >
@@ -314,7 +318,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Três mutações para provar que os testes asseveram:** cursor `>` → `>=` (reprovaram os 2 casos marcados `DEPR` pela deprecation do PHP 8.5, confirmando que eles medem algo); `novidades` só por `updated_at` (reprovou a mensagem atrasada); `>=` → `>` (reprovou o caso do mesmo segundo).
 >
-> **O que NÃO foi observado por mim:** o comportamento no navegador. Duas sessões abertas, mudança refletida sem F5, pausa em aba de fundo — é checagem humana, não tenho navegador aqui. O mecanismo está testado do lado do servidor; o que falta é ver acontecer.
+> **Observado no navegador em 22/07/2026, pelo dono do repo — mas por UM dos dois caminhos.** Com duas sessões abertas, a mudança de atribuição apareceu na outra aba sem F5 e o banner de novidade da lista subiu. Isso prova o laço de polling, o cursor, o endpoint e o render **em uso real** — não é pouco, e retira a ressalva genérica de "nada foi visto".
+>
+> **O que continua sem observação, e é justamente o critério desta fatia:** o balão de **mensagem nova** chegando na thread aberta. A atribuição e a mensagem passam pelo mesmo laço, mas por ramos diferentes do payload (rótulo/assinatura × HTML do balão inserido por posição), e o ramo do balão nunca rodou num navegador. Também sem observação: a pausa em `document.hidden` e a guarda de sobrescrita disparando a partir da aba defasada.
 
 - Polling incremental por cursor a cada 5s, seguindo o padrão já existente em `checkout.blade.php:618-656` (inline `<script>`, `fetch` com `X-CSRF-TOKEN` + `Accept: application/json`, `stopPolling()` explícito). *(Nota: o `const CSRF` do layout admin está dentro de uma IIFE e não é global — cada script lê a meta tag por conta própria.)*
 - Endpoint leve devolvendo só o delta desde a última mensagem vista.
@@ -323,7 +329,10 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 - **Latência total resultante — o pressuposto foi aferido em 22/07/2026 e passou** (ver Fatia 3): sob php-fpm a resposta sai em ~15ms e o processamento roda logo depois, em processo, sem esperar o cron. p50 ~3,5s (ingestão + meio intervalo de polling) deixa de depender de suposição sobre o `afterResponse` — **mas o "≈1s de ingestão" continua sendo estimativa**: a duração do `ProcessarEventoWhatsapp` em si não foi cronometrada, e a aferição foi no meu fpm, não no servidor de produção. Se lá a função estiver desabilitada, o número volta para ~32s e a fatia continua válida — só deixa de ser instantânea.
 - **Reversível:** se o volume um dia justificar websocket, o broadcaster entra sem refazer modelo de dados nem processamento.
 
-**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **Não cumprido ainda** — depende de abrir o navegador, e a mensagem de teste depende da instância de teste.
+**Critério de pronto:** com a tela aberta, mandar mensagem de teste e vê-la aparecer sem F5 em até ~5s. **Não cumprido ainda — mas o bloqueio mudou.** O navegador deixou de ser o obstáculo (observação de 22/07/2026, acima); falta a mensagem, e ela pode vir por dois caminhos que fecham coisas diferentes:
+
+- **Linha inserida em `whatsapp_messages` com a tela aberta** — fecha este critério (o ramo do balão no polling), e só ele. Dado fabricado em `unyflex_dev`, sem tocar provedor.
+- **Mensagem real na instância de teste** — fecha este e, de quebra, o que a Fatia 2 espera (ingestão ponta a ponta) e o experimento `fromMe` da Fatia 3.
 
 **Fora:** qualquer dependência nova (Pusher/Reverb/Echo); linhas ao vivo na lista (descartado); badge de não lidas, som, notificação de desktop.
 
@@ -353,7 +362,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 7 — Atribuir atendente — **CONSTRUÍDA em 22/07/2026; um critério em aberto (depende da Fatia 5)**
+## Fatia 7 — Atribuir atendente — **CONCLUÍDA em 22/07/2026 — observada no navegador**
 
 > **Adiantada de propósito.** Não toca telefone, matching nem cobertura, então seguiu enquanto a Fatia 4 espera a Q9.
 >
@@ -374,7 +383,9 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 >
 > **Reversibilidade provada, não presumida:** `down` derruba colunas e índice, `up` recria — executados nessa ordem.
 >
-> **Em aberto — agora só falta olhar.** O polling da Fatia 5 foi construído em 22/07/2026 e o caminho está testado do lado do servidor: mudança de atribuição aparece no payload do delta, com rótulo pronto e assinatura nova. O que resta é a observação no navegador, com duas sessões abertas.
+> **OBSERVADO NO NAVEGADOR em 22/07/2026, pelo dono do repo** — não por mim, e a distinção importa: eu não tenho navegador, e o que faltava aqui era exatamente ver acontecer. Duas sessões simultâneas (`comercial1@teste.local` e `comercial2@teste.local`, ambos `power = 13`, criados em `unyflex_dev` para este teste). A reatribuição feita numa aba **apareceu na outra sem F5**, e o banner de novidade da lista subiu como esperado. O caminho já estava testado do lado do servidor desde a Fatia 5; isto fecha o critério.
+>
+> **Não observado nesta rodada, e continua não observado:** a guarda check-then-write disparando o aviso a partir da aba defasada, e a pausa do polling em `document.hidden`. Os dois têm teste de servidor (tabela acima e Fatia 5); nenhum dos dois tem confirmação de tela.
 >
 > **E ele avisa em vez de sincronizar, de propósito:** o polling atualiza o rótulo visível e mostra o aviso, mas **não toca no campo escondido `atendente_atual_id`** — sincronizá-lo desarmaria esta guarda, fazendo o `<select>` desatualizado passar por cima do trabalho de outra pessoa sem aviso nenhum. O payload nem carrega o id do atendente, para que isso não seja possível por descuido.
 
@@ -388,7 +399,7 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
   - *Saída já escolhida, para não repensar sob pressão:* `UPDATE ... WHERE id = ? AND atendente_id <=> ?` — condicional, sem lock, e zero linhas afetadas vira o mesmo aviso que a guarda atual já mostra.
 - A mudança de atribuição também aparece no polling da Fatia 5 — não só mensagem nova.
 
-**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **A parte que faltava foi construída** (Fatia 5, 22/07/2026) e testada no servidor; falta a observação no navegador com duas sessões — que é a única coisa que fecha este critério de verdade.
+**Critério de pronto:** atribuir uma conversa de teste a um usuário Comercial e ver a mudança refletida em outra sessão aberta. **CUMPRIDO em 22/07/2026** — duas abas, reatribuição refletida sem F5, verificado pelo dono do repo no navegador.
 
 **Fora:** filas, times, SLA.
 
