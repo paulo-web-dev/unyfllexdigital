@@ -289,7 +289,19 @@ Antecipado de propósito: valida o matching por telefone enquanto ainda dá temp
 
 ---
 
-## Fatia 6 — Responder (instância de teste)
+## Fatia 6 — Responder (instância de teste) — **CAMINHO CONSTRUÍDO EM 22/07/2026; ENVIO DESLIGADO**
+
+> **O que existe:** `UazapiProvider::enviarTexto()` completo (`POST /send/text`, token em **header** — oposto do webhook), tratamento de 401/429/500 preservando `provider_code`/`error_key`, e `tests/Feature/UazapiEnvioTest.php` — **12 casos, e este teste fica no repo**: não toca banco nem dado real, só `Http::fake()` e `config()`.
+>
+> **O que NÃO existe, de propósito:** rota, botão de responder, persistência da mensagem enviada. Alcance decidido com o dono do número: só provedor + testes. Com o portão fechado, um botão só produziria erro em quem clicasse.
+>
+> **Portão:** `uazapi.envio_habilitado`, default `false` → `LogicException`. A asserção que se repete nos testes não é sobre o que o código faz, é sobre o que ele **não** faz: `Http::assertNothingSent()` em todo caminho de recusa. Um teste que só verificasse a exceção passaria mesmo se o pacote tivesse saído antes dela.
+>
+> **Buraco real achado e fechado no meio da fatia.** A guarda de ambiente comparava `$this->instancia`, congelada no construtor — então rechamá-la no envio era teatro. Uma sonda construiu o provedor com a instância de teste, trocou a config para a de produção e **o envio saiu**. A guarda passou a ler `config()` no ato, e o caso virou teste de regressão permanente. O teste que já existia não pegava isso: nele a config já estava errada antes do construtor, então quem recusava era o construtor, e a guarda do envio nunca era exercitada.
+>
+> **Limite conhecido, registrado e não resolvido:** a guarda compara o **nome** da instância, mas quem identifica a instância no fio é o **token**. Nome de teste + token de produção passaria. Fechar isso pede denylist de token (e o token de produção no `.env` de dev) — decisão de quem opera. Até lá, conferir o par nome+token junto antes de abrir o portão.
+>
+> **Critério de pronto NÃO cumprido, e não é para ser:** ver a mensagem chegar no WhatsApp real exige abrir o portão, que é checkpoint humano.
 
 - Envio de texto via `WhatsappProviderContract` → `UazapiProvider`, na instância de teste.
 - Guarda em runtime: o provedor recusa envio quando o ambiente não é produção e a instância configurada é a de produção.

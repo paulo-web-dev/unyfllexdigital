@@ -94,6 +94,29 @@ Segue a convenção de config do repo: **um arquivo dedicado por integração** 
 
 **Amarração de dev à instância de teste (risco #1 em código, não em disciplina):** o provedor recusa envio quando `app()->environment() !== 'production'` e a instância configurada é a de produção (comparação contra `UAZAPI_PROD_INSTANCE_NAME`, uma denylist). As ~23h de WhatsApp perdidas por misturar experimento com produção não podem depender de alguém lembrar de conferir o `.env`.
 
+**A guarda lê `config()` no ato da chamada, não o valor do construtor** — corrigido em 22/07/2026. A versão anterior guardava `$this->instancia`, fixada na construção, e uma sonda mostrou o buraco: trocar a config **depois** do objeto pronto passava batido e o envio saía. Quem mexer aqui não deve "otimizar" isso de volta para a propriedade.
+
+### O portão de envio (Fatia 6) — duas travas, e elas são independentes
+
+Confundir as duas é o jeito de se machucar:
+
+| trava | responde | onde |
+|---|---|---|
+| **portão** `uazapi.envio_habilitado` | *enviamos alguma coisa?* | default `false` → `LogicException`, nenhum pacote sai |
+| **guarda de ambiente** | *contra qual instância?* | denylist `UAZAPI_PROD_INSTANCE_NAME` fora de produção |
+
+**Abrir o portão não desarma a guarda.** Ligar `UAZAPI_ENVIO_HABILITADO` é checkpoint humano explícito — nunca efeito colateral de outra tarefa, e a decisão é do dono do número.
+
+**Limite conhecido desta guarda, registrado e não resolvido:** ela compara o **nome** da instância, mas o que identifica a instância no fio é o **token**. Um `UAZAPI_INSTANCE_NAME` de teste com `UAZAPI_INSTANCE_TOKEN` de produção passaria pela guarda. Fechar isso exigiria uma denylist de token (e portanto o token de produção no `.env` de dev) — decisão de quem opera, não do código. Enquanto não houver, **conferir o par nome+token junto** antes de abrir o portão.
+
+**Envio: `POST /send/text`, e o token vai em HEADER.** Isto é o **oposto do webhook**, onde o token chega no *body* — assimetria do provedor (`securitySchemes.token`, `in: header`), e o erro mais fácil de cometer. Obrigatórios: só `number` e `text`; `delay`, `linkPreview`, `async`, `readchat` existem e estão fora do MVP.
+
+**O campo `number` aceita `@g.us`, `@s.whatsapp.net`, `@lid` e `@newsletter`** — ou seja, **a API não protege contra alvo errado**. Por isso `enviarTexto()` recusa qualquer telefone que não chegue já canônico, e **não normaliza no envio**: normalizar ali esconderia um chamador errado, e alvo errado num envio é mensagem para um estranho.
+
+**Erro da API:** 401 (token), 429 (limite), 500 com `provider_code`/`error_key` — o 463/`WHATSAPP_REACHOUT_TIMELOCK` é restrição temporária do WhatsApp por volume/qualidade, e o código é preservado na exceção porque sem ele "erro 500" vira caça ao fantasma. **Conteúdo de mensagem nunca vai para log; telefone vai mascarado.**
+
+**Resposta 200 sem id não lança** — devolve string vazia e loga. Lançar depois de um 200 faria o chamador reenviar e duplicar mensagem para uma pessoa real.
+
 A validação do `token` do body do webhook segue o padrão `validarSecret()` de `app/Http/Controllers/Admin/CourseVideoController.php:143-151` (`hash_equals` + `abort_unless`), adaptado para ler o token do body em vez do header.
 
 ## Modelo de dados (CRM comercial)
