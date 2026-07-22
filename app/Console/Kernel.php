@@ -12,7 +12,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Worker de fila. Nao ha supervisor em producao: o cron chama
+        // `schedule:run` a cada minuto e o worker esvazia a fila e morre.
+        // --max-time=50 mantem a janela abaixo do minuto; withoutOverlapping
+        // impede dois workers concorrentes quando um ciclo estoura.
+        $schedule->command('queue:work --stop-when-empty --max-time=50')
+                 ->everyMinute()
+                 ->withoutOverlapping();
     }
 
     /**

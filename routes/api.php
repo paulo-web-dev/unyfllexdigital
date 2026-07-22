@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CourseVideoController;
 use App\Http\Controllers\Admin\BlogGeneratorController;
 use App\Http\Controllers\Admin\SocialGeneratorController;
 use App\Http\Controllers\Admin\SocialPublisherController;
+use App\Http\Controllers\Webhooks\UazapiWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,3 +69,12 @@ Route::post('/n8n/social/due', [SocialPublisherController::class, 'due'])
 // publicado: n8n devolve o resultado da publicação (marca publicado/falhou).
 Route::post('/n8n/social/publicado', [SocialPublisherController::class, 'publicado'])
     ->name('api.social.publicado');
+
+// ── Inbox Uazapi (WhatsApp) — INSTANCIA DE TESTE ──────────────────────────
+// Sem CSRF (grupo 'api'); protegido pelo token no BODY, conferido no controller.
+// Persiste o payload cru e responde; nenhum processamento aqui (Fatia 3).
+// NOTA para a Fatia 8: o grupo 'api' aplica ThrottleRequests:api (60 req/min).
+// Em teste sobra folga; em producao webhook barrado por throttle e mensagem
+// perdida em silencio — rever antes do modo sombra.
+Route::post('/webhooks/uazapi', [UazapiWebhookController::class, 'receber'])
+    ->name('api.uazapi.webhook');

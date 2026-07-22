@@ -40,6 +40,8 @@ database/sql/NNNN_descricao.down.sql
 
 Aplicado manualmente no banco (não roda via `artisan migrate`). Mantém reversibilidade sem violar a convenção do time de gerir schema fora de migrations.
 
+O diretório passou a existir em 22/07/2026, com os dois primeiros pares: `0001_create_jobs_table` (fila) e `0002_create_whatsapp_raw_events` (payload cru da Uazapi). Numeração sequencial de 4 dígitos, `CREATE TABLE IF NOT EXISTS` no `.up`, `DROP TABLE IF EXISTS` no `.down`, e um comentário de cabeçalho dizendo o que a reversão destrói quando a perda for irreversível — o cru da Uazapi não se reconstrói, o provedor não reenvia sob demanda.
+
 ## Integração Uazapi (WhatsApp)
 
 Provedor: Uazapi (`https://unyflexdigital.uazapi.com`, doc em `https://docs.uazapi.com/`). Hoje o fluxo em produção é `Uazapi → Chatwoot (account_id 2, inbox_id 4, canal Channel::Api) → webhook Chatwoot → n8n`. O `Channel::Api` sugere integração nativa Uazapi↔Chatwoot, não bridge via n8n — **confirmar antes de mexer em config de instância**.

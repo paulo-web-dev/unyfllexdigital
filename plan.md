@@ -132,7 +132,11 @@ Read-only, sem código de aplicação, não depende de nenhuma outra fatia. Exis
 
 ---
 
-## Fatia 1 — Fundação: fila como rede de segurança + contrato de provedor
+## Fatia 1 — Fundação: fila como rede de segurança + contrato de provedor — **CÓDIGO ESCRITO em 22/07/2026, NÃO VERIFICADO**
+
+> **Estado.** Todos os arquivos existem no repo. **Nenhum foi executado**: não há `php` nem `composer` na máquina onde o código foi escrito, e `vendor/` continua ausente. Isso significa que **nem `php -l` rodou** — a fatia não passou por sintaxe, muito menos pelo critério de pronto. Só a estrutura foi conferida estaticamente (todo arquivo abre com `<?php`, chaves e parênteses balanceados, nenhum `env()` fora de `config/`).
+>
+> Entregue: `database/sql/0001_*`, `config/uazapi.php`, `app/Contracts/WhatsappProviderContract.php`, `app/Services/Whatsapp/UazapiProvider.php`, `app/Jobs/FilaPing.php`, `app/Console/Commands/FilaPingCommand.php`, binding em `AppServiceProvider::register()`, schedule em `app/Console/Kernel.php`, chaves `UAZAPI_*` no `.env.example`.
 
 - `database/sql/0001_create_jobs_table.up.sql` / `.down.sql` — tabela `jobs` padrão do Laravel 10.
 - `.env` de dev: `QUEUE_CONNECTION=database`.
@@ -146,7 +150,14 @@ Read-only, sem código de aplicação, não depende de nenhuma outra fatia. Exis
 
 ---
 
-## Fatia 2 — Receber e persistir cru (instância de teste)
+## Fatia 2 — Receber e persistir cru (instância de teste) — **CÓDIGO ESCRITO em 22/07/2026, NÃO VERIFICADO**
+
+> **Estado.** Mesma ressalva da Fatia 1: escrito, não executado, não linteado. Entregue: `database/sql/0002_create_whatsapp_raw_events.*`, `app/Models/WhatsappRawEvent.php`, `app/Http/Controllers/Webhooks/UazapiWebhookController.php`, rota em `routes/api.php`.
+>
+> **Dois pontos que só a primeira mensagem real resolve:**
+>
+> - **Nomes de campo não confirmados.** `instance` e `EventType` foram escritos como lista de candidatos em `primeiroPresente()`, porque nenhum payload real da Uazapi foi visto ainda. Se todos errarem, as duas colunas ficam `NULL` e **nada se perde** — o `payload` cru é a autoridade. Reduzir a lista ao nome certo assim que o primeiro payload chegar.
+> - **A armadilha do `hash_equals`.** `hash_equals('', '')` é `true`. Com `UAZAPI_INSTANCE_TOKEN` vazio, um POST sem token nenhum passaria. O controller aborta com 500 antes de comparar quando a config está vazia — config ausente é erro de servidor, nunca autorização concedida. Está no teste 3 do critério de pronto justamente porque é o tipo de coisa que passa despercebida.
 
 Exclusivamente na **instância e número de teste**. Sem fan-out, sem tráfego de produção, sem tocar em config de instância.
 
