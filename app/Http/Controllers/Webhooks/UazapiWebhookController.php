@@ -41,8 +41,8 @@ class UazapiWebhookController extends Controller
         // excecao: reenvio do mesmo message.id colide com o indice unico
         // `wa_raw_message_id`, vira zero linhas afetadas e resposta 200 normal.
         $inseridas = DB::table('whatsapp_raw_events')->insertOrIgnore([
-            'message_id'  => $this->primeiroPresente($request, ['message.id', 'data.message.id']),
-            'instance'    => $this->primeiroPresente($request, ['instance', 'instance_name', 'owner']),
+            'message_id'  => $this->primeiroPresente($request, ['message.id']),
+            'instance'    => $this->primeiroPresente($request, ['instance', 'instanceName', 'instance_name', 'owner']),
             'event_type'  => $this->primeiroPresente($request, ['EventType', 'event_type', 'event', 'type']),
             'payload'     => $cru,
             'received_at' => now()->format('Y-m-d H:i:s.v'),
@@ -87,18 +87,21 @@ class UazapiWebhookController extends Controller
     /**
      * Primeiro valor escalar presente entre as chaves dadas, ou null.
      *
-     * CONFERIDO EM 22/07/2026 contra o spec oficial (openapi-bundled.json,
-     * uazapiGO 2.1.1, schema `WebhookEvent`): `instance` e `event` sao nomes
-     * REAIS — o schema declara o corpo como `{event, instance, data}`, com
-     * `event` num enum (message/status/presence/group/connection). `EventType`,
-     * `event_type`, `type`, `instance_name` e `owner` continuam na lista porque
-     * o mesmo schema diz que `data` "segue o que o backend envia em callHook" e
-     * nao traz exemplo de payload — a doc nao descarta a forma plana que o
-     * briefing descreveu.
+     * CONFERIDO contra o spec (openapi-bundled.json, uazapiGO 2.1.1, schema
+     * `WebhookEvent`) e depois contra o PRIMEIRO PAYLOAD REAL (23/07/2026):
      *
-     * OLHO NO PLURAL: a configuracao do webhook usa `events: ["messages"]`,
-     * enquanto o enum de `WebhookEvent` diz `"message"`. Ambiguidade a resolver
-     * ao configurar a instancia de teste, nao aqui.
+     *   * ENVELOPE PLANO confirmado — o payload real veio `{EventType, chat,
+     *     instanceName, message, owner, token, ...}` no topo, sem `data.`. Por
+     *     isso `data.message.id` SAIU da chave de idempotencia; o cru continua
+     *     sendo a autoridade se algo aqui errar.
+     *   * `instanceName` (camelCase) e o nome REAL da instancia no payload —
+     *     entrou na lista. Sem ele, a busca caia em `owner` (o telefone) e
+     *     gravava o numero na coluna `instance`. `instance`/`instance_name`/
+     *     `owner` ficam como rede: o schema declara `instance`, e o payload
+     *     real trouxe `instanceName`; primeiro presente vence.
+     *   * `EventType` e o observado (valor `"messages"`, plural); `event`
+     *     (singular) e o enum do schema. Ambos ficam — plano do payload real e
+     *     nome do spec.
      *
      * Nada se perde se todos errarem: estas colunas sao conveniencia de indice,
      * e o `payload` cru continua sendo a autoridade.

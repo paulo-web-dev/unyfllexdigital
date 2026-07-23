@@ -98,9 +98,7 @@ class ProcessarEventoWhatsapp implements ShouldQueue
             ['provider_message_id' => $messageId],
             [
                 'conversation_id' => $conversa->id,
-                'from_me'         => (bool) (Arr::get($payload, 'message.fromMe')
-                    ?? Arr::get($payload, 'data.message.fromMe')
-                    ?? false),
+                'from_me'         => (bool) (Arr::get($payload, 'message.fromMe') ?? false),
                 // Nomes confirmados no schema Message do openapi-bundled.json
                 // (uazapiGO 2.1.1). `type`/`mediaType`/`body`/`caption` NAO
                 // existem no schema — eram chute e sairam.
@@ -153,11 +151,11 @@ class ProcessarEventoWhatsapp implements ShouldQueue
         $chatIdBruto = $this->primeiro($payload, self::caminhos('chat.wa_chatid', 'message.chatid'));
 
         // `message.isGroup` (nao `wa_isGroup`) e o nome no schema Message; o
-        // prefixo `wa_` so existe no schema Chat.
+        // prefixo `wa_` so existe no schema Chat. No payload real de grupo
+        // (23/07) os DOIS vieram `true` — mantemos os dois mais o fallback pelo
+        // `@g.us` do chatid, por seguranca.
         $isGroup = (bool) (Arr::get($payload, 'message.isGroup')
-            ?? Arr::get($payload, 'data.message.isGroup')
             ?? Arr::get($payload, 'chat.wa_isGroup')
-            ?? Arr::get($payload, 'data.chat.wa_isGroup')
             ?? ($chatIdBruto !== null && str_contains($chatIdBruto, '@g.us')));
 
         // Grupo não tem telefone único: o chat é de várias pessoas.
@@ -226,29 +224,23 @@ class ProcessarEventoWhatsapp implements ShouldQueue
     }
 
     /**
-     * Cada caminho, seguido da sua versão sob `data.` — O ENVELOPE, que é a
-     * única ambiguidade que sobrou depois da leitura da doc.
+     * Os caminhos candidatos de um campo — hoje a forma PLANA, e só ela.
      *
-     * O schema `WebhookEvent` do openapi-bundled.json declara o corpo como
-     * `{event, instance, data}`, com `data` livre ("segue o que o backend envia
-     * em callHook"), e NÃO traz exemplo de payload de mensagem. Nosso código lê
-     * a forma PLANA (`message.*`, `chat.*`), que veio do briefing. A doc não
-     * confirma nem refuta essa forma — então as duas são tentadas, plana
-     * primeiro. Custo zero: `Arr::get` devolve null no caminho que não existir.
+     * Até 22/07 esta função dobrava cada caminho com uma versão sob `data.`,
+     * porque o schema `WebhookEvent` (openapi-bundled.json) declara o corpo como
+     * `{event, instance, data}` sem exemplo de payload de mensagem, e não dava
+     * para decidir entre a forma plana (do briefing) e a aninhada. O comentário
+     * antigo previa: "quando o primeiro payload real chegar, um dos dois lados
+     * morre e a lista encolhe pela metade."
      *
-     * Quando o primeiro payload real chegar, um dos dois lados morre e a lista
-     * encolhe pela metade.
+     * FOI O QUE ACONTECEU (23/07/2026): o payload real veio PLANO
+     * (`{message.*, chat.*, ...}` no topo, nada sob `data.`). O lado `data.`
+     * morreu e saiu. A função continua sendo o único lugar onde os aliases de
+     * um campo são expressos (ex.: `chat.wa_chatid` / `message.chatid`).
      */
     private static function caminhos(string ...$planos): array
     {
-        $todos = [];
-
-        foreach ($planos as $caminho) {
-            $todos[] = $caminho;
-            $todos[] = 'data.' . $caminho;
-        }
-
-        return $todos;
+        return $planos;
     }
 
     /**
@@ -261,13 +253,12 @@ class ProcessarEventoWhatsapp implements ShouldQueue
      * `message.messageType` e `message.messageTimestamp` são os nomes reais, e
      * `body`/`caption`/`type`/`mediaType`/`timestamp`/`t` não existem no schema.
      *
-     * O QUE AINDA NÃO ESTÁ CONFIRMADO: o envelope (ver caminhos()) e a chave de
-     * idempotência. A doc separa `message.id` (id interno, "r + 7 hex") de
-     * `message.messageid` ("ID original da mensagem no provedor"), enquanto o
-     * CLAUDE.md descreve `message.id` como `owner:messageid`. Os dois são
-     * únicos, então a dedução funciona de qualquer jeito — mas trocar a chave do
-     * índice único com linhas já gravadas não se faz por leitura de doc. Decide
-     * o primeiro payload real.
+     * RESOLVIDO PELO PRIMEIRO PAYLOAD REAL (23/07/2026): o envelope é PLANO
+     * (ver caminhos(), que perdeu o lado `data.`), e `message.id` chega como
+     * `owner:messageid` (ex. `554195906685:3EB0…`), confirmando o CLAUDE.md —
+     * é essa a chave do índice único, e ela NÃO muda. `message.messageid` (só o
+     * id do provedor) existe em paralelo, mas trocar a chave com linhas já
+     * gravadas continua fora de questão.
      */
     private function primeiro(array $payload, array $caminhos): ?string
     {

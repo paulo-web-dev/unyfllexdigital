@@ -271,11 +271,17 @@ Aparece em **toda** execução de `artisan` e no início de toda resposta HTTP c
 
 ---
 
-## Fatia 4 — Painel de CRM, fatia fina — **DESTRAVADA E CONSTRUÍDA em 22/07/2026; falta a fonte principal**
+## Fatia 4 — Painel de CRM, fatia fina — **CONSTRUÍDA em 22/07/2026; PAUSADA na fonte principal**
 
 > **Entregue:** `App\Services\IdentificacaoContato`, `App\Support\ContatoIdentificado`, `resources/views/admin/whatsapp/_crm.blade.php`, e a chamada em `WhatsappInboxController::show()`. **Nenhuma escrita em tabela de CRM, nenhum schema novo, nenhuma config.**
 >
-> **O que FALTA, e é a fonte principal:** `negociacoes_comercial` ainda não está em `IdentificacaoContato::FONTES`. Não é esquecimento nem preguiça — **os nomes das colunas dela não podem ser adivinhados** (o `CLAUDE.md` proíbe afirmar sobre o que não se abriu), e a tabela **não existe no `unyflex_dev`**. Pedido ao Paulo: `SHOW CREATE TABLE negociacoes_comercial` — só estrutura, zero linhas, nada de LGPD. Acrescentar a fonte é **uma entrada no array**; o resto do serviço não muda.
+> **PAUSADA em 22/07/2026, a pedido do Paulo — e o motivo importa mais que a pausa.** `negociacoes_comercial` **vai ser refeita**, e a prioridade do time passou para mensageria. O `SHOW CREATE TABLE` foi rodado no schema certo (`unipublicabrasil3`) e **voltou vazio**; pedir o DDL de novo agora seria construir contra um schema condenado.
+>
+> **Não é bloqueio técnico e não é abandono.** O matcher inteiro está de pé, testado e com mutação, funcionando com `students`. Não há nada a desfazer, e a fonte principal nunca chegou a ser escrita — então também não há código morto esperando.
+>
+> **O que retoma a fatia:** o Paulo avisar que a nova tabela está de pé, e o DDL dela. Aí a fonte é **uma entrada em `IdentificacaoContato::FONTES`** — mais uma conferência que a modelagem nova pode invalidar: **o desenho de quatro candidatas pressupõe telefone numa coluna só.** Se a tabela refeita espalhar o número em duas colunas (ou normalizar contato em tabela separada), não é "uma entrada no array", é redesenho.
+>
+> **O que NÃO vale reaproveitar sem remedir — e é o ponto fácil de errar daqui a um mês.** As taxas da Fatia 0 (70,6% de `whatsapp` inválido, 28,8% de teto de cobertura, 754 linhas na forma de 12 dígitos, 589 de 628 distintos deriváveis) foram medidas na tabela **atual**. **Tabela refeita não herda medição.** No dia em que a nova entrar, esses números voltam a ser desconhecidos e a Q3/Q8/Q8c precisam ser rerodadas contra ela. Citar 28,8% depois da troca é citar uma tabela que não existe mais.
 >
 > **O fato que mudou o planejamento, medido e não suposto: o `unyflex_dev` não tem nenhuma tabela de CRM.** Só existem `users(2)`, as três da inbox, `jobs`/`failed_jobs`, `migrations`, `password_reset_tokens`, `personal_access_tokens`, `referral_clicks` e a `_teste_normalizacao_telefone(35)` — sobra da prova da Q8c, registrada e não limpa aqui. Sem `students`, `negociacoes_comercial`, `prematricula`, `classes` nem `enrollments`. **O critério de pronto desta fatia era, até então, impossível de cumprir em dev**, e ninguém tinha percebido porque nada ainda tinha tentado ler essas tabelas. Resolvido com uma `students` **fabricada** no dev (telefones e nomes inventados, regra de ouro 9), script no scratchpad e fora do repo — `database/sql/` é para schema **nosso**, e esta é tabela legada.
 >

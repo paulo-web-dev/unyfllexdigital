@@ -25,9 +25,15 @@ class IdentificacaoContato
      * interpolá-los no SQL em `semFormatacao()`. Quem acrescentar fonte aqui
      * tem que manter essa propriedade.
      *
-     * `negociacoes_comercial` é a fonte principal do funil e ENTRA AQUI ASSIM
-     * QUE O DDL DELA FOR CONHECIDO — ela não existe no `unyflex_dev` e os
-     * nomes das colunas não podem ser adivinhados.
+     * `negociacoes_comercial` é a fonte principal do funil e está PAUSADA
+     * desde 22/07/2026: a tabela VAI SER REFEITA (avisado pelo Paulo), e
+     * escrever a fonte agora seria construir contra um schema condenado. Não
+     * adianta pedir o DDL atual.
+     *
+     * Quando a nova estiver de pé, conferir ANTES de acrescentar a entrada: o
+     * desenho de quatro candidatas pressupõe TELEFONE NUMA COLUNA SÓ. Se a
+     * modelagem nova espalhar o número, isto não é uma entrada no array — é
+     * redesenho. E as taxas de cobertura da Fatia 0 não valem para ela.
      */
     private const FONTES = [
         [
