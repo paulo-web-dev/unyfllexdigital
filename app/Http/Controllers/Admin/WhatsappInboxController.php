@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\WhatsappProviderContract;
 use App\Enums\AdminRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -12,18 +13,23 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Inbox Uazapi — Fatias 3 (ver) e 7 (atribuir atendente).
+ * Inbox Uazapi — Fatias 3 (ver), 6 (enviar) e 7 (atribuir atendente).
  *
  * MODO SOMBRA. Roda em paralelo ao Chatwoot, que continua sendo o
  * atendimento de produção (regra de ouro 9).
  *
- * A ÚNICA ESCRITA AQUI É A ATRIBUIÇÃO, e ela não sai do nosso banco: nada é
- * enviado ao WhatsApp. Envio continua fechado atrás do checkpoint explícito
- * das Fatias 6/8.
+ * DUAS ESCRITAS: a atribuição (Fatia 7), que não sai do nosso banco; e o
+ * envio (Fatia 6). O ENVIO CHAMA O PROVEDOR, mas o PORTÃO
+ * (`uazapi.envio_habilitado`, default false) está fechado: com ele fechado,
+ * `enviarTexto()` lança LogicException e NADA sai nem é gravado. A UI desenha
+ * o campo desabilitado como afordância honesta; a trava real é o provedor, não
+ * o `disabled` do botão. Abrir o portão é checkpoint humano explícito
+ * (Fatias 6/8), nunca efeito colateral.
  *
  * O PAINEL DE CRM (Fatia 4) TAMBÉM SÓ LÊ. `IdentificacaoContato` não escreve
  * em tabela de CRM, e match pela variante do 9º dígito não autoriza corrigir a
@@ -102,7 +108,13 @@ class WhatsappInboxController extends Controller
         // (só rótulo + hash) sem ganho nenhum.
         $contato = $identificacao->identificar($conversa->chat_phone);
 
-        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes', 'cursor', 'contato'));
+        // Estado do portão de envio (Fatia 6), só para a AFORDÂNCIA da tela
+        // desenhar o campo habilitado ou não. Não é a trava: quem barra o
+        // envio de verdade é o provedor (LogicException com o portão fechado),
+        // como a validação — e não o <select> — é que barra a atribuição.
+        $envioHabilitado = (bool) config('uazapi.envio_habilitado');
+
+        return view('admin.whatsapp.thread', compact('conversa', 'mensagens', 'atendentes', 'cursor', 'contato', 'envioHabilitado'));
     }
 
     /**
@@ -283,5 +295,86 @@ class WhatsappInboxController extends Controller
         return back()->with('sucesso', $novo === null
             ? 'Atribuição removida.'
             : 'Conversa atribuída.');
+    }
+
+    /**
+     * Envia uma mensagem de texto pela conversa — Fatia 6.
+     *
+     * PORTÃO FECHADO POR PADRÃO, e é o PROVEDOR quem barra, não este método:
+     * com `uazapi.envio_habilitado` false (o default), `enviarTexto()` lança
+     * LogicException antes de qualquer request — nada sai e NADA é gravado. O
+     * botão desabilitado da tela é só afordância; forjar este POST não fura a
+     * trava, que mora uma camada abaixo. Mesmo desenho da Fatia 7: a regra vive
+     * na validação/no provedor, nunca só no controle de tela.
+     *
+     * PERSISTE SÓ APÓS CONFIRMAÇÃO (decisão de desenho). Não existe estado
+     * "enviando" no banco: só uma mensagem com desfecho DEFINIDO pelo provedor
+     * vira linha. Portão fechado, guarda de ambiente, 401/429/timelock — nenhum
+     * grava, e a thread nunca fica com balão órfão "meio-enviado".
+     */
+    public function enviar(Request $request, WhatsappConversation $conversa, WhatsappProviderContract $provider): RedirectResponse
+    {
+        // Mesma guarda do show()/atribuir(): grupo não é exibido nem operável,
+        // e não tem telefone canônico para onde enviar.
+        abort_if($conversa->is_group, 404);
+
+        $dados = $request->validate([
+            'texto' => ['required', 'string', 'max:4096'],
+        ]);
+
+        // 1:1 sempre tem telefone canônico (o parser recusa criar conversa 1:1
+        // sem ele). Defensivo: sem alvo não há o que enviar, e cair no provedor
+        // com string vazia só trocaria a mensagem de erro por outra.
+        if (($conversa->chat_phone ?? '') === '') {
+            return back()->with('erro', 'Conversa sem telefone — não há para onde enviar.');
+        }
+
+        try {
+            // O telefone JÁ chega canônico do banco; o provedor recusa qualquer
+            // coisa que não esteja, de propósito (não normaliza no envio, para
+            // não esconder um alvo errado — mensagem para estranho não tem ctrl+z).
+            $id = $provider->enviarTexto($conversa->chat_phone, $dados['texto']);
+        } catch (\InvalidArgumentException $e) {
+            // Entrada inválida (texto só de espaços; telefone não-canônico).
+            // InvalidArgumentException É SUBCLASSE de LogicException — TEM que
+            // ser capturada ANTES do portão, senão "texto vazio" cairia no catch
+            // de baixo e viraria a mensagem "envio desabilitado", que é falsa.
+            return back()->with('erro', 'Não foi possível enviar: ' . $e->getMessage());
+        } catch (\LogicException $e) {
+            // PORTÃO fechado (Fatia 6) — o caminho normal desta rodada. É aviso,
+            // não erro: o envio está desligado de propósito, não quebrado.
+            return back()->with('aviso', 'Envio desabilitado (Fatia 6): aguardando checkpoint. Nada foi enviado.');
+        } catch (\Throwable $e) {
+            // Guarda de ambiente, config vazia, 401/429, 500/timelock. As
+            // mensagens do provedor são LGPD-safe por construção (telefone
+            // mascarado, conteúdo nunca logado), então dá para mostrar ao operador.
+            return back()->with('erro', 'Não foi possível enviar: ' . $e->getMessage());
+        }
+
+        // Só chega aqui com sucesso. 200-SEM-ID → id local sintético: o provedor
+        // já logou o warning e NÃO relança (relançar faria reenviar e duplicar
+        // para uma pessoa real). Não persistir perderia uma mensagem que
+        // provavelmente foi entregue. O prefixo `local:` marca "sem id do
+        // provedor" e mantém o índice único (provider_message_id é NOT NULL).
+        $providerMessageId = $id !== '' ? $id : 'local:' . Str::ulid();
+
+        $mensagem = WhatsappMessage::create([
+            'conversation_id'     => $conversa->id,
+            'provider_message_id' => $providerMessageId,
+            'from_me'             => true,
+            'tipo'                => 'texto',
+            'texto'               => $dados['texto'],
+            'enviada_em'          => now(),
+        ]);
+
+        // Mesmo bump do parser (ProcessarEventoWhatsapp:114): a conversa sobe na
+        // lista só se esta for mais nova que a última. Aqui é sempre "agora", mas
+        // a condição fica idêntica ao outro caminho de propósito, para não
+        // divergirem na primeira mudança.
+        if (! $conversa->ultima_mensagem_em || $mensagem->enviada_em->gt($conversa->ultima_mensagem_em)) {
+            $conversa->forceFill(['ultima_mensagem_em' => $mensagem->enviada_em])->save();
+        }
+
+        return back()->with('sucesso', 'Mensagem enviada.');
     }
 }

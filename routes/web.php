@@ -192,6 +192,12 @@ Route::prefix('admin')
         Route::get('/whatsapp/{conversa}/mensagens', [WhatsappInboxController::class, 'mensagens'])->name('whatsapp.mensagens');
         Route::post('/whatsapp/{conversa}/atendente', [WhatsappInboxController::class, 'atribuir'])->name('whatsapp.atribuir');
 
+        // Envio (Fatia 6) — a UI existe, mas o PORTAO continua fechado
+        // (UAZAPI_ENVIO_HABILITADO, default false). enviar() chama o provedor,
+        // que lanca LogicException com o portao fechado: nada sai, nada e
+        // gravado. Abrir o portao e checkpoint humano explicito, rodada propria.
+        Route::post('/whatsapp/{conversa}/enviar', [WhatsappInboxController::class, 'enviar'])->name('whatsapp.enviar');
+
         // ── Matrículas (super admin + comercial) ──────────────────────────
         Route::get('/matriculas',             [AdminController::class, 'matriculas'])->name('matriculas');
         Route::get('/matriculas/criar',       [AdminController::class, 'matriculaCreate'])->name('matriculas.create');

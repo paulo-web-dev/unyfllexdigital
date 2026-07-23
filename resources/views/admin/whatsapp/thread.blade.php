@@ -10,11 +10,15 @@
       <h1 class="h5 mb-0 mt-1">{{ $conversa->nome_exibicao ?: 'Não identificado' }}</h1>
       <code class="small text-muted">{{ $conversa->chat_phone ?: '—' }}</code>
     </div>
-    {{-- Continua sem responder: a única escrita desta tela é a atribuição, e
-         ela não sai do nosso banco. O polling da Fatia 5 não muda isso — ele
-         só lê. --}}
+    {{-- O badge reflete o PORTÃO de envio (Fatia 6), que segue fechado por
+         padrão. Modo sombra: o atendimento de produção continua no Chatwoot. O
+         polling da Fatia 5 não muda isso — ele só lê. --}}
     <div class="text-end">
-      <span class="badge bg-secondary">Sem envio — modo sombra</span>
+      @if ($envioHabilitado)
+        <span class="badge bg-success">Envio habilitado</span>
+      @else
+        <span class="badge bg-secondary">Envio desabilitado — modo sombra</span>
+      @endif
       <div class="small text-muted mt-1" id="polling-estado">Atualizando automaticamente</div>
     </div>
   </div>
@@ -26,6 +30,9 @@
   @endif
   @if (session('aviso'))
     <div class="alert alert-warning py-2 small">{{ session('aviso') }}</div>
+  @endif
+  @if (session('erro'))
+    <div class="alert alert-danger py-2 small">{{ session('erro') }}</div>
   @endif
   @error('atendente_id')
     <div class="alert alert-danger py-2 small">{{ $message }}</div>
@@ -101,6 +108,41 @@
        atualização automática irritante. --}}
   <div class="position-sticky bottom-0 text-center py-2 d-none" id="novas-abaixo">
     <button type="button" class="btn btn-sm btn-primary shadow" id="btn-novas-abaixo"></button>
+  </div>
+
+  {{-- Envio (Fatia 6). O PORTÃO é quem decide se algo sai, não este formulário:
+       com o portão fechado (default) o campo vem desabilitado — afordância
+       honesta, não um botão que finge funcionar e falha calado. A trava real é
+       o provedor (LogicException), que barra até um POST forjado com o campo
+       reabilitado no DevTools. O balão da resposta, quando o portão abrir, será
+       renderizado pelo servidor (from_me) como qualquer outro. --}}
+  <div class="card mt-3">
+    <div class="card-body py-2">
+      @unless ($envioHabilitado)
+        <div class="alert alert-secondary py-2 small mb-2">
+          <strong>Envio desabilitado (Fatia 6).</strong> O campo está aqui, mas
+          nada é enviado até o checkpoint liberar o portão
+          (<code>UAZAPI_ENVIO_HABILITADO</code>). Modo sombra: o atendimento de
+          produção segue no Chatwoot.
+        </div>
+      @endunless
+      <form method="POST" action="{{ route('admin.whatsapp.enviar', $conversa) }}">
+        @csrf
+        <label class="form-label small text-muted mb-1" for="texto">Responder</label>
+        <textarea name="texto" id="texto" rows="2" maxlength="4096"
+                  class="form-control @error('texto') is-invalid @enderror"
+                  placeholder="{{ $envioHabilitado ? 'Escreva uma mensagem…' : 'Envio desabilitado — Fatia 6' }}"
+                  @disabled(! $envioHabilitado)>{{ old('texto') }}</textarea>
+        @error('texto')
+          <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
+        <div class="text-end mt-2">
+          <button type="submit" class="btn btn-sm btn-primary" @disabled(! $envioHabilitado)>
+            Enviar
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
 </div>
