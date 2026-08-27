@@ -312,3 +312,27 @@ body .app .main .scroll { background: var(--as-bg); }
 .as-form .as-in:focus { border-color:var(--as-blue); box-shadow:0 0 0 3px rgba(0,136,244,.18); }
 .as-form__acoes { display:flex; gap:10px; margin-top:14px; }
 @media (max-width: 600px) { .as-form__grid { grid-template-columns:1fr; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Assinatura expirada
+   ═══════════════════════════════════════════════════════════════════════ */
+.as-exp { display:flex; flex-direction:column; gap:18px; max-width:860px; }
+.as-exp__hero {
+  padding:28px 30px; border-radius:var(--as-r); border:1px solid rgba(255,181,71,.25);
+  background:radial-gradient(90% 120% at 100% 0%, rgba(255,181,71,.10), transparent 55%), var(--as-bg-1);
+}
+.as-exp__hero h1 { font-size:clamp(20px, 2.6vw, 26px); font-weight:800; color:var(--as-fg); margin:12px 0 8px; letter-spacing:-0.01em; }
+.as-exp__hero p { color:var(--as-fg-2); font-size:14px; line-height:1.6; margin:0 0 16px; max-width:62ch; }
+.as-exp__acoes { display:flex; gap:10px; flex-wrap:wrap; }
+.as-exp__contato { font-size:12px; color:var(--as-fg-3) !important; margin:12px 0 0 !important; }
+.as-exp__grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.as-exp__card { background:var(--as-bg-1); border:1px solid var(--as-line); border-radius:var(--as-r); padding:18px 20px; }
+.as-exp__card .as-player__eyebrow { margin:0 0 12px; }
+.as-exp__dl { display:grid; grid-template-columns:auto 1fr; gap:8px 16px; margin:0; font-size:14px; }
+.as-exp__dl dt { color:var(--as-fg-3); }
+.as-exp__dl dd { color:var(--as-fg); margin:0; font-weight:600; }
+.as-exp__estado { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; color:var(--cor); background:color-mix(in srgb, var(--cor) 14%, transparent); border:1px solid color-mix(in srgb, var(--cor) 40%, transparent); }
+.as-exp__lista { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--as-fg-2); }
+.as-exp__lista li::before { content:"✓"; color:var(--as-blue-2); font-weight:800; margin-right:8px; }
+.as-exp__lista b { color:var(--as-fg); }
+@media (max-width: 700px) { .as-exp__grid { grid-template-columns:1fr; } }

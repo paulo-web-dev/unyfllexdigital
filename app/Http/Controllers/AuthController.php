@@ -77,16 +77,9 @@ class AuthController extends Controller
                 return redirect()->route('admin.dashboard');
             }
     
-            // Assinante ativo vai para a área de assinatura.
-            if ($u->student_id) {
-                $student = \App\Models\Student::find($u->student_id);
-                if ($student && $student->isAssinante()) {
-                    return redirect()->route('assinante.home');
-                }
-            }
-
-            // Aluno comum vai para o AVA
-            return redirect()->intended(route('dashboard'));
+            // Assinante ativo -> área de assinatura; assinatura vencida sem outro acesso -> tela
+            // "assinatura expirada"; aluno comum -> AVA. (regra única em User::rotaHome())
+            return redirect()->intended($u->rotaHome());
         }
     
         RateLimiter::hit($throttleKey, 60);

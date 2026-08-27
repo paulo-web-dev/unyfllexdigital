@@ -21,10 +21,10 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // Assinante vigente vai para a área dele; demais seguem para HOME (/dashboard).
+                // Home por tipo de usuário: área do assinante, tela de assinatura expirada ou AVA (/dashboard).
                 $user = Auth::guard($guard)->user();
-                if ($user && method_exists($user, 'assinaturaVigente') && $user->assinaturaVigente()) {
-                    return redirect()->route('assinante.home');
+                if ($user && method_exists($user, 'rotaHome')) {
+                    return redirect()->to($user->rotaHome());
                 }
 
                 return redirect(RouteServiceProvider::HOME);

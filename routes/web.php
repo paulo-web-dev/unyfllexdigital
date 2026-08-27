@@ -314,3 +314,5 @@ Route::prefix('admin')
 Route::middleware(['auth', 'subscriber'])->group(function () {
     Route::get('/assinante', [SubscriptionAreaController::class, 'home'])->name('assinante.home');
 });
+// Assinatura vencida/cancelada e sem minissérie comprada: só 'auth' (o controller trata os outros casos).
+Route::get('/assinante/expirada', [SubscriptionAreaController::class, 'expirada'])->middleware('auth')->name('assinante.expirada');

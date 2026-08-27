@@ -117,9 +117,43 @@ class User extends Authenticatable
         return $student ? $student->isAssinante() : false;
     }
 
-    /** Rota "home" do usuário: área do assinante ou AVA de matrículas. */
+    /** True se o aluno já teve alguma assinatura (vigente ou não). */
+    public function teveAssinatura(): bool
+    {
+        return $this->student_id
+            && Subscription::where('student_id', $this->student_id)->exists();
+    }
+
+    /** True se o aluno tem matrícula confirmada em minissérie comprada. */
+    public function temMatriculaMinisserie(): bool
+    {
+        return $this->student_id
+            && Enrollment::where('student_id', $this->student_id)
+                ->where('modality', 'minisserie')
+                ->where('status', 'checked')
+                ->exists();
+    }
+
+    /**
+     * True se a assinatura venceu/cancelou e o aluno ficou sem nada (nem minissérie comprada).
+     * É o público da tela "assinatura expirada".
+     */
+    public function assinaturaExpiradaSemAcesso(): bool
+    {
+        return ! $this->assinaturaVigente()
+            && $this->teveAssinatura()
+            && ! $this->temMatriculaMinisserie();
+    }
+
+    /** Rota "home" do usuário: área do assinante, tela de expirada ou AVA de matrículas. */
     public function rotaHome(): string
     {
-        return $this->assinaturaVigente() ? route('assinante.home') : route('dashboard');
+        if ($this->assinaturaVigente()) {
+            return route('assinante.home');
+        }
+        if ($this->assinaturaExpiradaSemAcesso()) {
+            return route('assinante.expirada');
+        }
+        return route('dashboard');
     }
 }

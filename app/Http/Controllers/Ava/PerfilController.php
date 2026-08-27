@@ -17,8 +17,9 @@ class PerfilController extends Controller
 {
     public function index()
     {
-        // Assinante: view/layout próprios da área do assinante. Aluno matriculado: AVA.
-        if (auth()->user()->assinaturaVigente()) {
+        // Assinante (vigente ou expirado sem outro acesso): view/layout da área do assinante. Aluno matriculado: AVA.
+        $u = auth()->user();
+        if ($u->assinaturaVigente() || $u->assinaturaExpiradaSemAcesso()) {
             return view('assinante.perfil');
         }
 
