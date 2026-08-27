@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{{ asset('css/unyflex/colors_and_type.css') }}">
     <link rel="stylesheet" href="{{ asset('css/unyflex/ava.css') }}">
     <link rel="stylesheet" href="{{ asset('css/ava-extras.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/assinante.css') }}">
     <style>
         .assinante-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0a2540;background:linear-gradient(90deg,#00a3ff,#5ad1ff);padding:2px 8px;border-radius:20px;margin-left:6px;}
     </style>
