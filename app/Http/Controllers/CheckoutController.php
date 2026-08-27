@@ -107,7 +107,10 @@ class CheckoutController extends Controller
             return response()->json([
                 'status'   => $status,
                 'approved' => in_array($status, ['CONFIRMED', 'RECEIVED']),
-                'redirect' => in_array($status, ['CONFIRMED', 'RECEIVED']) ? route('dashboard') : null,
+                // Assinante vigente volta para a área do assinante; aluno comum, para o AVA.
+                'redirect' => in_array($status, ['CONFIRMED', 'RECEIVED'])
+                    ? (($enrollment && optional(Student::find($enrollment->student_id))->isAssinante()) ? route('assinante.home') : route('dashboard'))
+                    : null,
             ]);
 
         } catch (\Throwable $e) {

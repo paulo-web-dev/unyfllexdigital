@@ -274,7 +274,8 @@ class CheckoutService
                 'aprovado'    => in_array($payment['status'] ?? '', ['CONFIRMED', 'RECEIVED']),
                 'invoice_url' => $payment['invoiceUrl'] ?? null,
                 'mensagem'    => 'Pagamento aprovado! Seu acesso já está liberado.',
-                'redirect'    => route('dashboard'),
+                // Assinante vigente volta para a área do assinante; aluno comum, para o AVA.
+                'redirect'    => optional(Student::find($enrollment->student_id))->isAssinante() ? route('assinante.home') : route('dashboard'),
             ]),
             default => $base,
         };

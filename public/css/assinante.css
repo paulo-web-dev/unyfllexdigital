@@ -286,3 +286,29 @@ body .app .main .scroll { background: var(--as-bg); }
   .as-player__grid { grid-template-columns:1fr; }
   .as-player__side { position:static; max-height:none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Perfil do assinante
+   ═══════════════════════════════════════════════════════════════════════ */
+.as-alert--ok { background:rgba(43,217,161,.10); border:1px solid rgba(43,217,161,.35); color:#6FE6BD; }
+.as-perfil { display:flex; flex-direction:column; gap:16px; max-width:720px; }
+.as-perfil__card { background:var(--as-bg-1); border:1px solid var(--as-line); border-radius:var(--as-r); padding:20px 22px; }
+.as-perfil__card h3 { font-size:15px; font-weight:800; color:var(--as-fg); margin:0 0 14px; }
+.as-perfil__id { display:flex; align-items:center; gap:16px; }
+.as-perfil__avatar { width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, var(--as-blue), var(--as-blue-2)); color:#fff; font-weight:800; font-size:18px; display:flex; align-items:center; justify-content:center; flex:0 0 56px; }
+.as-perfil__who { display:flex; flex-direction:column; min-width:0; }
+.as-perfil__who strong { color:var(--as-fg); font-size:16px; }
+.as-perfil__who span { color:var(--as-fg-3); font-size:13px; }
+.as-perfil__who .as-badge { align-self:flex-start; }
+.as-form__grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.as-form__field { display:flex; flex-direction:column; gap:6px; }
+.as-form__field--full { grid-column:1 / -1; }
+.as-form__field label { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--as-fg-3); }
+.as-form .as-in {
+  width:100%; padding:10px 12px; font-size:14px; color:var(--as-fg);
+  background:var(--as-bg); border:1px solid var(--as-line-2); border-radius:var(--as-r-sm); outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.as-form .as-in:focus { border-color:var(--as-blue); box-shadow:0 0 0 3px rgba(0,136,244,.18); }
+.as-form__acoes { display:flex; gap:10px; margin-top:14px; }
+@media (max-width: 600px) { .as-form__grid { grid-template-columns:1fr; } }

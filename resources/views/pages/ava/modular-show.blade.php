@@ -19,7 +19,8 @@
     {{-- Cabeçalho --}}
     <div class="page-head">
         <div>
-            <a href="{{ route('ava.modulares') }}" style="color:var(--brand-300);font-size:12px;text-decoration:none;">‹ Cursos modulares</a>
+            {{-- Assinante volta ao catálogo da assinatura; aluno matriculado, à lista de modulares do AVA. --}}
+            <a href="{{ ($layout ?? '') === 'layouts.assinante' ? route('assinante.home') : route('ava.modulares') }}" style="color:var(--brand-300);font-size:12px;text-decoration:none;">‹ {{ ($layout ?? '') === 'layouts.assinante' ? 'Voltar ao catálogo' : 'Cursos modulares' }}</a>
             <h1 style="margin-top:6px;">{{ $curso->title }}</h1>
             <p>Estude pelos resumos, revise com os cartões e teste-se no simulado.</p>
         </div>

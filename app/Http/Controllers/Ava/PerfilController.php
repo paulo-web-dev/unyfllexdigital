@@ -17,6 +17,11 @@ class PerfilController extends Controller
 {
     public function index()
     {
+        // Assinante: view/layout próprios da área do assinante. Aluno matriculado: AVA.
+        if (auth()->user()->assinaturaVigente()) {
+            return view('assinante.perfil');
+        }
+
         return view('pages.ava.perfil');
     }
 

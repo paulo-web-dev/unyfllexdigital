@@ -97,4 +97,29 @@ class User extends Authenticatable
             ? 'https://unyflex.com.br/storage/usuarios/' . $this->photo
             : null;
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Assinatura
+    |----------------------------------------------------------------------
+    */
+
+    /**
+     * True se o aluno vinculado (students) tem assinatura ativa e dentro da validade.
+     * Regra única usada por login, redirects e área do assinante.
+     */
+    public function assinaturaVigente(): bool
+    {
+        if (! $this->student_id) {
+            return false;
+        }
+        $student = Student::find($this->student_id);
+        return $student ? $student->isAssinante() : false;
+    }
+
+    /** Rota "home" do usuário: área do assinante ou AVA de matrículas. */
+    public function rotaHome(): string
+    {
+        return $this->assinaturaVigente() ? route('assinante.home') : route('dashboard');
+    }
 }

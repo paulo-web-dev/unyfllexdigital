@@ -30,7 +30,8 @@ class AuthController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        return redirect()->intended(route('dashboard'));
+        // Assinante vigente: área do assinante; aluno comum: AVA.
+        return redirect()->intended($user->rotaHome());
         }
 
         return view('pages.login');
@@ -170,7 +171,10 @@ class AuthController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('dashboard')
+            // Assinante vigente volta para a área dele; aluno comum, para o AVA.
+            $destino = Auth::check() ? Auth::user()->rotaHome() : route('dashboard');
+
+            return redirect()->to($destino)
                 ->with('success', 'Senha redefinida com sucesso!');
         }
 
