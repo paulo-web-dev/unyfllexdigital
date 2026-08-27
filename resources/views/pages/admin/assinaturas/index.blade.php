@@ -32,6 +32,10 @@
       <div style="font-size:12px;color:var(--fg-4,#8A94A6);margin-bottom:4px;">Total (histórico)</div>
       <div style="font-size:26px;font-weight:700;color:#fff;">{{ $stats['total'] }}</div>
     </div>
+    <div style="background:var(--bg-2,#0f1520);border:1px solid var(--line-1,#1e2836);border-radius:12px;padding:16px 20px;min-width:160px;" title="Acessos do consórcio AMAI (gestão pela própria AMAI). Não entram nos KPIs.">
+      <div style="font-size:12px;color:var(--fg-4,#8A94A6);margin-bottom:4px;">AMAI (ativas)</div>
+      <div style="font-size:26px;font-weight:700;color:#FFB547;">{{ $stats['amai'] ?? 0 }}</div>
+    </div>
   </div>
 
   {{-- Busca --}}

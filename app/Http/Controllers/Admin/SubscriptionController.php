@@ -44,6 +44,7 @@ class SubscriptionController extends Controller
         $stats = [
             'vigentes' => Subscription::reais()->vigentes()->count(),
             'total'    => Subscription::reais()->count(),
+            'amai'     => Subscription::amai()->vigentes()->count(),
         ];
 
         return view('pages.admin.assinaturas.index', compact('assinaturas', 'logins', 'busca', 'stats'));

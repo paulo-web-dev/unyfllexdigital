@@ -62,12 +62,38 @@ class Subscription extends Model
     /** Plano reservado a contas de teste (excluídas dos números do admin). */
     public const PLANO_TESTE = 'TESTE';
 
-    /** Assinaturas reais: exclui contas de teste (plano TESTE). Só para leitura no admin. */
+    /** Plano da estrutura AMAI (acessos pagos pelo consórcio; fora dos KPIs do admin). */
+    public const PLANO_AMAI = 'AMAI';
+
+    /** Valores de plano que identificam a AMAI (o legado 'ANUAL AMAI' é normalizado por SQL). */
+    public const PLANOS_AMAI = ['AMAI', 'ANUAL AMAI'];
+
+    /**
+     * Assinaturas "reais" para os números do admin: exclui conta de teste e AMAI.
+     * A AMAI tem contador próprio na tela de Assinaturas.
+     */
     public function scopeReais($query)
     {
         return $query->where(function ($q) {
-            $q->whereNull('plano')->orWhere('plano', '<>', self::PLANO_TESTE);
+            $q->whereNull('plano')
+              ->orWhereNotIn('plano', array_merge([self::PLANO_TESTE], self::PLANOS_AMAI));
         });
+    }
+
+    /** Assinaturas da AMAI. */
+    public function scopeAmai($query)
+    {
+        return $query->whereIn('plano', self::PLANOS_AMAI);
+    }
+
+    /** users.id de todos os usuários com assinatura AMAI (qualquer status) — para excluir dos KPIs. */
+    public static function userIdsAmai(): array
+    {
+        $studentIds = static::amai()->pluck('student_id')->unique()->values();
+        if ($studentIds->isEmpty()) {
+            return [];
+        }
+        return User::whereIn('student_id', $studentIds)->pluck('id')->all();
     }
 
     /** Assinaturas vigentes (ativas e não expiradas). */
