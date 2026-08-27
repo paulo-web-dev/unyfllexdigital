@@ -336,3 +336,30 @@ body .app .main .scroll { background: var(--as-bg); }
 .as-exp__lista li::before { content:"✓"; color:var(--as-blue-2); font-weight:800; margin-right:8px; }
 .as-exp__lista b { color:var(--as-fg); }
 @media (max-width: 700px) { .as-exp__grid { grid-template-columns:1fr; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Gestão AMAI
+   ═══════════════════════════════════════════════════════════════════════ */
+.am-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.am-filtro { flex:1; max-width:320px; }
+.am-filtro .as-in { width:100%; padding:9px 12px; font-size:13px; color:var(--as-fg); background:var(--as-bg-1); border:1px solid var(--as-line-2); border-radius:var(--as-r-sm); }
+.am-tabela-wrap { overflow-x:auto; background:var(--as-bg-1); border:1px solid var(--as-line); border-radius:var(--as-r); }
+.am-tabela { width:100%; border-collapse:collapse; font-size:13px; color:var(--as-fg-2); }
+.am-tabela th { text-align:left; padding:11px 14px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--as-fg-3); border-bottom:1px solid var(--as-line-2); white-space:nowrap; }
+.am-tabela td { padding:10px 14px; border-bottom:1px solid var(--as-line); vertical-align:middle; }
+.am-tabela tr:last-child td { border-bottom:0; }
+.am-tabela strong { color:var(--as-fg); }
+.am-muted { color:var(--as-fg-3); }
+.am-cheio { color:#FFB547; font-weight:700; }
+.am-acoes { display:flex; gap:6px; justify-content:flex-end; white-space:nowrap; }
+.am-acoes form { margin:0; }
+.am-btn-sm { padding:6px 10px; font-size:12px; }
+.am-btn-danger { color:#FF7A8A; border-color:rgba(255,92,122,.35); }
+.am-btn-danger:hover { color:#fff; background:rgba(255,92,122,.25); border-color:rgba(255,92,122,.6); }
+.am-inline { display:flex; gap:6px; align-items:center; margin:0; }
+.am-cota { width:74px; padding:6px 8px; font-size:13px; color:var(--as-fg); background:var(--as-bg); border:1px solid var(--as-line-2); border-radius:8px; }
+.am-sub { font-size:16px; font-weight:800; color:var(--as-fg); margin:26px 0 12px; }
+.am-lista { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; font-size:13px; }
+.am-lista li { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--as-line); color:var(--as-fg-2); }
+.am-lista li:last-child { border-bottom:0; }
+.am-lista small { color:var(--as-fg-3); white-space:nowrap; }

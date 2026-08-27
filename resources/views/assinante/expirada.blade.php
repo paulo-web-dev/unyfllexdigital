@@ -11,6 +11,18 @@
 
 <div class="as-exp">
 
+  @if(!empty($amaiRemovido))
+  {{-- Variante AMAI: acesso encerrado pelo ponto focal do município; renovação é com ele, não com o comercial. --}}
+  <div class="as-exp__hero">
+    <span class="as-badge as-badge--gravado">Acesso encerrado</span>
+    <h1>Seu acesso foi encerrado pelo ponto focal do seu município{{ $amaiRemovido->municipio ? ' (' . $amaiRemovido->municipio . ')' : '' }}.</h1>
+    <p>
+      Este acesso faz parte da estrutura da AMAI e foi encerrado em {{ $amaiRemovido->removed_at?->format('d/m/Y') }}.
+      Para voltar a assistir, fale com o ponto focal{{ $amaiRemovido->pontoFocal ? ', ' . $amaiRemovido->pontoFocal->name : '' }}: ele pode reativar o seu acesso pela gestão AMAI.
+    </p>
+    <p class="as-muted" style="margin:0;">Seu progresso e histórico ficam guardados.</p>
+  </div>
+  @else
   <div class="as-exp__hero">
     <span class="as-badge as-badge--gravado">{{ $cancelada ? 'Assinatura cancelada' : 'Assinatura expirada' }}</span>
     <h1>Sua assinatura {{ $cancelada ? 'foi cancelada' : 'venceu' }}{{ $fim ? ' em ' . $fim->format('d/m/Y') : '' }}.</h1>
@@ -29,6 +41,7 @@
     </div>
     <p class="as-exp__contato">WhatsApp {{ preg_replace('/^55(\d{2})(\d{4})(\d{4})$/', '($1) $2-$3', config('assinante.whatsapp_comercial')) }} · {{ $email }}</p>
   </div>
+  @endif
 
   <div class="as-exp__grid">
     <div class="as-exp__card">

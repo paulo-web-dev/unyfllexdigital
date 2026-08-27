@@ -42,6 +42,13 @@ class SubscriptionAreaController extends Controller
 
         $meta = $catalogo->meta();
 
+        // Usuário AMAI removido pelo ponto focal: variante sem WhatsApp comercial.
+        $amaiRemovido = null;
+        if (\App\Services\AmaiService::instalado()) {
+            $amaiRemovido = \App\Models\AmaiVinculo::where('user_id', $user->id)
+                ->whereNotNull('removed_at')->with('pontoFocal')->first();
+        }
+
         $mensagem = sprintf(
             "Olá! Sou %s (%s). Minha assinatura Unyflex Digital (plano %s) venceu em %s e quero renovar.",
             $user->name,
@@ -65,11 +72,12 @@ class SubscriptionAreaController extends Controller
         ]);
 
         return view('assinante.expirada', [
-            'ultima'   => $ultima,
-            'meta'     => $meta,
-            'whatsapp' => $whatsapp,
-            'mailto'   => $mailto,
-            'email'    => $email,
+            'ultima'       => $ultima,
+            'meta'         => $meta,
+            'whatsapp'     => $whatsapp,
+            'mailto'       => $mailto,
+            'email'        => $email,
+            'amaiRemovido' => $amaiRemovido,
         ]);
     }
 }

@@ -316,3 +316,20 @@ Route::middleware(['auth', 'subscriber'])->group(function () {
 });
 // Assinatura vencida/cancelada e sem minissérie comprada: só 'auth' (o controller trata os outros casos).
 Route::get('/assinante/expirada', [SubscriptionAreaController::class, 'expirada'])->middleware('auth')->name('assinante.expirada');
+
+// ── Gestão AMAI (master e pontos focais) — área separada do admin da Unyflex ──
+// 'amai.papel' devolve página "indisponível" enquanto a tabela amai_vinculos não existir,
+// e 404 para quem não tem vínculo ativo com o papel exigido.
+Route::prefix('amai')->name('amai.')->middleware(['auth', 'amai.papel:master,ponto_focal'])->group(function () {
+    Route::get('/',                          [\App\Http\Controllers\Amai\GestaoController::class, 'index'])->name('index');
+    Route::get('/usuarios/novo',             [\App\Http\Controllers\Amai\GestaoController::class, 'novoUsuario'])->name('usuarios.novo');
+    Route::post('/usuarios',                 [\App\Http\Controllers\Amai\GestaoController::class, 'salvarUsuario'])->name('usuarios.salvar');
+    Route::post('/usuarios/{id}/remover',    [\App\Http\Controllers\Amai\GestaoController::class, 'removerUsuario'])->name('usuarios.remover')->whereNumber('id');
+});
+Route::prefix('amai')->name('amai.')->middleware(['auth', 'amai.papel:master'])->group(function () {
+    Route::get('/usuarios/{id}/historico',   [\App\Http\Controllers\Amai\GestaoController::class, 'historico'])->name('usuarios.historico')->whereNumber('id');
+    Route::get('/focais',                    [\App\Http\Controllers\Amai\GestaoController::class, 'focais'])->name('focais');
+    Route::post('/focais',                   [\App\Http\Controllers\Amai\GestaoController::class, 'salvarFocal'])->name('focais.salvar');
+    Route::post('/focais/{id}/cota',         [\App\Http\Controllers\Amai\GestaoController::class, 'cota'])->name('focais.cota')->whereNumber('id');
+    Route::post('/focais/{id}/remover',      [\App\Http\Controllers\Amai\GestaoController::class, 'removerFocal'])->name('focais.remover')->whereNumber('id');
+});

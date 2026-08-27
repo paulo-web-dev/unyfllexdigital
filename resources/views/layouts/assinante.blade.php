@@ -33,6 +33,15 @@
             <span>Meu perfil</span>
         </a>
 
+        @php $amaiSvc = app(\App\Services\AmaiService::class); @endphp
+        @if(auth()->check() && $amaiSvc->gestor(auth()->user()))
+            <div class="nav-group-label" style="margin-top:14px;">AMAI</div>
+            <a href="{{ route('amai.index') }}" class="nav-item {{ request()->routeIs('amai.*') ? 'active' : '' }}">
+                <i data-lucide="users" class="ico"></i>
+                <span>Gestão AMAI</span>
+            </a>
+        @endif
+
         <div class="nav-spacer"></div>
 
         <a href="{{ route('logout') }}" class="nav-item"
