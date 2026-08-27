@@ -74,7 +74,7 @@ class SearchController extends Controller
                         'titulo'  => $video->titulo ?? 'Sem título',
                         'sub'     => $classe->title,
                         'visto'   => isset($vistos[$video->id]),
-                        'url'     => route('player', [$classe->slug, $video->id]),
+                        'url'     => route('player.video', [$classe->slug, $video->id]),
                     ];
                 }
             }

@@ -34,8 +34,7 @@ class ModularStudyController extends Controller
         $curso = ModularCourse::where('slug', $slug)->firstOrFail();
 
         // Acesso: matrícula no curso OU assinatura ativa.
-        $student   = $sid ? \App\Models\Student::find($sid) : null;
-        $assinante = $student && $student->isAssinante();
+        $assinante = $this->assinaturaVigente($sid);
         abort_unless($this->matriculado($curso->id, $sid) || $assinante, 403, 'Você não tem acesso a este curso.');
 
         // Registra o curso acessado (relatórios).
@@ -71,7 +70,8 @@ class ModularStudyController extends Controller
         $sid   = auth()->user()->student_id;
         $curso = ModularCourse::findOrFail($id);
 
-        abort_unless($this->matriculado($curso->id, $sid), 403);
+        // Acesso: matrícula ativa OU assinatura vigente (mesma regra do show()).
+        abort_unless($this->matriculado($curso->id, $sid) || $this->assinaturaVigente($sid), 403);
 
         $data = $request->validate([
             'score'   => ['required', 'integer', 'min:0'],
@@ -95,6 +95,16 @@ class ModularStudyController extends Controller
             'total'   => $att->total,
             'percent' => $att->percent(),
         ]);
+    }
+
+    /** True se o aluno (students.id) tem assinatura ativa e dentro da validade. */
+    private function assinaturaVigente($sid): bool
+    {
+        if (!$sid) {
+            return false;
+        }
+        $student = \App\Models\Student::find($sid);
+        return $student ? $student->isAssinante() : false;
     }
 
     private function matriculado(int $courseId, $sid): bool

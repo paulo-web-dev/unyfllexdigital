@@ -64,8 +64,9 @@ Route::post('/checkout',                   [CheckoutController::class, 'processa
 Route::get('/checkout/sucesso',            [CheckoutController::class, 'sucesso'])->name('checkout.sucesso');
 Route::get('/checkout/status/{paymentId}', [CheckoutController::class, 'status'])->name('checkout.status');
 Route::post('/webhooks/asaas',             [WebhookController::class, 'asaas'])->name('webhooks.asaas');
-//ACESSO PÓS
-Route::get('/dashboard/playerpos/{slug}',         [PlayerController::class, 'show'])->name('player');
+//ACESSO PÓS — mantida por compatibilidade com links antigos. Nome próprio para não colidir
+// com a rota autenticada 'player' (route('player') deve resolver /dashboard/player/{slug}).
+Route::get('/dashboard/playerpos/{slug}',         [PlayerController::class, 'show'])->name('player.pos');
 
 // ---- Landing page publica + captura de lead ----
 Route::get('/guia-licitacoes',          [GuiaLicitacoesController::class, 'landing'])->name('guia.landing');

@@ -21,6 +21,12 @@ class PlayerController extends Controller
     {
         $user = Auth::user();
 
+        // A rota 'player.pos' (/dashboard/playerpos/{slug}) é pública por compatibilidade com
+        // links antigos; sem usuário logado, manda para o login em vez de estourar 500.
+        if (! $user) {
+            return redirect()->guest(route('login'));
+        }
+
         // Aceita minissérie (express=1) e curso gravado (express=0); o acesso é
         // controlado logo abaixo por matrícula OU assinatura.
         $classe = Classes::where('slug', $slug)
@@ -32,8 +38,7 @@ class PlayerController extends Controller
             ->first();
 
         // Acesso: matrícula na minissérie OU assinatura ativa.
-        $student   = $user->student_id ? \App\Models\Student::find($user->student_id) : null;
-        $assinante = $student && $student->isAssinante();
+        $assinante = $this->assinaturaVigente($user);
         abort_unless($matricula || $assinante, 403, 'Você não tem acesso a esta minissérie.');
 
         // Registra o curso acessado (relatórios).
@@ -155,12 +160,13 @@ class PlayerController extends Controller
         $video = VideoLesson::findOrFail($videoId);
         $panel = Panel::findOrFail($video->panel_id);
 
+        // Acesso: matrícula confirmada OU assinatura vigente (mesma regra do show()).
         $temMatricula = Enrollment::where('student_id', $user->student_id)
             ->where('classes_id', $panel->classes_id)
             ->where('status', 'checked')
             ->exists();
 
-        if (!$temMatricula) {
+        if (!$temMatricula && !$this->assinaturaVigente($user)) {
             return response()->json(['ok' => false, 'msg' => 'Sem acesso.'], 403);
         }
 
@@ -217,6 +223,16 @@ class PlayerController extends Controller
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    /** True se o usuário logado tem assinatura ativa e dentro da validade. */
+    private function assinaturaVigente($user): bool
+    {
+        if (!$user || !$user->student_id) {
+            return false;
+        }
+        $student = \App\Models\Student::find($user->student_id);
+        return $student ? $student->isAssinante() : false;
     }
 
     private function _registrarView(int $userId, int $classesId, int $panelId, int $videoId): void
