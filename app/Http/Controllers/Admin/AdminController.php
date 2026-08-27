@@ -62,8 +62,10 @@ class AdminController extends Controller
             $alunosMes    = User::whereIn('student_id', $alunosMinisserieIds)->where('created_at','>=',$mes)->count();
             $alunosMesAnt = User::whereIn('student_id', $alunosMinisserieIds)->whereBetween('created_at',[$mesAnt,$mesAntF])->count();
 
-            $capsulasMes   = ViewsMinisserie::where('created_at','>=',$mes)->count();
-            $usuariosAtivos= ViewsMinisserie::where('updated_at','>=',now()->subDays(7))->distinct('id_user')->count('id_user');
+            // views_minisseries também recebe cápsulas de curso gravado (assinantes); KPIs de minissérie filtram por turma express=1.
+            $idsExpress    = Classes::where('express','1')->pluck('id');
+            $capsulasMes   = ViewsMinisserie::whereIn('classes_id',$idsExpress)->where('created_at','>=',$mes)->count();
+            $usuariosAtivos= ViewsMinisserie::whereIn('classes_id',$idsExpress)->where('updated_at','>=',now()->subDays(7))->distinct('id_user')->count('id_user');
             $inadimplentes = (clone $baseEnroll)->where('status','not_checked')->count();
             $pendentes     = (clone $baseEnroll)->where('status','not_checked')->sum('final_value');
             $progressoMedio= 0;
@@ -185,8 +187,10 @@ class AdminController extends Controller
         $novosHoje       = (clone $baseKpi)->whereDate('created_at', today())->count();
         $novosSemana     = (clone $baseKpi)->whereBetween('created_at',[now()->startOfWeek(), now()])->count();
         $totalMatriculas = $this->enrollmentQuery()->where('modality','minisserie')->count();
+        // Só cápsulas de minissérie (views_minisseries também recebe curso gravado dos assinantes).
+        $idsExpress      = Classes::where('express','1')->pluck('id');
         $totalViews      = $this->isSuperAdmin()
-            ? ViewsMinisserie::distinct('id_user')->count('id_user')
+            ? ViewsMinisserie::whereIn('classes_id',$idsExpress)->distinct('id_user')->count('id_user')
             : 0;
 
         $kpis = compact('totalAlunos','novosHoje','novosSemana','totalMatriculas') + ['alunosAtivos' => $totalViews];
@@ -202,7 +206,7 @@ class AdminController extends Controller
         )->pluck('total','student_id');
 
         $capsulasPorUser = $this->isSuperAdmin()
-            ? ViewsMinisserie::whereIn('id_user',$userIdsAll)->selectRaw('id_user, COUNT(DISTINCT video_id) as total')->groupBy('id_user')->pluck('total','id_user')
+            ? ViewsMinisserie::whereIn('classes_id',$idsExpress)->whereIn('id_user',$userIdsAll)->selectRaw('id_user, COUNT(DISTINCT video_id) as total')->groupBy('id_user')->pluck('total','id_user')
             : collect();
 
         return view('pages.admin.alunos', compact('alunos','kpis','busca','ordem','matriculasPorAluno','capsulasPorUser'));
@@ -656,13 +660,15 @@ class AdminController extends Controller
         $this->authorize('admin.analytics');
 
         $classesIds     = Classes::where('express','1')->pluck('id');
-        $onlineAgora    = ViewsMinisserie::where('updated_at','>=',now()->subMinutes(15))->distinct('id_user')->count('id_user');
-        $acessosHoje    = ViewsMinisserie::whereDate('created_at',today())->distinct('id_user')->count('id_user');
-        $acessosSemana  = ViewsMinisserie::where('created_at','>=',now()->startOfWeek())->distinct('id_user')->count('id_user');
-        $totalViews     = ViewsMinisserie::count();
+        // views_minisseries também recebe cápsulas de curso gravado (assinantes): todos os KPIs abaixo filtram por turma express=1.
+        $views          = fn () => ViewsMinisserie::whereIn('classes_id',$classesIds);
+        $onlineAgora    = $views()->where('updated_at','>=',now()->subMinutes(15))->distinct('id_user')->count('id_user');
+        $acessosHoje    = $views()->whereDate('created_at',today())->distinct('id_user')->count('id_user');
+        $acessosSemana  = $views()->where('created_at','>=',now()->startOfWeek())->distinct('id_user')->count('id_user');
+        $totalViews     = $views()->count();
 
         $viewsPorAluno = DB::table('views_minisseries')->selectRaw('AVG(cnt) as media')
-            ->fromSub(DB::table('views_minisseries')->selectRaw('id_user, COUNT(*) as cnt')->groupBy('id_user'),'sub')->value('media') ?? 0;
+            ->fromSub(DB::table('views_minisseries')->whereIn('classes_id',$classesIds)->selectRaw('id_user, COUNT(*) as cnt')->groupBy('id_user'),'sub')->value('media') ?? 0;
         $tempoMedioMin = (int) round($viewsPorAluno * 12);
         $h = intdiv($tempoMedioMin,60); $m = $tempoMedioMin % 60;
         $tempoMedio = $tempoMedioMin >= 60 ? $h.'h '.($m>0?$m.'min':'') : $tempoMedioMin.'min';
@@ -670,25 +676,25 @@ class AdminController extends Controller
         $totalVideosDisp = DB::table('video_lessons')->join('panels','video_lessons.panel_id','=','panels.id')->whereIn('panels.classes_id',$classesIds)->count();
         $taxaConclusao = 0;
         if ($totalVideosDisp > 0) {
-            $mediaViews = DB::table('views_minisseries')->selectRaw('AVG(cnt) as media')->fromSub(DB::table('views_minisseries')->selectRaw('id_user, COUNT(DISTINCT video_id) as cnt')->groupBy('id_user'),'sub')->value('media') ?? 0;
+            $mediaViews = DB::table('views_minisseries')->selectRaw('AVG(cnt) as media')->fromSub(DB::table('views_minisseries')->whereIn('classes_id',$classesIds)->selectRaw('id_user, COUNT(DISTINCT video_id) as cnt')->groupBy('id_user'),'sub')->value('media') ?? 0;
             $taxaConclusao = min(100,(int) round(($mediaViews/($totalVideosDisp/max(1,$classesIds->count())))*100));
         }
 
-        $ativosUlt30 = ViewsMinisserie::where('updated_at','>=',now()->subDays(30))->distinct('id_user')->count('id_user');
+        $ativosUlt30 = $views()->where('updated_at','>=',now()->subDays(30))->distinct('id_user')->count('id_user');
         $totalMatric = Enrollment::whereIn('classes_id',$classesIds)->distinct('student_id')->count('student_id');
         $retencao30d = $totalMatric > 0 ? min(100,(int)round(($ativosUlt30/$totalMatric)*100)) : 0;
 
-        $topCapsulas = ViewsMinisserie::selectRaw('video_id, COUNT(*) as views')->groupBy('video_id')->orderByDesc('views')->limit(10)->get()->map(function($v){
+        $topCapsulas = $views()->selectRaw('video_id, COUNT(*) as views')->groupBy('video_id')->orderByDesc('views')->limit(10)->get()->map(function($v){
             $video = DB::table('video_lessons')->join('panels','video_lessons.panel_id','=','panels.id')->join('classes','panels.classes_id','=','classes.id')->where('video_lessons.id',$v->video_id)->select('video_lessons.titulo','panels.title as panel','classes.title as classe')->first();
             return (object)['video_id'=>$v->video_id,'views'=>$v->views,'titulo'=>$video?->titulo??'Sem título','panel'=>$video?->panel??'—','classe'=>$video?->classe??'—'];
         });
 
-        $topMinisseries = ViewsMinisserie::selectRaw('classes_id, COUNT(*) as views, COUNT(DISTINCT id_user) as alunos')->groupBy('classes_id')->orderByDesc('views')->limit(8)->get()->map(function($v){
+        $topMinisseries = $views()->selectRaw('classes_id, COUNT(*) as views, COUNT(DISTINCT id_user) as alunos')->groupBy('classes_id')->orderByDesc('views')->limit(8)->get()->map(function($v){
             $classe = Classes::find($v->classes_id);
             return (object)['titulo'=>$classe?->title??"Curso #{$v->classes_id}",'views'=>$v->views,'alunos'=>$v->alunos];
         });
 
-        $acessosPorDia = ViewsMinisserie::where('created_at','>=',now()->subDays(29)->startOfDay())->selectRaw('DATE(created_at) as dia, COUNT(DISTINCT id_user) as alunos, COUNT(*) as views')->groupBy('dia')->orderBy('dia')->get()->keyBy('dia');
+        $acessosPorDia = $views()->where('created_at','>=',now()->subDays(29)->startOfDay())->selectRaw('DATE(created_at) as dia, COUNT(DISTINCT id_user) as alunos, COUNT(*) as views')->groupBy('dia')->orderBy('dia')->get()->keyBy('dia');
         $grafLabels = collect(); $grafAlunos = collect(); $grafViews = collect();
         for ($i = 29; $i >= 0; $i--) {
             $key = now()->subDays($i)->format('Y-m-d');
@@ -697,7 +703,7 @@ class AdminController extends Controller
             $grafViews->push((int)($acessosPorDia[$key]->views  ?? 0));
         }
 
-        $alunosAtivos = ViewsMinisserie::where('updated_at','>=',now()->subDays(30))->selectRaw('id_user, COUNT(DISTINCT video_id) as capsulas, MAX(updated_at) as ultimo')->groupBy('id_user')->orderByDesc('capsulas')->limit(8)->get()->map(function($v){
+        $alunosAtivos = $views()->where('updated_at','>=',now()->subDays(30))->selectRaw('id_user, COUNT(DISTINCT video_id) as capsulas, MAX(updated_at) as ultimo')->groupBy('id_user')->orderByDesc('capsulas')->limit(8)->get()->map(function($v){
             $user = User::find($v->id_user);
             return (object)['nome'=>$user?->name??"User #{$v->id_user}",'email'=>$user?->email??'','capsulas'=>$v->capsulas,'ultimo'=>Carbon::parse($v->ultimo)->diffForHumans()];
         });
