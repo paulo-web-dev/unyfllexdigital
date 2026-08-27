@@ -143,7 +143,12 @@ class PlayerController extends Controller
         $totalAssistidos = $watchedCnt;
         $progresso       = $totalVideos > 0 ? (int) round(($watchedCnt / $totalVideos) * 100) : 0;
 
-        $layout = $assinante ? 'layouts.assinante' : 'layouts.app';
+        // Assinante: player em unidade de PAINEL (view própria). Aluno matriculado: fluxo original.
+        if ($assinante) {
+            return $this->viewAssinante($classe, $panels, $capsula, $capsulaAtiva, $viewsIds, $materiaisVistos);
+        }
+
+        $layout = 'layouts.app';
 
         return view('pages.ava.player', compact(
             'classe', 'capsulas', 'capsula', 'capsulaAtiva',
@@ -223,6 +228,90 @@ class PlayerController extends Controller
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Player do ASSINANTE: contexto é o painel (?painel=ID), não a turma inteira.
+     * Não altera queries nem gravações — só recorta o que a view recebe.
+     *
+     * @param  \Illuminate\Support\Collection $panels   painéis able da turma (ordem start_time, id), com video_lesson e material injetados
+     * @param  array|null                     $capsula  cápsula ativa já montada pelo show()
+     * @param  array|null                     $capsulaAtiva ['id','panel_id','feita']
+     * @param  int[]                          $viewsIds vídeos já vistos pelo usuário nesta turma
+     */
+    private function viewAssinante(Classes $classe, $panels, ?array $capsula, ?array $capsulaAtiva, array $viewsIds, array $materiaisVistos)
+    {
+        $panels  = $panels->values();
+        $painel  = null;
+        $painelId = (int) request()->query('painel');
+
+        if ($painelId) {
+            $painel = $panels->firstWhere('id', $painelId);
+        }
+        if (! $painel && $capsulaAtiva) {
+            $painel = $panels->firstWhere('id', $capsulaAtiva['panel_id']);
+        }
+        if (! $painel) {
+            $painel = $panels->first();
+        }
+        abort_if(! $painel, 404, 'Este curso ainda não tem aulas disponíveis.');
+
+        // Aulas do painel = vídeos com link (mesma regra do catálogo).
+        $aulas = $painel->video_lesson->filter(fn ($v) => filled($v->link))->values();
+        abort_if($aulas->isEmpty(), 404, 'Este painel ainda não tem aulas disponíveis.');
+
+        $voltar = \App\Services\AssinanteCatalogoService::voltarSeguro(request()->query('voltar'));
+        $query  = array_filter(['painel' => $painel->id, 'voltar' => $voltar]);
+
+        // Cápsula ativa fora do painel (ou sem link): reposiciona na primeira aula do painel.
+        if (! $capsula || (int) $capsula['panel_id'] !== (int) $painel->id || ! $aulas->contains('id', $capsula['video_id'])) {
+            return redirect()->to(route('player.video', [$classe->slug, $aulas->first()->id]) . '?' . http_build_query($query));
+        }
+
+        $indice       = $panels->search(fn ($p) => $p->id === $painel->id);
+        $numero       = $indice + 1;
+        $totalPaineis = $panels->count();
+
+        // Próximo painel da MESMA turma que tenha aula com link (segue em contexto de painel).
+        $proximo = null;
+        foreach ($panels->slice($indice + 1) as $i => $p) {
+            $primeira = $p->video_lesson->first(fn ($v) => filled($v->link));
+            if ($primeira) {
+                $proximo = [
+                    'numero' => $i + 1,
+                    'titulo' => $p->title,
+                    'url'    => route('player.video', [$classe->slug, $primeira->id]) . '?' . http_build_query(array_filter(['painel' => $p->id, 'voltar' => $voltar])),
+                ];
+                break;
+            }
+        }
+
+        // Cápsula ativa acabou de ser registrada no show(); conta como vista.
+        $feitas = array_values(array_unique(array_merge($viewsIds, [(int) $capsula['video_id']])));
+
+        $materiais = $painel->material->map(fn ($m) => [
+            'id'   => (int) $m->id,
+            'type' => (string) $m->type,
+            'name' => $m->name ?: $m->file_name,
+            'file' => $m->file_name,
+        ])->values()->all();
+
+        $urlVoltar = route('assinante.home') . ($voltar !== '' ? '?' . $voltar : '');
+
+        return view('assinante.player', [
+            'classe'          => $classe,
+            'painel'          => $painel,
+            'numero'          => $numero,
+            'totalPaineis'    => $totalPaineis,
+            'aulas'           => $aulas,
+            'capsula'         => $capsula,
+            'feitas'          => $feitas,
+            'proximo'         => $proximo,
+            'materiais'       => $materiais,
+            'materiaisVistos' => $materiaisVistos,
+            'urlVoltar'       => $urlVoltar,
+            'queryContexto'   => http_build_query($query),
+        ]);
     }
 
     /** True se o usuário logado tem assinatura ativa e dentro da validade. */

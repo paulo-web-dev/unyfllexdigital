@@ -352,7 +352,9 @@ class AssinanteCatalogoService
             $chaveCat    = $categorias[0]['titulo'] ?? 'Sem categoria';
             $painelLabel = $this->rotuloPainel($row);
             $titulo      = trim((string) $row->turma) . ' — ' . $painelLabel;
-            $url         = route('player.video', [$row->slug, $row->primeiro_video_id]);
+            // Contexto de painel para o player do assinante + filtros atuais para o "Voltar".
+            $url         = route('player.video', [$row->slug, $row->primeiro_video_id])
+                . '?' . http_build_query(['painel' => $row->item_id, 'voltar' => self::voltarAtual()]);
             $assistido   = (int) $row->vistos > 0;
         }
 
@@ -393,6 +395,22 @@ class AssinanteCatalogoService
             return "{$painel} (Painel {$n})";
         }
         return $painel;
+    }
+
+    /** Query string atual do catálogo (filtros + página), para o player devolver ao mesmo lugar. */
+    public static function voltarAtual(): string
+    {
+        return Str::limit((string) request()->getQueryString(), 300, '');
+    }
+
+    /** Sanitiza o parâmetro `voltar` recebido pelo player: só uma query string simples e curta. */
+    public static function voltarSeguro(?string $voltar): string
+    {
+        $v = trim((string) $voltar);
+        if ($v === '' || strlen($v) > 300 || ! preg_match('/^[A-Za-z0-9=&%._+\-]+$/', $v)) {
+            return '';
+        }
+        return $v;
     }
 
     /**
