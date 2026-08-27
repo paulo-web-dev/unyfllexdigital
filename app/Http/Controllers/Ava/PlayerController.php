@@ -42,7 +42,9 @@ class PlayerController extends Controller
         abort_unless($matricula || $assinante, 403, 'Você não tem acesso a esta minissérie.');
 
         // Registra o curso acessado (relatórios).
-        \App\Models\AccessLog::registrar('curso_view', $user->student_id, $user->id, 'Minissérie: ' . $classe->title);
+        // Rótulo por tipo de turma (a tela Acessos do admin agrupa por este texto).
+        $rotulo = $classe->express ? 'Minissérie: ' : 'Curso gravado: ';
+        \App\Models\AccessLog::registrar('curso_view', $user->student_id, $user->id, $rotulo . $classe->title);
 
         // Carrega panels SEM eager load de relacionamentos
         $panels = Panel::where('classes_id', $classe->id)
