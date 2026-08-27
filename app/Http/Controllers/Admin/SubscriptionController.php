@@ -16,7 +16,8 @@ class SubscriptionController extends Controller
     {
         $busca = trim((string) $request->get('q', ''));
 
-        $query = Subscription::with('student')->orderByDesc('id');
+        // reais(): esconde a conta de teste da área do assinante (plano TESTE) — ela continua ativa para acesso.
+        $query = Subscription::reais()->with('student')->orderByDesc('id');
 
         if ($busca !== '') {
             $query->whereHas('student', function ($q) use ($busca) {
@@ -41,8 +42,8 @@ class SubscriptionController extends Controller
         }
 
         $stats = [
-            'vigentes' => Subscription::vigentes()->count(),
-            'total'    => Subscription::count(),
+            'vigentes' => Subscription::reais()->vigentes()->count(),
+            'total'    => Subscription::reais()->count(),
         ];
 
         return view('pages.admin.assinaturas.index', compact('assinaturas', 'logins', 'busca', 'stats'));

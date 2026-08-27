@@ -59,6 +59,17 @@ class Subscription extends Model
         return (int) Carbon::now()->startOfDay()->diffInDays($this->end_date->startOfDay(), false);
     }
 
+    /** Plano reservado a contas de teste (excluídas dos números do admin). */
+    public const PLANO_TESTE = 'TESTE';
+
+    /** Assinaturas reais: exclui contas de teste (plano TESTE). Só para leitura no admin. */
+    public function scopeReais($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('plano')->orWhere('plano', '<>', self::PLANO_TESTE);
+        });
+    }
+
     /** Assinaturas vigentes (ativas e não expiradas). */
     public function scopeVigentes($query)
     {
