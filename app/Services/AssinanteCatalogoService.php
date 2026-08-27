@@ -388,11 +388,12 @@ class AssinanteCatalogoService
         $painel = trim((string) $row->painel);
         $n      = (int) $row->numero;
 
+        // Nomenclatura de produto: o assinante vê "curso", não "painel" (o código continua falando painel).
         if ($painel === '' || $painel === '-') {
-            return "Painel {$n}";
+            return "Curso {$n}";
         }
         if ((int) $row->repeticoes > 1) {
-            return "{$painel} (Painel {$n})";
+            return "{$painel} ({$n})";
         }
         return $painel;
     }

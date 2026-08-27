@@ -260,7 +260,7 @@ class PlayerController extends Controller
 
         // Aulas do painel = vídeos com link (mesma regra do catálogo).
         $aulas = $painel->video_lesson->filter(fn ($v) => filled($v->link))->values();
-        abort_if($aulas->isEmpty(), 404, 'Este painel ainda não tem aulas disponíveis.');
+        abort_if($aulas->isEmpty(), 404, 'Este curso ainda não tem aulas disponíveis.');
 
         $voltar = \App\Services\AssinanteCatalogoService::voltarSeguro(request()->query('voltar'));
         $query  = array_filter(['painel' => $painel->id, 'voltar' => $voltar]);

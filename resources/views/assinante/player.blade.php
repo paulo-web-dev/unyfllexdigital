@@ -21,7 +21,7 @@
     <div class="as-player__crumb">
       <span class="as-player__crumb-turma">{{ $classe->title }}</span>
       <span class="as-player__crumb-sep">·</span>
-      <span>Painel {{ $numero }} de {{ $totalPaineis }}</span>
+      <span>Curso {{ $numero }} de {{ $totalPaineis }}</span>
     </div>
     <div class="as-player__prog">
       <div class="as-player__prog-bar"><i id="pl-bar" style="width:{{ $pct }}%"></i></div>
@@ -52,7 +52,7 @@
         </button>
         @if($proximo)
           <a id="pl-next-panel" class="as-btn as-btn--primary" href="{{ $proximo['url'] }}" hidden>
-            Próximo painel: {{ \Illuminate\Support\Str::limit($proximo['titulo'], 40) }}
+            Próximo curso: {{ \Illuminate\Support\Str::limit($proximo['titulo'], 40) }}
             <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;"><polyline points="9 18 15 12 9 6"/></svg>
           </a>
         @else
@@ -68,13 +68,13 @@
       </div>
 
       <section class="as-tabpanel" data-panel="resumo">
-        <h4>Resumo do painel</h4>
+        <h4>Resumo do curso</h4>
         <div class="as-tabpanel__body">{!! html_entity_decode((string) $painel->content, ENT_QUOTES | ENT_HTML5, 'UTF-8') ?: '<p class="as-muted">Resumo não disponível.</p>' !!}</div>
       </section>
 
       <section class="as-tabpanel" data-panel="materiais" hidden>
-        <h4>Materiais deste painel</h4>
-        <p class="as-muted" style="margin:0 0 14px;">Painel {{ $numero }}: {{ $painel->title }}</p>
+        <h4>Materiais deste curso</h4>
+        <p class="as-muted" style="margin:0 0 14px;">Curso {{ $numero }}: {{ $painel->title }}</p>
         <div id="pl-materiais"></div>
       </section>
 
@@ -87,7 +87,7 @@
     {{-- ══ Lateral: só o painel em contexto ══ --}}
     <aside class="as-player__side">
       <div class="as-player__panelcard">
-        <p class="as-player__eyebrow">Painel {{ $numero }} de {{ $totalPaineis }}</p>
+        <p class="as-player__eyebrow">Curso {{ $numero }} de {{ $totalPaineis }}</p>
         <h3>{{ $painel->title }}</h3>
         <p class="as-muted">{{ $totalAulas }} {{ $totalAulas === 1 ? 'aula' : 'aulas' }} @if(count($materiais)) · {{ count($materiais) }} {{ count($materiais) === 1 ? 'material' : 'materiais' }} @endif</p>
       </div>
@@ -111,13 +111,13 @@
 
       <div class="as-player__side-foot">
         @if($proximo)
-          <p class="as-muted">Próximo painel desta turma</p>
+          <p class="as-muted">Próximo curso desta turma</p>
           <a class="as-player__nextpanel" href="{{ $proximo['url'] }}">
-            <span class="as-player__eyebrow">Painel {{ $proximo['numero'] }}</span>
+            <span class="as-player__eyebrow">Curso {{ $proximo['numero'] }}</span>
             <strong>{{ $proximo['titulo'] }}</strong>
           </a>
         @else
-          <p class="as-muted">Este é o último painel desta turma.</p>
+          <p class="as-muted">Este é o último curso desta turma.</p>
           <a class="as-btn as-btn--ghost" href="{{ $urlVoltar }}">Voltar ao catálogo</a>
         @endif
       </div>
@@ -199,7 +199,7 @@
     const box = document.getElementById('pl-materiais');
     const mats = D.materiais.filter(m => m.type !== 'PODCAST');
     if (!mats.length) {
-      box.innerHTML = '<p class="as-muted as-empty">Nenhum material disponível para este painel.</p>';
+      box.innerHTML = '<p class="as-muted as-empty">Nenhum material disponível para este curso.</p>';
       return;
     }
     const icons = { PDF: '📄', PowerPoint: '📊', Word: '📝', Excel: '📈', Link: '🔗' };
@@ -221,7 +221,7 @@
            <span class="as-material__ico">🎧</span>
            <span class="as-material__txt"><span class="as-material__type">Áudiocast</span><span class="as-material__name">${pod.name}</span></span>
          </a>`
-      : '<p class="as-muted as-empty">Áudiocast não disponível para este painel.</p>';
+      : '<p class="as-muted as-empty">Áudiocast não disponível para este curso.</p>';
   }
 
   function carregar(i, push) {

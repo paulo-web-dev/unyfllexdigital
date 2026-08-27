@@ -7,7 +7,7 @@
     <label for="f-busca">Buscar</label>
     <svg viewBox="0 0 24 24" style="top:calc(50% + 10px);"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
     <input id="f-busca" class="as-in" type="search" name="busca" value="{{ $filtros['busca'] }}"
-           placeholder="Título da turma ou do painel…" autocomplete="off" maxlength="80">
+           placeholder="Título da turma ou do curso…" autocomplete="off" maxlength="80">
   </div>
 
   <div>
