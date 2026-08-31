@@ -225,6 +225,45 @@
 
     </div>
   </form>
+
+  {{-- ── Prova do painel (aba Prova no player do assinante) ─────────────── --}}
+  @php
+    // try/catch: a tabela panel_provas pode ainda não existir (database/panel_provas.sql).
+    try { $provaPainel = \App\Models\PanelProva::where('panel_id', $panel->id)->latest('id')->first(); $provaTabelaOk = true; }
+    catch (\Throwable $e) { $provaPainel = null; $provaTabelaOk = false; }
+    $fonteProva = \App\Services\PanelProvaService::fonte($panel);
+  @endphp
+  <div class="card" style="padding:0;margin-top:16px;">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <h2 style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#fff;margin:0;">
+        Prova (área do assinante)
+        @if($provaPainel)
+          <span class="badge {{ $provaPainel->status === 'pronto' ? 'success' : 'neutral' }}" style="margin-left:8px;">
+            {{ ['pronto' => '✓ Pronta', 'gerando' => '⏳ Gerando…', 'erro' => '✗ Erro'][$provaPainel->status] ?? $provaPainel->status }}
+            @if($provaPainel->status === 'pronto') · {{ count($provaPainel->questoes()) }} questões @endif
+          </span>
+        @endif
+      </h2>
+      @if($provaTabelaOk && mb_strlen($fonteProva) >= \App\Services\PanelProvaService::MIN_FONTE)
+        <form action="{{ route('admin.panels.prova.gerar', $panel->id) }}" method="POST"
+              onsubmit="return confirm('{{ $provaPainel ? 'Regerar a prova? A atual será substituída.' : 'Gerar a prova deste painel via n8n?' }}');">
+          @csrf
+          <button type="submit" class="btn btn-primary" style="font-size:12px;padding:8px 14px;">
+            {{ $provaPainel ? 'Regerar prova' : 'Gerar prova' }}
+          </button>
+        </form>
+      @endif
+    </div>
+    <div style="padding:14px 20px;font-size:12.5px;color:var(--fg-4);">
+      @if(! $provaTabelaOk)
+        Tabela <code>panel_provas</code> ainda não criada — rode <code>database/panel_provas.sql</code> no banco.
+      @elseif(mb_strlen($fonteProva) < \App\Services\PanelProvaService::MIN_FONTE)
+        O campo "Conteúdo / Resumo" precisa de pelo menos {{ \App\Services\PanelProvaService::MIN_FONTE }} caracteres — é ele a fonte da prova (hoje: {{ mb_strlen($fonteProva) }}).
+      @else
+        A prova é gerada pela IA (n8n) a partir do "Conteúdo / Resumo" e aparece na aba Prova do player do assinante — 10 questões no mesmo formato dos cursos modulares.
+      @endif
+    </div>
+  </div>
 </div>
 
 {{-- Template para novos vídeos --}}

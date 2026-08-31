@@ -300,6 +300,29 @@ class PlayerController extends Controller
 
         $urlVoltar = route('assinante.home') . ($voltar !== '' ? '?' . $voltar : '');
 
+        // Prova do painel (aba Prova). try/catch: a tabela panel_provas pode ainda
+        // não existir (database/panel_provas.sql) — sem ela, sem aba, sem erro.
+        $questoesProva   = [];
+        $tentativasProva = collect();
+        $melhorProva     = 0;
+        try {
+            $prova = \App\Models\PanelProva::where('panel_id', $painel->id)->where('status', 'pronto')->first();
+            if ($prova) {
+                $questoesProva = $prova->questoes();
+                $sid = Auth::user()->student_id;
+                if ($questoesProva && $sid) {
+                    $tentativasProva = \App\Models\PanelProvaAttempt::where('panel_id', $painel->id)
+                        ->where('student_id', $sid)
+                        ->orderByDesc('id')
+                        ->limit(10)
+                        ->get();
+                    $melhorProva = (int) ($tentativasProva->max('score') ?? 0);
+                }
+            }
+        } catch (\Throwable $e) {
+            $questoesProva = [];
+        }
+
         return view('assinante.player', [
             'classe'          => $classe,
             'painel'          => $painel,
@@ -313,6 +336,83 @@ class PlayerController extends Controller
             'materiaisVistos' => $materiaisVistos,
             'urlVoltar'       => $urlVoltar,
             'queryContexto'   => http_build_query($query),
+            'questoesProva'   => $questoesProva,
+            'tentativasProva' => $tentativasProva,
+            'melhorProva'     => $melhorProva,
+        ]);
+    }
+
+    /**
+     * Grava uma tentativa da prova do painel (aba Prova do player do assinante).
+     * Acesso: matrícula checked na turma OU assinatura vigente (regra do concluir()).
+     * O score é RECALCULADO no servidor a partir de `answers` contra o gabarito
+     * (diferente do fluxo modular, que confia no score do cliente).
+     */
+    public function provaResultado(Request $request, string $slug, int $painelId)
+    {
+        $user   = Auth::user();
+        $painel = Panel::findOrFail($painelId);
+        $classe = Classes::where('slug', $slug)->firstOrFail();
+
+        // A prova precisa pertencer ao painel da turma da URL.
+        if ((int) $painel->classes_id !== (int) $classe->id) {
+            return response()->json(['ok' => false, 'msg' => 'Prova não pertence a este curso.'], 403);
+        }
+
+        $temMatricula = Enrollment::where('student_id', $user->student_id)
+            ->where('classes_id', $painel->classes_id)
+            ->where('status', 'checked')
+            ->exists();
+
+        if (! $temMatricula && ! $this->assinaturaVigente($user)) {
+            return response()->json(['ok' => false, 'msg' => 'Sem acesso.'], 403);
+        }
+
+        $data = $request->validate([
+            'score'     => ['required', 'integer', 'min:0'],
+            'total'     => ['required', 'integer', 'min:1'],
+            'answers'   => ['nullable', 'array'],
+            'answers.*' => ['integer'],
+        ]);
+
+        try {
+            $prova = \App\Models\PanelProva::where('panel_id', $painel->id)->where('status', 'pronto')->first();
+            if (! $prova) {
+                return response()->json(['ok' => false, 'msg' => 'Este curso não tem prova.'], 404);
+            }
+
+            $questoes = $prova->questoes();
+            $total    = count($questoes);
+            $answers  = $data['answers'] ?? null;
+
+            if ($total > 0 && is_array($answers) && count($answers) === $total) {
+                $score = 0;
+                foreach ($questoes as $i => $q) {
+                    if ((int) $answers[$i] === (int) ($q['correta'] ?? 0)) {
+                        $score++;
+                    }
+                }
+            } else {
+                $total = max($total, 1);
+                $score = min((int) $data['score'], $total);
+            }
+
+            $att = \App\Models\PanelProvaAttempt::create([
+                'panel_id'   => $painel->id,
+                'student_id' => $user->student_id,
+                'score'      => $score,
+                'total'      => $total,
+                'answers'    => is_array($answers) ? json_encode($answers) : null,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            return response()->json(['ok' => false, 'msg' => 'Prova indisponível no momento.'], 503);
+        }
+
+        return response()->json([
+            'ok'      => true,
+            'score'   => $att->score,
+            'total'   => $att->total,
+            'percent' => $att->percent(),
         ]);
     }
 

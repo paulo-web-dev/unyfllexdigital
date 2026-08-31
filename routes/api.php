@@ -42,6 +42,11 @@ Route::post('/n8n/cursos-modulares/podcast-audio', [ModularCourseController::cla
 Route::post('/n8n/cursos-modulares/materiais', [CourseMaterialController::class, 'materialCallback'])
     ->name('api.cursos-modulares.materiais');
 
+// Callback do n8n com a prova de um PAINEL (course_id = id do painel, mesmo
+// workflow de prova dos modulares). Grava em panel_provas.
+Route::post('/n8n/paineis/prova', [\App\Http\Controllers\Admin\PanelProvaController::class, 'provaCallback'])
+    ->name('api.paineis.prova');
+
 Route::post('/n8n/cursos-modulares/ads', [AdCreativeController::class, 'adsCallback'])
     ->name('api.cursos-modulares.ads');
 

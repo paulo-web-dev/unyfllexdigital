@@ -66,6 +66,9 @@
         <button type="button" class="as-tab active" data-tab="resumo">Resumo</button>
         <button type="button" class="as-tab" data-tab="materiais">Materiais <span class="as-tab__cnt">{{ count($materiais) }}</span></button>
         <button type="button" class="as-tab" data-tab="podcast">Podcast</button>
+        @if(count($questoesProva))
+          <button type="button" class="as-tab" data-tab="prova">Prova <span class="as-tab__cnt">{{ count($questoesProva) }}</span></button>
+        @endif
       </div>
 
       <section class="as-tabpanel" data-panel="resumo">
@@ -83,6 +86,43 @@
         <h4>Versão em áudio</h4>
         <div id="pl-podcast"></div>
       </section>
+
+      @if(count($questoesProva))
+      {{-- Aba Prova: mesmo padrão do simulado dos modulares, visual as-*. A correção
+           exibida é local; a nota gravada é recalculada no servidor (player.prova.resultado). --}}
+      <section class="as-tabpanel" data-panel="prova" hidden>
+        <h4>Prova deste curso</h4>
+        <p class="as-muted" style="margin:0 0 14px;">
+          {{ count($questoesProva) }} {{ count($questoesProva) === 1 ? 'questão' : 'questões' }}
+          @if($tentativasProva->isNotEmpty())
+            · Melhor nota: {{ $melhorProva }}/{{ count($questoesProva) }}
+            · {{ $tentativasProva->count() }} {{ $tentativasProva->count() === 1 ? 'tentativa' : 'tentativas' }}
+          @endif
+        </p>
+
+        <div class="as-prova" id="pl-prova"
+             data-url="{{ route('player.prova.resultado', [$classe->slug, $painel->id]) }}">
+          @foreach($questoesProva as $qi => $q)
+            <div class="as-prova__q" data-correct="{{ (int) ($q['correta'] ?? 0) }}">
+              <p class="as-prova__enunciado">{{ $qi + 1 }}. {{ $q['enunciado'] ?? '' }}</p>
+              @foreach(($q['alternativas'] ?? []) as $ai => $alt)
+                <button type="button" class="as-prova__alt" data-i="{{ $ai }}">
+                  <strong>{{ chr(65 + $ai) }})</strong> {{ $alt }}
+                </button>
+              @endforeach
+              <div class="as-prova__coment" hidden>{!! nl2br(e($q['comentario'] ?? '')) !!}</div>
+            </div>
+          @endforeach
+
+          <div class="as-prova__acoes">
+            <button type="button" class="as-btn as-btn--primary" id="pl-prova-corrigir">Finalizar prova</button>
+            <button type="button" class="as-btn as-btn--ghost" id="pl-prova-refazer" hidden>Refazer</button>
+            <span class="as-prova__score" id="pl-prova-score"></span>
+            <span class="as-prova__saved" id="pl-prova-saved" hidden></span>
+          </div>
+        </div>
+      </section>
+      @endif
     </div>
 
     {{-- ══ Lateral: só o painel em contexto ══ --}}
@@ -143,6 +183,31 @@
   ])->values()->all(),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 @endsection
+
+@push('styles')
+<style>
+  .as-prova__q { padding:14px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+  .as-prova__q:last-of-type { border-bottom:0; }
+  .as-prova__enunciado { font-size:14px; font-weight:600; color:var(--as-fg-1, #fff); line-height:1.5; margin:0 0 10px; }
+  .as-prova__alt {
+    display:block; width:100%; text-align:left; margin-bottom:8px; padding:10px 12px;
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); border-radius:10px;
+    color:var(--as-fg-2, #cdd6e4); font-size:13px; line-height:1.45; cursor:pointer;
+  }
+  .as-prova__alt strong { color:var(--as-blue-2, #58b6ff); margin-right:4px; }
+  .as-prova__alt.is-sel { border-color:var(--as-blue, #0088F4); background:rgba(0,136,244,.12); }
+  .as-prova__alt.is-certa { border-color:#2bd9a1; background:rgba(43,217,161,.14); }
+  .as-prova__alt.is-errada { border-color:#ff6b6b; background:rgba(255,107,107,.12); }
+  .as-prova__coment {
+    margin-top:10px; padding:10px 12px; background:rgba(0,136,244,.07);
+    border-left:3px solid var(--as-blue, #0088F4); border-radius:4px;
+    font-size:12.5px; color:var(--as-fg-3, #9aa7ba); line-height:1.5;
+  }
+  .as-prova__acoes { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:14px; }
+  .as-prova__score { font-size:14px; font-weight:700; color:var(--as-fg-1, #fff); }
+  .as-prova__saved { font-size:12px; color:#6FE6BD; }
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -259,6 +324,71 @@
   progresso();
   renderNav();
   if (items[idx]) items[idx].scrollIntoView({ block: 'nearest' });
+
+  // ── Aba Prova (correção local para exibição; nota recalculada no servidor) ──
+  (function () {
+    const quiz = document.getElementById('pl-prova');
+    if (!quiz) return;
+    const qs    = Array.from(quiz.querySelectorAll('.as-prova__q'));
+    const btnC  = document.getElementById('pl-prova-corrigir');
+    const btnR  = document.getElementById('pl-prova-refazer');
+    const score = document.getElementById('pl-prova-score');
+    const saved = document.getElementById('pl-prova-saved');
+    let done = false;
+
+    qs.forEach(q => q.querySelectorAll('.as-prova__alt').forEach(alt => {
+      alt.addEventListener('click', () => {
+        if (done) return;
+        q.querySelectorAll('.as-prova__alt').forEach(a => a.classList.remove('is-sel'));
+        alt.classList.add('is-sel');
+      });
+    }));
+
+    btnC.addEventListener('click', () => {
+      if (done) return;
+      done = true;
+      let acertos = 0;
+      const answers = [];
+      qs.forEach(q => {
+        const correct = parseInt(q.getAttribute('data-correct'), 10);
+        const sel = q.querySelector('.as-prova__alt.is-sel');
+        const selIdx = sel ? parseInt(sel.getAttribute('data-i'), 10) : -1;
+        answers.push(selIdx);
+        q.querySelectorAll('.as-prova__alt').forEach(a => {
+          const i = parseInt(a.getAttribute('data-i'), 10);
+          if (i === correct) a.classList.add('is-certa');
+          else if (sel && a === sel) a.classList.add('is-errada');
+        });
+        if (selIdx === correct) acertos++;
+        const com = q.querySelector('.as-prova__coment');
+        if (com && com.textContent.trim()) com.hidden = false;
+      });
+      score.textContent = 'Acertos: ' + acertos + ' / ' + qs.length;
+      btnC.hidden = true;
+      btnR.hidden = false;
+
+      fetch(quiz.dataset.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ score: acertos, total: qs.length, answers: answers })
+      }).then(r => r.json())
+        .then(r => { saved.textContent = r && r.ok ? '✓ Nota registrada' : '(não consegui registrar a nota)'; saved.hidden = false; })
+        .catch(() => { saved.textContent = '(não consegui registrar a nota)'; saved.hidden = false; });
+    });
+
+    btnR.addEventListener('click', () => {
+      done = false;
+      qs.forEach(q => {
+        q.querySelectorAll('.as-prova__alt').forEach(a => a.classList.remove('is-sel', 'is-certa', 'is-errada'));
+        const com = q.querySelector('.as-prova__coment');
+        if (com) com.hidden = true;
+      });
+      score.textContent = '';
+      saved.hidden = true;
+      btnR.hidden = true;
+      btnC.hidden = false;
+    });
+  })();
 })();
 </script>
 @endpush

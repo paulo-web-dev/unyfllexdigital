@@ -107,6 +107,16 @@ class AssinanteCatalogoService
         return $itens;
     }
 
+    /** IDs dos painéis exibidos no catálogo (após dedup e filtro de aulas). Usado pela geração de provas. */
+    public function idsPaineisExibiveis(): array
+    {
+        return DB::query()->fromSub($this->paineisExibiveis(), 'b')
+            ->orderBy('b.item_id')
+            ->pluck('b.item_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+    }
+
     /** Contadores globais (em painéis) e lista de categorias para o filtro. Cacheado. */
     public function meta(): array
     {

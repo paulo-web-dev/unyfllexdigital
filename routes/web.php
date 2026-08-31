@@ -109,6 +109,10 @@ Route::middleware('auth')->group(function () {
 
     
     Route::post('/dashboard/player/{slug}/material/{materialId}/registrar', [PlayerController::class, 'registrarMaterial'])->name('player.material.registrar');
+
+    // Prova do painel (aba Prova do player do assinante). Autorização no controller:
+    // matrícula checked na turma OU assinatura vigente.
+    Route::post('/dashboard/player/{slug}/prova/{painelId}/resultado', [PlayerController::class, 'provaResultado'])->name('player.prova.resultado')->whereNumber('painelId');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
 // Route::post('/funil/registrar', [FunnelController::class, 'registrar'])->name('funil.registrar');
@@ -208,6 +212,7 @@ Route::prefix('admin')
         Route::post('/cursos/{classeId}/panels',      [AdminController::class, 'panelStore'])->name('panels.store')->middleware('admin.can:admin.cursos');
         Route::get('/panels/{id}/editar',             [AdminController::class, 'panelEdit'])->name('panels.edit')->middleware('admin.can:admin.cursos');
         Route::put('/panels/{id}',                    [AdminController::class, 'panelUpdate'])->name('panels.update')->middleware('admin.can:admin.cursos');
+        Route::post('/panels/{id}/prova/gerar',       [\App\Http\Controllers\Admin\PanelProvaController::class, 'gerar'])->name('panels.prova.gerar')->middleware('admin.can:admin.cursos');
         Route::get('/panels/{panelId}/materiais/adicionar', [AdminController::class, 'materialParaPanel'])->name('panels.material.create')->middleware('admin.can:admin.cursos');
         Route::post('/panels/{panelId}/materiais',          [AdminController::class, 'materialParaPanelStore'])->name('panels.material.store')->middleware('admin.can:admin.cursos');
         Route::put('/videos/{id}',                    [AdminController::class, 'videoUpdate'])->name('videos.update')->middleware('admin.can:admin.cursos');
