@@ -112,8 +112,10 @@ TXT;
     private function dispararN8n(array $payload): bool
     {
         try {
+            // 60s: na geração em massa o n8n às vezes demora a aceitar o webhook
+            // (timeouts de 20s observados em 2026-08-31 sob carga).
             $resp = Http::withHeaders(['X-Webhook-Secret' => config('cursos_modulares.n8n_secret')])
-                ->timeout(20)
+                ->timeout(60)
                 ->post($this->webhook(), $payload);
 
             return $resp->successful();
