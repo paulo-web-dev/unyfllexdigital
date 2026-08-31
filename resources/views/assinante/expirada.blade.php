@@ -61,10 +61,10 @@
     <div class="as-exp__card">
       <p class="as-player__eyebrow">O que a renovação libera</p>
       <ul class="as-exp__lista">
-        <li><b>{{ $meta['paineis'] + $meta['modular'] }}</b> cursos no catálogo</li>
-        <li><b>{{ $meta['minisserie'] }}</b> cursos de minisséries</li>
-        <li><b>{{ $meta['gravado'] }}</b> cursos gravados</li>
-        <li><b>{{ $meta['modular'] }}</b> cursos modulares com resumo, cartões e prova</li>
+        <li><b>{{ $meta['paineis'] + $meta['modular'] }}</b> itens no catálogo</li>
+        <li><b>{{ $meta['minisserie'] }}</b> Cursos Minissérie</li>
+        <li><b>{{ $meta['gravado'] }}</b> Cursos Modulares</li>
+        <li><b>{{ $meta['modular'] }}</b> Apostilas e Materiais Pós-Graduação com resumo, cartões e prova</li>
         <li>Seu progresso fica guardado — você continua de onde parou.</li>
       </ul>
     </div>

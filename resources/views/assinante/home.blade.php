@@ -11,14 +11,14 @@
 <div class="as-head">
   <div>
     <h1>Seu acesso completo</h1>
-    <p>Cada card é um <strong style="color:var(--as-fg-2);">curso</strong>: um módulo de minissérie ou de curso gravado, ou um curso modular completo. Como assinante, você tem acesso a tudo.</p>
-    <p class="as-note">Minisséries e cursos gravados são divididos em cursos por tema, cada um com suas aulas e materiais.</p>
+    <p>Cada card é um <strong style="color:var(--as-fg-2);">Curso Minissérie</strong>, um <strong style="color:var(--as-fg-2);">Curso Modular</strong> ou uma <strong style="color:var(--as-fg-2);">Apostila / Material de Pós-Graduação</strong>. Como assinante, você tem acesso a tudo.</p>
+    <p class="as-note">Cursos Modulares são os módulos de um Curso Livre Aprofundado — cada um com suas próprias aulas e materiais.</p>
   </div>
   <div class="as-kpis">
-    <div class="as-kpi as-kpi--total"><b>{{ $meta['paineis'] + $meta['modular'] }}</b><span>cursos no catálogo</span></div>
-    <div class="as-kpi"><b>{{ $meta['minisserie'] }}</b><span>cursos · minisséries</span></div>
-    <div class="as-kpi"><b>{{ $meta['gravado'] }}</b><span>cursos · gravados</span></div>
-    <div class="as-kpi"><b>{{ $meta['modular'] }}</b><span>cursos modulares</span></div>
+    <div class="as-kpi as-kpi--total"><b>{{ $meta['paineis'] + $meta['modular'] }}</b><span>itens no catálogo</span></div>
+    <div class="as-kpi"><b>{{ $meta['minisserie'] }}</b><span>cursos minissérie</span></div>
+    <div class="as-kpi"><b>{{ $meta['gravado'] }}</b><span>cursos modulares</span></div>
+    <div class="as-kpi"><b>{{ $meta['modular'] }}</b><span>apostilas e materiais pós-graduação</span></div>
   </div>
 </div>
 

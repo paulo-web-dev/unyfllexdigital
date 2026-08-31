@@ -14,7 +14,15 @@ use Illuminate\Support\Str;
  * Catálogo da área do assinante.
  *
  * Unidade do catálogo: o PAINEL (panels) para minisséries e cursos gravados;
- * o CURSO para cursos modulares (não têm painel).
+ * o CURSO para os itens de modular_courses (não têm painel).
+ *
+ * NOMENCLATURA DE PRODUTO (2026-08, só apresentação — chaves/código/banco intocados):
+ *  - painel de gravado      => "Curso Modular"            (tipo 'gravado')
+ *  - turma gravada inteira  => "Curso Livre Aprofundado"
+ *  - painel de minissérie   => "Curso Minissérie"         (tipo 'minisserie')
+ *  - modular_courses        => "Apostilas e Materiais Pós-Graduação" (tipo 'modular')
+ * Atenção: o nome "Curso Modular" TROCOU de dono — antes designava modular_courses,
+ * agora designa o painel de gravado. Não confundir ao mexer nos rótulos.
  *
  * Regras (decididas com o produto em 2026-08):
  *  - Turmas elegíveis: minissérie (express='1', able) e gravado (unyflex=1, express='0', able).
@@ -37,9 +45,16 @@ class AssinanteCatalogoService
     public const SEM_CATEGORIA = 'sem-categoria';
 
     public const TIPOS = [
-        'minisserie' => 'Minisséries',
-        'gravado'    => 'Cursos Gravados',
-        'modular'    => 'Cursos Modulares',
+        'minisserie' => 'Cursos Minissérie',
+        'gravado'    => 'Cursos Modulares',
+        'modular'    => 'Apostilas e Materiais Pós-Graduação',
+    ];
+
+    /** Rótulo curto do badge do card (o filtro e os chips usam TIPOS). */
+    public const TIPOS_BADGE = [
+        'minisserie' => 'Curso Minissérie',
+        'gravado'    => 'Curso Modular',
+        'modular'    => 'Pós-Graduação',
     ];
 
     public const ORDENACOES = [
@@ -342,7 +357,7 @@ class AssinanteCatalogoService
 
         if ($tipo === 'modular') {
             $categorias  = [];
-            $chaveCat    = 'Cursos Modulares';
+            $chaveCat    = 'Apostilas e Materiais Pós-Graduação';
             $painelLabel = $row->turma;
             $titulo      = $row->turma;
             $url         = route('ava.modulares.show', $row->slug);
@@ -360,7 +375,7 @@ class AssinanteCatalogoService
 
         return (object) [
             'tipo'         => $tipo,
-            'tipo_label'   => self::TIPOS[$tipo] ?? $tipo,
+            'tipo_label'   => self::TIPOS_BADGE[$tipo] ?? $tipo,
             'id'           => (int) $row->item_id,
             'titulo'       => $titulo,
             'painel_label' => $painelLabel,

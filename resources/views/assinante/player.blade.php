@@ -19,7 +19,8 @@
       Voltar ao catálogo
     </a>
     <div class="as-player__crumb">
-      <span class="as-player__crumb-turma">{{ $classe->title }}</span>
+      {{-- Nomenclatura de produto: a turma gravada inteira é o "Curso Livre Aprofundado". --}}
+      <span class="as-player__crumb-turma">{{ $classe->express ? '' : 'Curso Livre Aprofundado: ' }}{{ $classe->title }}</span>
       <span class="as-player__crumb-sep">·</span>
       <span>Curso {{ $numero }} de {{ $totalPaineis }}</span>
     </div>
@@ -111,13 +112,13 @@
 
       <div class="as-player__side-foot">
         @if($proximo)
-          <p class="as-muted">Próximo curso desta turma</p>
+          <p class="as-muted">Próximo curso {{ $classe->express ? 'desta minissérie' : 'deste Curso Livre Aprofundado' }}</p>
           <a class="as-player__nextpanel" href="{{ $proximo['url'] }}">
             <span class="as-player__eyebrow">Curso {{ $proximo['numero'] }}</span>
             <strong>{{ $proximo['titulo'] }}</strong>
           </a>
         @else
-          <p class="as-muted">Este é o último curso desta turma.</p>
+          <p class="as-muted">Este é o último curso {{ $classe->express ? 'desta minissérie' : 'deste Curso Livre Aprofundado' }}.</p>
           <a class="as-btn as-btn--ghost" href="{{ $urlVoltar }}">Voltar ao catálogo</a>
         @endif
       </div>

@@ -20,10 +20,11 @@
     </div>
 
     @if($item->tipo !== 'modular')
-      <p class="as-card__turma">{{ $item->turma }}</p>
+      {{-- Para o gravado, a turma inteira é o "Curso Livre Aprofundado" (nomenclatura de produto). --}}
+      <p class="as-card__turma">{{ $item->tipo === 'gravado' ? 'Curso Livre Aprofundado: ' : '' }}{{ $item->turma }}</p>
       <h3 class="as-card__titulo">{{ $item->painel_label }}</h3>
     @else
-      <p class="as-card__turma">Curso modular</p>
+      <p class="as-card__turma">Apostilas e Materiais Pós-Graduação</p>
       <h3 class="as-card__titulo">{{ $item->titulo }}</h3>
     @endif
   </div>
