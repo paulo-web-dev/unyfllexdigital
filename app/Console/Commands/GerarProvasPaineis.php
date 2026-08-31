@@ -54,10 +54,11 @@ class GerarProvasPaineis extends Command
             return self::FAILURE;
         }
 
-        $disparados = 0;
-        $pulados    = 0;
-        $semFonte   = 0;
-        $falhas     = 0;
+        $disparados     = 0;
+        $pulados        = 0;
+        $semFonte       = 0;
+        $falhas         = 0;
+        $falhasSeguidas = 0;
 
         foreach ($ids as $id) {
             if ($limit > 0 && $disparados >= $limit) {
@@ -92,12 +93,19 @@ class GerarProvasPaineis extends Command
             [$ok, $msg] = $service->gerar($panel, $base);
             if ($ok) {
                 $disparados++;
+                $falhasSeguidas = 0;
                 $this->info("✓ #{$id} disparado ({$disparados})");
             } else {
                 $falhas++;
+                $falhasSeguidas++;
                 $this->error("✗ #{$id}: {$msg}");
                 if (str_contains($msg, 'panel_provas')) {
                     return self::FAILURE; // sem tabela, não adianta continuar
+                }
+                if ($falhasSeguidas >= 3) {
+                    $this->error('3 falhas seguidas — abortando. Investigue o n8n antes de retomar (a retomada pula o que já foi gerado).');
+
+                    return self::FAILURE;
                 }
             }
 

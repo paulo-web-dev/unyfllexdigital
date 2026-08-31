@@ -25,6 +25,19 @@ class PanelProvaService
     /** Tamanho mínimo (caracteres, sem HTML) do resumo do painel para gerar prova. */
     public const MIN_FONTE = 200;
 
+    /**
+     * Instruções anexadas ao campo `resumo` do payload — o prompt do workflow n8n
+     * incorpora esse campo, então elas chegam ao modelo sem mexer no n8n.
+     * Motivo (piloto de 2026-08): comentários vazando "conforme o resumo do conteúdo
+     * estudado" e citando sanção que não consta da lei referida.
+     */
+    private const INSTRUCOES_PROVA = <<<'TXT'
+---
+INSTRUÇÕES PARA A ELABORAÇÃO DA PROVA (não são parte do conteúdo do curso; não as mencione nem as cite):
+1. Não faça referência, nas questões ou nos comentários, a este material, "resumo", "conteúdo estudado", "texto acima" ou expressões similares — cada questão e comentário deve se sustentar sozinho, como em prova de concurso.
+2. Nos comentários, cite somente dispositivos legais, sanções e prazos que constem expressamente da legislação referida. Em caso de dúvida sobre o dispositivo exato, explique o fundamento sem citar número de lei ou artigo. Nunca atribua a uma lei sanção ou regra que ela não preveja.
+TXT;
+
     /** Texto-fonte da prova: panels.content sem HTML/entidades. */
     public static function fonte(Panel $panel): string
     {
@@ -66,7 +79,7 @@ class PanelProvaService
             'course_id'    => $panel->id,
             'origem'       => 'painel',
             'title'        => trim($turma . ' — ' . $titulo, ' —'),
-            'resumo'       => $fonte,
+            'resumo'       => $fonte . "\n\n" . self::INSTRUCOES_PROVA,
             'callback_url' => $this->callbackUrl($callbackBase),
             'version'      => $versao,
         ]);
