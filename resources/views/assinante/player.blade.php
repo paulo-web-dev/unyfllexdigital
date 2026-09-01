@@ -129,6 +129,22 @@
             <span class="as-prova__saved" id="pl-prova-saved" hidden></span>
           </div>
         </div>
+
+        {{-- Certificado (12h): melhor nota >= mínimo E material didático disponível.
+             Aprovado nesta sessão, o JS revela o botão sem recarregar. --}}
+        @if($certificado)
+          <div class="as-cert" id="pl-cert" data-minimo="{{ $certificado['minimo'] }}" style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07);">
+            @if(! $certificado['temMaterial'])
+              <p class="as-muted" style="margin:0;">Certificado indisponível para este curso: material didático não disponível.</p>
+            @else
+              <a href="{{ $certificado['url'] }}" id="pl-cert-link" class="as-btn as-btn--primary" @unless($certificado['aprovado']) hidden @endunless>Emitir certificado ({{ \App\Models\PanelCertificate::HORAS }}h)</a>
+              <p class="as-muted" id="pl-cert-falta" style="margin:0;" @if($certificado['aprovado']) hidden @endif>
+                Certificado ({{ \App\Models\PanelCertificate::HORAS }}h): acerte pelo menos
+                {{ $certificado['minimo'] }}/{{ count($questoesProva) }} na prova para liberar{{ $melhorProva > 0 ? ' — sua melhor nota: ' . $melhorProva . '/' . count($questoesProva) : '' }}.
+              </p>
+            @endif
+          </div>
+        @endif
       </section>
       @endif
     </div>
@@ -380,7 +396,18 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
         body: JSON.stringify({ score: acertos, total: qs.length, answers: answers })
       }).then(r => r.json())
-        .then(r => { saved.textContent = r && r.ok ? '✓ Nota registrada' : '(não consegui registrar a nota)'; saved.hidden = false; })
+        .then(r => {
+          saved.textContent = r && r.ok ? '✓ Nota registrada' : '(não consegui registrar a nota)';
+          saved.hidden = false;
+          // Nota (do servidor) atingiu o mínimo: revela o botão do certificado.
+          const certBox = document.getElementById('pl-cert');
+          const certLink = document.getElementById('pl-cert-link');
+          if (r && r.ok && certBox && certLink && r.score >= parseInt(certBox.dataset.minimo, 10)) {
+            certLink.hidden = false;
+            const falta = document.getElementById('pl-cert-falta');
+            if (falta) falta.hidden = true;
+          }
+        })
         .catch(() => { saved.textContent = '(não consegui registrar a nota)'; saved.hidden = false; });
     });
 

@@ -8,8 +8,8 @@ use App\Models\Enrollment;
 use App\Models\Material;
 use App\Models\Panel;
 use App\Models\VideoLesson;
-use App\Models\ViewsMinisserie;
 use App\Models\ViewsMaterialsMinisserie;
+use App\Models\ViewsMinisserie;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +44,7 @@ class PlayerController extends Controller
         // Registra o curso acessado (relatórios).
         // Rótulo por tipo de turma (a tela Acessos do admin agrupa por este texto).
         $rotulo = $classe->express ? 'Minissérie: ' : 'Curso gravado: ';
-        \App\Models\AccessLog::registrar('curso_view', $user->student_id, $user->id, $rotulo . $classe->title);
+        \App\Models\AccessLog::registrar('curso_view', $user->student_id, $user->id, $rotulo.$classe->title);
 
         // Carrega panels SEM eager load de relacionamentos
         $panels = Panel::where('classes_id', $classe->id)
@@ -57,7 +57,7 @@ class PlayerController extends Controller
 
         // Carrega TODOS os vídeos dos panels de uma vez — query separada totalmente independente
         $todosVideos = VideoLesson::whereIn('panel_id', $panelIds)
-            ->where('status', '!=','acdvfdegvble')
+            ->where('status', '!=', 'acdvfdegvble')
             ->orderBy('panel_id')
             ->orderBy('id')
             ->get()
@@ -76,7 +76,7 @@ class PlayerController extends Controller
         // Injeta manualmente nos panels
         foreach ($panels as $panel) {
             $panel->setRelation('video_lesson', $todosVideos->get($panel->id, collect()));
-            $panel->setRelation('material',     $todosMateriais->get($panel->id, collect()));
+            $panel->setRelation('material', $todosMateriais->get($panel->id, collect()));
         }
 
         // Views já assistidas
@@ -93,16 +93,16 @@ class PlayerController extends Controller
         // Monta cápsulas flat
         $capsulas = $panels->flatMap(function ($panel) use ($viewsIds) {
             return $panel->video_lesson->map(fn ($v) => [
-                'id'       => $v->id,
+                'id' => $v->id,
                 'panel_id' => $v->panel_id,
-                'feita'    => in_array($v->id, $viewsIds),
+                'feita' => in_array($v->id, $viewsIds),
             ]);
         });
 
-        $totalCnt   = $capsulas->count();
+        $totalCnt = $capsulas->count();
         $watchedCnt = $capsulas->where('feita', true)->count();
 
-        $allVideos            = $capsulas->values();
+        $allVideos = $capsulas->values();
         $primeiroNaoAssistido = $allVideos->firstWhere('feita', false);
 
         $capsulaAtiva = null;
@@ -116,7 +116,8 @@ class PlayerController extends Controller
             $videoAtivo = VideoLesson::find($capsulaAtiva['id']);
             $panelAtivo = Panel::find($capsulaAtiva['panel_id']);
 
-            $pNum = 1; $vNum = 1;
+            $pNum = 1;
+            $vNum = 1;
             foreach ($panels as $pIdx => $p) {
                 foreach ($p->video_lesson as $vIdx => $v) {
                     if ($v->id == $capsulaAtiva['id']) {
@@ -128,22 +129,22 @@ class PlayerController extends Controller
             }
 
             $capsula = [
-                'video_id'  => $videoAtivo->id,
-                'panel_id'  => $panelAtivo->id,
-                'numero'    => $pNum . '.' . $vNum,
-                'titulo'    => $videoAtivo->titulo ?? '',
-                'link'      => $videoAtivo->link ?? '',
+                'video_id' => $videoAtivo->id,
+                'panel_id' => $panelAtivo->id,
+                'numero' => $pNum.'.'.$vNum,
+                'titulo' => $videoAtivo->titulo ?? '',
+                'link' => $videoAtivo->link ?? '',
                 'descricao' => $videoAtivo->subtitle ?? $panelAtivo->content ?? '',
-                'resumo'    => $panelAtivo->content ?? '',
-                'trecho'    => 'Temporada ' . $pNum . ': ' . $panelAtivo->title,
+                'resumo' => $panelAtivo->content ?? '',
+                'trecho' => 'Temporada '.$pNum.': '.$panelAtivo->title,
             ];
 
             $this->_registrarView($user->id, $classe->id, $capsulaAtiva['panel_id'], $capsulaAtiva['id']);
         }
 
-        $totalVideos     = $totalCnt;
+        $totalVideos = $totalCnt;
         $totalAssistidos = $watchedCnt;
-        $progresso       = $totalVideos > 0 ? (int) round(($watchedCnt / $totalVideos) * 100) : 0;
+        $progresso = $totalVideos > 0 ? (int) round(($watchedCnt / $totalVideos) * 100) : 0;
 
         // Assinante: player em unidade de PAINEL (view própria). Aluno matriculado: fluxo original.
         if ($assinante) {
@@ -163,7 +164,7 @@ class PlayerController extends Controller
 
     public function concluir(Request $request, string $slug, int $videoId)
     {
-        $user  = Auth::user();
+        $user = Auth::user();
         $video = VideoLesson::findOrFail($videoId);
         $panel = Panel::findOrFail($video->panel_id);
 
@@ -173,60 +174,60 @@ class PlayerController extends Controller
             ->where('status', 'checked')
             ->exists();
 
-        if (!$temMatricula && !$this->assinaturaVigente($user)) {
+        if (! $temMatricula && ! $this->assinaturaVigente($user)) {
             return response()->json(['ok' => false, 'msg' => 'Sem acesso.'], 403);
         }
 
         $this->_registrarView($user->id, $panel->classes_id, $panel->id, $videoId);
 
-        $totalVideos  = VideoLesson::whereIn('panel_id',
-                Panel::where('classes_id', $panel->classes_id)->where('status', 'able')->pluck('id')
-            )->where('status', 'able')->count();
+        $totalVideos = VideoLesson::whereIn('panel_id',
+            Panel::where('classes_id', $panel->classes_id)->where('status', 'able')->pluck('id')
+        )->where('status', 'able')->count();
 
-        $assistidos   = ViewsMinisserie::where('id_user', $user->id)
+        $assistidos = ViewsMinisserie::where('id_user', $user->id)
             ->where('classes_id', $panel->classes_id)
             ->distinct('video_id')->count('video_id');
 
         $progressoPct = $totalVideos > 0 ? (int) round(($assistidos / $totalVideos) * 100) : 0;
 
         Log::info('[Player] Cápsula concluída', [
-            'user_id'    => $user->id,
-            'video_id'   => $videoId,
+            'user_id' => $user->id,
+            'video_id' => $videoId,
             'classes_id' => $panel->classes_id,
-            'progresso'  => $progressoPct . '%',
+            'progresso' => $progressoPct.'%',
         ]);
 
         return response()->json([
-            'ok'         => true,
+            'ok' => true,
             'assistidos' => $assistidos,
-            'total'      => $totalVideos,
-            'progresso'  => $progressoPct,
+            'total' => $totalVideos,
+            'progresso' => $progressoPct,
         ]);
     }
 
     public function registrarMaterial(Request $request, string $slug, int $materialId)
     {
-        $user     = Auth::user();
+        $user = Auth::user();
         $material = Material::findOrFail($materialId);
-        $classe   = Classes::where('slug', $slug)->firstOrFail();
+        $classe = Classes::where('slug', $slug)->firstOrFail();
 
         $pertence = $material->panels()
             ->where('panels.classes_id', $classe->id)
             ->exists();
 
-        if (!$pertence) {
+        if (! $pertence) {
             return response()->json(['ok' => false, 'msg' => 'Material não pertence a esta minissérie.'], 403);
         }
 
         ViewsMaterialsMinisserie::firstOrCreate([
-            'id_user'     => $user->id,
+            'id_user' => $user->id,
             'material_id' => $materialId,
         ]);
 
         Log::info('[Player] Material acessado', [
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'material_id' => $materialId,
-            'classes_id'  => $classe->id,
+            'classes_id' => $classe->id,
         ]);
 
         return response()->json(['ok' => true]);
@@ -236,15 +237,15 @@ class PlayerController extends Controller
      * Player do ASSINANTE: contexto é o painel (?painel=ID), não a turma inteira.
      * Não altera queries nem gravações — só recorta o que a view recebe.
      *
-     * @param  \Illuminate\Support\Collection $panels   painéis able da turma (ordem start_time, id), com video_lesson e material injetados
-     * @param  array|null                     $capsula  cápsula ativa já montada pelo show()
-     * @param  array|null                     $capsulaAtiva ['id','panel_id','feita']
-     * @param  int[]                          $viewsIds vídeos já vistos pelo usuário nesta turma
+     * @param  \Illuminate\Support\Collection  $panels  painéis able da turma (ordem start_time, id), com video_lesson e material injetados
+     * @param  array|null  $capsula  cápsula ativa já montada pelo show()
+     * @param  array|null  $capsulaAtiva  ['id','panel_id','feita']
+     * @param  int[]  $viewsIds  vídeos já vistos pelo usuário nesta turma
      */
     private function viewAssinante(Classes $classe, $panels, ?array $capsula, ?array $capsulaAtiva, array $viewsIds, array $materiaisVistos)
     {
-        $panels  = $panels->values();
-        $painel  = null;
+        $panels = $panels->values();
+        $painel = null;
         $painelId = (int) request()->query('painel');
 
         if ($painelId) {
@@ -263,15 +264,15 @@ class PlayerController extends Controller
         abort_if($aulas->isEmpty(), 404, 'Este curso ainda não tem aulas disponíveis.');
 
         $voltar = \App\Services\AssinanteCatalogoService::voltarSeguro(request()->query('voltar'));
-        $query  = array_filter(['painel' => $painel->id, 'voltar' => $voltar]);
+        $query = array_filter(['painel' => $painel->id, 'voltar' => $voltar]);
 
         // Cápsula ativa fora do painel (ou sem link): reposiciona na primeira aula do painel.
         if (! $capsula || (int) $capsula['panel_id'] !== (int) $painel->id || ! $aulas->contains('id', $capsula['video_id'])) {
-            return redirect()->to(route('player.video', [$classe->slug, $aulas->first()->id]) . '?' . http_build_query($query));
+            return redirect()->to(route('player.video', [$classe->slug, $aulas->first()->id]).'?'.http_build_query($query));
         }
 
-        $indice       = $panels->search(fn ($p) => $p->id === $painel->id);
-        $numero       = $indice + 1;
+        $indice = $panels->search(fn ($p) => $p->id === $painel->id);
+        $numero = $indice + 1;
         $totalPaineis = $panels->count();
 
         // Próximo painel da MESMA turma que tenha aula com link (segue em contexto de painel).
@@ -282,7 +283,7 @@ class PlayerController extends Controller
                 $proximo = [
                     'numero' => $i + 1,
                     'titulo' => $p->title,
-                    'url'    => route('player.video', [$classe->slug, $primeira->id]) . '?' . http_build_query(array_filter(['painel' => $p->id, 'voltar' => $voltar])),
+                    'url' => route('player.video', [$classe->slug, $primeira->id]).'?'.http_build_query(array_filter(['painel' => $p->id, 'voltar' => $voltar])),
                 ];
                 break;
             }
@@ -292,19 +293,19 @@ class PlayerController extends Controller
         $feitas = array_values(array_unique(array_merge($viewsIds, [(int) $capsula['video_id']])));
 
         $materiais = $painel->material->map(fn ($m) => [
-            'id'   => (int) $m->id,
+            'id' => (int) $m->id,
             'type' => (string) $m->type,
             'name' => $m->name ?: $m->file_name,
             'file' => $m->file_name,
         ])->values()->all();
 
-        $urlVoltar = route('assinante.home') . ($voltar !== '' ? '?' . $voltar : '');
+        $urlVoltar = route('assinante.home').($voltar !== '' ? '?'.$voltar : '');
 
         // Prova do painel (aba Prova). try/catch: a tabela panel_provas pode ainda
         // não existir (database/panel_provas.sql) — sem ela, sem aba, sem erro.
-        $questoesProva   = [];
+        $questoesProva = [];
         $tentativasProva = collect();
-        $melhorProva     = 0;
+        $melhorProva = 0;
         try {
             $prova = \App\Models\PanelProva::where('panel_id', $painel->id)->where('status', 'pronto')->first();
             if ($prova) {
@@ -323,22 +324,117 @@ class PlayerController extends Controller
             $questoesProva = [];
         }
 
+        // Certificado do painel (12h) — regras 2026-09: melhor nota >= 70% na prova
+        // E material didático disponível (mesma régua da aba Materiais: sem PODCAST).
+        // O bloco vive na aba Prova; sem prova não há aba nem certificado possível.
+        $certificado = null;
+        if ($questoesProva) {
+            $minimo = (int) ceil(count($questoesProva) * \App\Models\PanelCertificate::NOTA_MINIMA);
+            $certificado = [
+                'temMaterial' => collect($materiais)->contains(fn ($m) => $m['type'] !== 'PODCAST'),
+                'minimo' => $minimo,
+                'aprovado' => $melhorProva >= $minimo,
+                'url' => route('player.certificado', [$classe->slug, $painel->id]),
+            ];
+        }
+
         return view('assinante.player', [
-            'classe'          => $classe,
-            'painel'          => $painel,
-            'numero'          => $numero,
-            'totalPaineis'    => $totalPaineis,
-            'aulas'           => $aulas,
-            'capsula'         => $capsula,
-            'feitas'          => $feitas,
-            'proximo'         => $proximo,
-            'materiais'       => $materiais,
+            'classe' => $classe,
+            'painel' => $painel,
+            'numero' => $numero,
+            'totalPaineis' => $totalPaineis,
+            'aulas' => $aulas,
+            'capsula' => $capsula,
+            'feitas' => $feitas,
+            'proximo' => $proximo,
+            'materiais' => $materiais,
             'materiaisVistos' => $materiaisVistos,
-            'urlVoltar'       => $urlVoltar,
-            'queryContexto'   => http_build_query($query),
-            'questoesProva'   => $questoesProva,
+            'urlVoltar' => $urlVoltar,
+            'queryContexto' => http_build_query($query),
+            'questoesProva' => $questoesProva,
             'tentativasProva' => $tentativasProva,
-            'melhorProva'     => $melhorProva,
+            'melhorProva' => $melhorProva,
+            'certificado' => $certificado,
+        ]);
+    }
+
+    /**
+     * Certificado do painel (12h de carga horária) — página de impressão/PDF.
+     * Critérios (revalidados aqui, o botão só aparece quando atendidos): melhor
+     * nota >= 70% na prova do painel E material didático (não-PODCAST) disponível.
+     * Acesso: mesma regra de provaResultado. A emissão é registrada UMA vez em
+     * panel_certificates (nome/título/data congelados; token para a futura página
+     * pública de validação); sem a tabela, o certificado renderiza sem registrar.
+     */
+    public function certificado(string $slug, int $painelId)
+    {
+        $user = Auth::user();
+        $painel = Panel::findOrFail($painelId);
+        $classe = Classes::where('slug', $slug)->firstOrFail();
+        abort_if((int) $painel->classes_id !== (int) $classe->id, 404);
+
+        $temMatricula = Enrollment::where('student_id', $user->student_id)
+            ->where('classes_id', $painel->classes_id)
+            ->where('status', 'checked')
+            ->exists();
+        abort_unless($temMatricula || $this->assinaturaVigente($user), 403, 'Sem acesso.');
+
+        abort_unless(
+            $painel->material()->where('materials.status', 'able')->where('materials.type', '<>', 'PODCAST')->exists(),
+            403,
+            'Certificado indisponível: material didático não disponível neste curso.'
+        );
+
+        try {
+            $prova = \App\Models\PanelProva::where('panel_id', $painel->id)->where('status', 'pronto')->first();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $prova = null;
+        }
+        abort_unless($prova, 404, 'Este curso não tem prova.');
+
+        $total = count($prova->questoes());
+        $minimo = (int) ceil($total * \App\Models\PanelCertificate::NOTA_MINIMA);
+
+        $melhor = \App\Models\PanelProvaAttempt::where('panel_id', $painel->id)
+            ->where('student_id', $user->student_id)
+            ->max('score');
+        abort_unless($total > 0 && (int) $melhor >= $minimo, 403, "Certificado liberado a partir de {$minimo}/{$total} acertos na prova.");
+
+        // Data de conclusão: primeira tentativa que atingiu a nota mínima.
+        $concluidoEm = \App\Models\PanelProvaAttempt::where('panel_id', $painel->id)
+            ->where('student_id', $user->student_id)
+            ->where('score', '>=', $minimo)
+            ->min('created_at');
+
+        $aluno = optional(\App\Models\Student::find($user->student_id))->name ?: $user->name;
+        $tituloPainel = trim((string) $painel->title) !== '' && trim((string) $painel->title) !== '-' ? trim($painel->title) : "Painel {$painel->id}";
+        $titulo = trim(((string) $classe->title).' — '.$tituloPainel, ' —');
+
+        $cert = null;
+        try {
+            $cert = \App\Models\PanelCertificate::firstOrCreate(
+                ['student_id' => $user->student_id, 'panel_id' => $painel->id],
+                [
+                    'token' => \Illuminate\Support\Str::random(40),
+                    'aluno' => $aluno,
+                    'titulo' => $titulo,
+                    'horas' => \App\Models\PanelCertificate::HORAS,
+                    'score' => (int) $melhor,
+                    'total' => $total,
+                    'concluido_em' => substr((string) $concluidoEm, 0, 10),
+                ]
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Tabela panel_certificates ainda não criada — renderiza sem registrar.
+        }
+
+        return view('assinante.certificado', [
+            'aluno' => $cert->aluno ?? $aluno,
+            'titulo' => $cert->titulo ?? $titulo,
+            'horas' => (int) ($cert->horas ?? \App\Models\PanelCertificate::HORAS),
+            'concluidoEm' => $cert ? $cert->concluido_em : \Illuminate\Support\Carbon::parse($concluidoEm),
+            'token' => $cert->token ?? null,
+            'urlVoltar' => route('player', $classe->slug).'?painel='.$painel->id,
         ]);
     }
 
@@ -350,7 +446,7 @@ class PlayerController extends Controller
      */
     public function provaResultado(Request $request, string $slug, int $painelId)
     {
-        $user   = Auth::user();
+        $user = Auth::user();
         $painel = Panel::findOrFail($painelId);
         $classe = Classes::where('slug', $slug)->firstOrFail();
 
@@ -369,9 +465,9 @@ class PlayerController extends Controller
         }
 
         $data = $request->validate([
-            'score'     => ['required', 'integer', 'min:0'],
-            'total'     => ['required', 'integer', 'min:1'],
-            'answers'   => ['nullable', 'array'],
+            'score' => ['required', 'integer', 'min:0'],
+            'total' => ['required', 'integer', 'min:1'],
+            'answers' => ['nullable', 'array'],
             'answers.*' => ['integer'],
         ]);
 
@@ -382,8 +478,8 @@ class PlayerController extends Controller
             }
 
             $questoes = $prova->questoes();
-            $total    = count($questoes);
-            $answers  = $data['answers'] ?? null;
+            $total = count($questoes);
+            $answers = $data['answers'] ?? null;
 
             if ($total > 0 && is_array($answers) && count($answers) === $total) {
                 $score = 0;
@@ -398,20 +494,20 @@ class PlayerController extends Controller
             }
 
             $att = \App\Models\PanelProvaAttempt::create([
-                'panel_id'   => $painel->id,
+                'panel_id' => $painel->id,
                 'student_id' => $user->student_id,
-                'score'      => $score,
-                'total'      => $total,
-                'answers'    => is_array($answers) ? json_encode($answers) : null,
+                'score' => $score,
+                'total' => $total,
+                'answers' => is_array($answers) ? json_encode($answers) : null,
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
             return response()->json(['ok' => false, 'msg' => 'Prova indisponível no momento.'], 503);
         }
 
         return response()->json([
-            'ok'      => true,
-            'score'   => $att->score,
-            'total'   => $att->total,
+            'ok' => true,
+            'score' => $att->score,
+            'total' => $att->total,
             'percent' => $att->percent(),
         ]);
     }
@@ -419,20 +515,21 @@ class PlayerController extends Controller
     /** True se o usuário logado tem assinatura ativa e dentro da validade. */
     private function assinaturaVigente($user): bool
     {
-        if (!$user || !$user->student_id) {
+        if (! $user || ! $user->student_id) {
             return false;
         }
         $student = \App\Models\Student::find($user->student_id);
+
         return $student ? $student->isAssinante() : false;
     }
 
     private function _registrarView(int $userId, int $classesId, int $panelId, int $videoId): void
     {
         ViewsMinisserie::firstOrCreate([
-            'id_user'    => $userId,
+            'id_user' => $userId,
             'classes_id' => $classesId,
-            'panel_id'   => $panelId,
-            'video_id'   => $videoId,
+            'panel_id' => $panelId,
+            'video_id' => $videoId,
         ]);
     }
 }
