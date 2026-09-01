@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS panel_certificates (
     UNIQUE KEY uq_panel_certificates_aluno_painel (student_id, panel_id),
     UNIQUE KEY uq_panel_certificates_token (token),
     KEY idx_panel_certificates_panel (panel_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
