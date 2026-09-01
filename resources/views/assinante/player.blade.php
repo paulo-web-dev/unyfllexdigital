@@ -8,6 +8,14 @@
   $vistosPainel = $aulas->filter(fn ($a) => in_array($a->id, $feitas))->count();
   $pct = $totalAulas > 0 ? (int) round($vistosPainel / $totalAulas * 100) : 0;
   $podcast = collect($materiais)->firstWhere('type', 'PODCAST');
+  // Descrição da aula como texto puro: o fallback é panels.content, que vem com
+  // HTML + entidades do banco (mesma limpeza de PanelProvaService::fonte()).
+  $descAula = function ($html) {
+      $txt = html_entity_decode((string) $html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+      $txt = preg_replace('/<(br|\/p|\/div|\/li|\/h[1-6])[^>]*>/i', ' ', $txt); // quebras viram espaço
+      $txt = trim(preg_replace('/\s+/u', ' ', strip_tags($txt)));
+      return $txt === '-' ? '' : $txt;
+  };
 @endphp
 
 <div class="as-player">
@@ -40,7 +48,7 @@
 
       <p class="as-player__eyebrow" id="pl-num">Aula {{ $numero }}.{{ $aulas->search(fn ($a) => $a->id === $capsula['video_id']) + 1 }}</p>
       <h2 class="as-player__title" id="pl-title">{{ $capsula['titulo'] }}</h2>
-      <p class="as-player__desc" id="pl-desc">{{ $capsula['descricao'] }}</p>
+      <p class="as-player__desc" id="pl-desc">{{ $descAula($capsula['descricao']) }}</p>
 
       <div class="as-player__nav">
         <button type="button" id="pl-prev" class="as-btn as-btn--ghost">
@@ -178,7 +186,7 @@
       'id'     => (int) $a->id,
       'num'    => $numero . '.' . ($i + 1),
       'titulo' => (string) ($a->titulo ?: 'Sem título'),
-      'desc'   => (string) ($a->subtitle ?: $painel->content ?: ''),
+      'desc'   => $descAula($a->subtitle ?: $painel->content ?: ''),
       'link'   => (string) $a->link,
   ])->values()->all(),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
