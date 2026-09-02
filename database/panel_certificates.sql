@@ -1,6 +1,7 @@
 -- Certificados por painel ("Curso Modular" da área do assinante) — regras 2026-09:
--- melhor nota >= 70% na prova do painel E material didático (não-PODCAST) disponível;
--- carga horária fixa de 12h; 1 certificado por (aluno, painel).
+-- melhor nota >= 70% na prova do painel; carga horária pelo tipo da turma
+-- (minissérie 12h, turma gravada 20h — a aplicação grava `horas` explicitamente,
+-- o DEFAULT abaixo não é usado); 1 certificado por (aluno, painel).
 --
 -- Idempotente. A aplicação funciona ANTES de rodar este script: sem a tabela o
 -- certificado ainda renderiza, apenas não fica registrado (sem token).

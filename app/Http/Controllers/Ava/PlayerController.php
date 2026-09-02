@@ -324,14 +324,14 @@ class PlayerController extends Controller
             $questoesProva = [];
         }
 
-        // Certificado do painel (12h) — regras 2026-09: melhor nota >= 70% na prova
-        // E material didático disponível (mesma régua da aba Materiais: sem PODCAST).
+        // Certificado do painel — regra 2026-09: melhor nota >= 70% na prova.
+        // Carga horária pelo tipo da turma (minissérie 12h, gravada 20h).
         // O bloco vive na aba Prova; sem prova não há aba nem certificado possível.
         $certificado = null;
         if ($questoesProva) {
             $minimo = (int) ceil(count($questoesProva) * \App\Models\PanelCertificate::NOTA_MINIMA);
             $certificado = [
-                'temMaterial' => collect($materiais)->contains(fn ($m) => $m['type'] !== 'PODCAST'),
+                'horas' => \App\Models\PanelCertificate::horasPara($classe),
                 'minimo' => $minimo,
                 'aprovado' => $melhorProva >= $minimo,
                 'url' => route('player.certificado', [$classe->slug, $painel->id]),
@@ -359,11 +359,11 @@ class PlayerController extends Controller
     }
 
     /**
-     * Certificado do painel (12h de carga horária) — página de impressão/PDF.
-     * Critérios (revalidados aqui, o botão só aparece quando atendidos): melhor
-     * nota >= 70% na prova do painel E material didático (não-PODCAST) disponível.
-     * Acesso: mesma regra de provaResultado. A emissão é registrada UMA vez em
-     * panel_certificates (nome/título/data congelados; token para a futura página
+     * Certificado do painel — página de impressão/PDF.
+     * Regra (2026-09): melhor nota >= 70% na prova do painel. Carga horária pelo
+     * tipo da turma: minissérie 12h, turma gravada ("Curso Livre Aprofundado") 20h.
+     * Mesma autorização da prova (matrícula checked OU assinatura vigente).
+     * Registra 1 linha por (aluno, painel) em panel_certificates com token (página
      * pública de validação); sem a tabela, o certificado renderiza sem registrar.
      */
     public function certificado(string $slug, int $painelId)
@@ -378,12 +378,6 @@ class PlayerController extends Controller
             ->where('status', 'checked')
             ->exists();
         abort_unless($temMatricula || $this->assinaturaVigente($user), 403, 'Sem acesso.');
-
-        abort_unless(
-            $painel->material()->where('materials.status', 'able')->where('materials.type', '<>', 'PODCAST')->exists(),
-            403,
-            'Certificado indisponível: material didático não disponível neste curso.'
-        );
 
         try {
             $prova = \App\Models\PanelProva::where('panel_id', $painel->id)->where('status', 'pronto')->first();
@@ -406,9 +400,11 @@ class PlayerController extends Controller
             ->where('score', '>=', $minimo)
             ->min('created_at');
 
-        $aluno = optional(\App\Models\Student::find($user->student_id))->name ?: $user->name;
+        $student = \App\Models\Student::find($user->student_id);
+        $aluno = optional($student)->name ?: $user->name;
         $tituloPainel = trim((string) $painel->title) !== '' && trim((string) $painel->title) !== '-' ? trim($painel->title) : "Painel {$painel->id}";
         $titulo = trim(((string) $classe->title).' — '.$tituloPainel, ' —');
+        $horas = \App\Models\PanelCertificate::horasPara($classe);
 
         $cert = null;
         try {
@@ -418,7 +414,7 @@ class PlayerController extends Controller
                     'token' => \Illuminate\Support\Str::random(40),
                     'aluno' => $aluno,
                     'titulo' => $titulo,
-                    'horas' => \App\Models\PanelCertificate::HORAS,
+                    'horas' => $horas,
                     'score' => (int) $melhor,
                     'total' => $total,
                     'concluido_em' => substr((string) $concluidoEm, 0, 10),
@@ -428,14 +424,41 @@ class PlayerController extends Controller
             // Tabela panel_certificates ainda não criada — renderiza sem registrar.
         }
 
+        // Conteúdo programático: títulos das aulas do painel (ordem do player).
+        $aulas = VideoLesson::where('panel_id', $painel->id)
+            ->whereNotNull('link')->where('link', '<>', '')
+            ->orderBy('id')
+            ->pluck('titulo')
+            ->map(fn ($t) => trim((string) $t))
+            ->filter()
+            ->values()
+            ->all();
+
         return view('assinante.certificado', [
             'aluno' => $cert->aluno ?? $aluno,
+            'cpf' => $this->formatarCpf(optional($student)->cpf),
             'titulo' => $cert->titulo ?? $titulo,
-            'horas' => (int) ($cert->horas ?? \App\Models\PanelCertificate::HORAS),
+            'tipoTurma' => (string) $classe->express === '1' ? 'Curso Minissérie' : 'Curso Livre Aprofundado',
+            'horas' => (int) ($cert->horas ?? $horas),
             'concluidoEm' => $cert ? $cert->concluido_em : \Illuminate\Support\Carbon::parse($concluidoEm),
+            'emitidoEm' => $cert?->created_at ?: now(),
+            'numero' => $cert ? str_pad((string) $cert->id, 6, '0', STR_PAD_LEFT) : null,
             'token' => $cert->token ?? null,
+            'urlValidacao' => $cert ? route('certificado.validar.token', $cert->token) : null,
+            'aulas' => $aulas,
             'urlVoltar' => route('player', $classe->slug).'?painel='.$painel->id,
         ]);
+    }
+
+    /** CPF em 000.000.000-00; vazio se não houver 11 dígitos. */
+    private function formatarCpf(?string $cpf): string
+    {
+        $d = preg_replace('/\D/', '', (string) $cpf);
+        if (strlen($d) !== 11) {
+            return '';
+        }
+
+        return substr($d, 0, 3).'.'.substr($d, 3, 3).'.'.substr($d, 6, 3).'-'.substr($d, 9, 2);
     }
 
     /**

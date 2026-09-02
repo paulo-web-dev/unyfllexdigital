@@ -28,6 +28,10 @@
             <i data-lucide="layout-grid" class="ico"></i>
             <span>Catálogo</span>
         </a>
+        <a href="{{ route('assinante.certificados') }}" class="nav-item {{ request()->routeIs('assinante.certificados') ? 'active' : '' }}">
+            <i data-lucide="award" class="ico"></i>
+            <span>Meus certificados</span>
+        </a>
         <a href="{{ route('perfil') }}" class="nav-item {{ request()->routeIs('perfil*') ? 'active' : '' }}">
             <i data-lucide="user" class="ico"></i>
             <span>Meu perfil</span>

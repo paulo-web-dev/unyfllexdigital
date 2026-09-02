@@ -116,8 +116,8 @@ Route::middleware('auth')->group(function () {
     // matrícula checked na turma OU assinatura vigente.
     Route::post('/dashboard/player/{slug}/prova/{painelId}/resultado', [PlayerController::class, 'provaResultado'])->name('player.prova.resultado')->whereNumber('painelId');
 
-    // Certificado do painel (12h): melhor nota >= 70% na prova E material didático
-    // disponível. Mesma autorização da prova; critérios revalidados no controller.
+    // Certificado do painel: melhor nota >= 70% na prova (minissérie 12h, gravada 20h).
+    // Mesma autorização da prova; critérios revalidados no controller.
     Route::get('/dashboard/player/{slug}/certificado/{painelId}', [PlayerController::class, 'certificado'])->name('player.certificado')->whereNumber('painelId');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');
@@ -319,6 +319,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin', 'admin.can:
 // ── Área do Assinante (assinatura ativa) ──────────────────────────────────
 Route::middleware(['auth', 'subscriber'])->group(function () {
     Route::get('/assinante', [SubscriptionAreaController::class, 'home'])->name('assinante.home');
+    Route::get('/assinante/certificados', [SubscriptionAreaController::class, 'certificados'])->name('assinante.certificados');
 });
 // Assinatura vencida/cancelada e sem minissérie comprada: só 'auth' (o controller trata os outros casos).
 Route::get('/assinante/expirada', [SubscriptionAreaController::class, 'expirada'])->middleware('auth')->name('assinante.expirada');

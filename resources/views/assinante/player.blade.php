@@ -130,19 +130,15 @@
           </div>
         </div>
 
-        {{-- Certificado (12h): melhor nota >= mínimo E material didático disponível.
+        {{-- Certificado: melhor nota >= mínimo na prova (carga horária pelo tipo da turma).
              Aprovado nesta sessão, o JS revela o botão sem recarregar. --}}
         @if($certificado)
           <div class="as-cert" id="pl-cert" data-minimo="{{ $certificado['minimo'] }}" style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07);">
-            @if(! $certificado['temMaterial'])
-              <p class="as-muted" style="margin:0;">Certificado indisponível para este curso: material didático não disponível.</p>
-            @else
-              <a href="{{ $certificado['url'] }}" id="pl-cert-link" class="as-btn as-btn--primary" @unless($certificado['aprovado']) hidden @endunless>Emitir certificado ({{ \App\Models\PanelCertificate::HORAS }}h)</a>
-              <p class="as-muted" id="pl-cert-falta" style="margin:0;" @if($certificado['aprovado']) hidden @endif>
-                Certificado ({{ \App\Models\PanelCertificate::HORAS }}h): acerte pelo menos
-                {{ $certificado['minimo'] }}/{{ count($questoesProva) }} na prova para liberar{{ $melhorProva > 0 ? ' — sua melhor nota: ' . $melhorProva . '/' . count($questoesProva) : '' }}.
-              </p>
-            @endif
+            <a href="{{ $certificado['url'] }}" id="pl-cert-link" class="as-btn as-btn--primary" @unless($certificado['aprovado']) hidden @endunless>Emitir certificado ({{ $certificado['horas'] }}h)</a>
+            <p class="as-muted" id="pl-cert-falta" style="margin:0;" @if($certificado['aprovado']) hidden @endif>
+              Certificado ({{ $certificado['horas'] }}h): acerte pelo menos
+              {{ $certificado['minimo'] }}/{{ count($questoesProva) }} na prova para liberar{{ $melhorProva > 0 ? ' — sua melhor nota: ' . $melhorProva . '/' . count($questoesProva) : '' }}.
+            </p>
           </div>
         @endif
       </section>
