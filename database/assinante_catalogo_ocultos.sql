@@ -22,10 +22,13 @@ CREATE TABLE IF NOT EXISTS assinante_catalogo_ocultos (
     PRIMARY KEY (classes_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Os 4 pares de nome idêntico levantados em 2026-09-02 (edição gravada oculta;
--- a minissérie de mesmo nome continua no catálogo).
+-- Edições gravadas com o mesmo nome de uma minissérie, levantadas em 2026-09-02
+-- (4 pares no mesmo course_id + 2 pares em course_id diferentes; a minissérie de
+-- mesmo nome continua no catálogo).
 INSERT IGNORE INTO assinante_catalogo_ocultos (classes_id, motivo, created_at) VALUES
     (2008, 'Duplicata da minissérie 2244 "Dispensa e Inexigibilidade Eletrônicas + MEI" (course_id 906)', NOW()),
     (1884, 'Duplicata da minissérie 2226 "Reforma Tributária" (course_id 923)',                          NOW()),
     (1960, 'Duplicata da minissérie 2237 "Redação, Oratória e Arquivologia" (course_id 858)',            NOW()),
-    (2245, 'Duplicata da minissérie 2166 "Ouvidoria, e-SIC  Portal e LGPD" (course_id 803)',             NOW());
+    (2245, 'Duplicata da minissérie 2166 "Ouvidoria, e-SIC  Portal e LGPD" (course_id 803)',             NOW()),
+    (1690, 'Duplicata da minissérie 2226 "Reforma Tributária" (course_id 911, minissérie em 923)',       NOW()),
+    (1847, 'Duplicata da minissérie 2087 "Controle Interno" (course_id 907, minissérie em 981)',         NOW());
