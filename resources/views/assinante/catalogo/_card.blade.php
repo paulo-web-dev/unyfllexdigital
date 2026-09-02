@@ -4,7 +4,7 @@
   $v = $item->visual;
 @endphp
 <a href="{{ $item->url }}"
-   class="as-card"
+   class="as-card as-card--{{ $item->tipo }}"
    data-pattern="{{ $v['pattern'] }}"
    style="{{ Cat::estiloVisual($v) }}"
    title="{{ $item->titulo }}">
@@ -19,9 +19,12 @@
       @endif
     </div>
 
-    @if($item->tipo !== 'modular')
-      {{-- Para o gravado, a turma inteira é o "Curso Livre Aprofundado" (nomenclatura de produto). --}}
-      <p class="as-card__turma">{{ $item->tipo === 'gravado' ? 'Curso Livre Aprofundado: ' : '' }}{{ $item->turma }}</p>
+    @if($item->tipo === 'livre')
+      {{-- Card da TURMA inteira (regra por turma: algum painel com mais de 1 aula). --}}
+      <p class="as-card__turma">{{ $item->painel_label }} · {{ $item->aulas }} {{ $item->aulas === 1 ? 'aula' : 'aulas' }}</p>
+      <h3 class="as-card__titulo">{{ $item->titulo }}</h3>
+    @elseif($item->tipo !== 'modular')
+      <p class="as-card__turma">{{ $item->turma }}</p>
       <h3 class="as-card__titulo">{{ $item->painel_label }}</h3>
     @else
       <p class="as-card__turma">Apostilas e Materiais Pós-Graduação</p>
@@ -37,6 +40,8 @@
     <span class="as-card__cat"><i></i><span>{{ $item->categoria }}</span></span>
     @if($item->tipo === 'modular')
       <span class="as-card__aulas">Resumo · Cartões · Prova</span>
+    @elseif($item->tipo === 'livre')
+      <span class="as-card__aulas">{{ $item->paineis }} {{ $item->paineis === 1 ? 'curso' : 'cursos' }} · {{ $item->aulas }} {{ $item->aulas === 1 ? 'aula' : 'aulas' }}</span>
     @else
       <span class="as-card__aulas">{{ $item->aulas }} {{ $item->aulas === 1 ? 'aula' : 'aulas' }}</span>
     @endif

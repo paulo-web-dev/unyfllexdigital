@@ -13,16 +13,20 @@ use Illuminate\Support\Str;
 /**
  * Catálogo da área do assinante.
  *
- * Unidade do catálogo: o PAINEL (panels) para minisséries e cursos gravados;
- * o CURSO para os itens de modular_courses (não têm painel).
+ * Unidade do catálogo (o "card"):
+ *  - PAINEL (panels) para minisséries e para turmas gravadas só com painéis de 1 aula;
+ *  - TURMA (classes) inteira para turmas gravadas com algum painel de mais de 1 aula;
+ *  - CURSO para os itens de modular_courses (não têm painel).
  *
- * NOMENCLATURA DE PRODUTO (2026-08, só apresentação — chaves/código/banco intocados):
- *  - painel de gravado      => "Curso Modular"            (tipo 'gravado')
- *  - turma gravada inteira  => "Curso Livre Aprofundado"
- *  - painel de minissérie   => "Curso Minissérie"         (tipo 'minisserie')
- *  - modular_courses        => "Apostilas e Materiais Pós-Graduação" (tipo 'modular')
- * Atenção: o nome "Curso Modular" TROCOU de dono — antes designava modular_courses,
- * agora designa o painel de gravado. Não confundir ao mexer nos rótulos.
+ * NOMENCLATURA DE PRODUTO (só apresentação — chaves/código/banco intocados):
+ *  - painel de minissérie                         => "Curso Minissérie"         (tipo 'minisserie')
+ *  - painel de turma gravada só de 1 aula         => "Curso Modular"            (tipo 'gravado')
+ *  - turma gravada com algum painel de >1 aula    => "Curso Livre Aprofundado"  (tipo 'livre')
+ *  - modular_courses                              => "Apostilas e Materiais Pós-Graduação" (tipo 'modular')
+ * Regra por TURMA (2026-09-02): basta um painel com mais de 1 aula para a turma inteira
+ * virar um card único de Curso Livre, com todos os seus painéis dentro (inclusive os de
+ * 1 aula). Atenção: o nome "Curso Modular" TROCOU de dono — antes designava
+ * modular_courses, agora designa o painel de 1 aula. Não confundir ao mexer nos rótulos.
  *
  * Regras (decididas com o produto em 2026-08):
  *  - Turmas elegíveis: minissérie (express='1', able) e gravado (unyflex=1, express='0', able),
@@ -50,6 +54,7 @@ class AssinanteCatalogoService
     public const TIPOS = [
         'minisserie' => 'Cursos Minissérie',
         'gravado'    => 'Cursos Modulares',
+        'livre'      => 'Cursos Livres Aprofundados',
         'modular'    => 'Apostilas e Materiais Pós-Graduação',
     ];
 
@@ -57,6 +62,7 @@ class AssinanteCatalogoService
     public const TIPOS_BADGE = [
         'minisserie' => 'Curso Minissérie',
         'gravado'    => 'Curso Modular',
+        'livre'      => 'Curso Livre Aprofundado',
         'modular'    => 'Pós-Graduação',
     ];
 
@@ -66,7 +72,7 @@ class AssinanteCatalogoService
         'aulas'    => 'Mais aulas',
     ];
 
-    private const CACHE_META    = 'assinante.catalogo.meta.v3';
+    private const CACHE_META    = 'assinante.catalogo.meta.v4';
     private const CACHE_OCULTOS = 'assinante.catalogo.ocultos.v1';
     private const CACHE_TTL     = 600; // 10 min
 
@@ -121,37 +127,42 @@ class AssinanteCatalogoService
             ->all();
     }
 
-    /** Contadores globais (em painéis) e lista de categorias para o filtro. Cacheado. */
+    /** Contadores globais (em cards) e lista de categorias para o filtro. Cacheado. */
     public function meta(): array
     {
         return Cache::remember(self::CACHE_META, self::CACHE_TTL, function () {
-            $porTipo = DB::query()->fromSub($this->paineisExibiveis(), 'b')
+            $porTipo = DB::query()->fromSub($this->cardsCursos(0), 'b')
                 ->selectRaw('b.tipo, COUNT(*) AS qtd')
                 ->groupBy('b.tipo')
                 ->pluck('qtd', 'tipo');
 
             $modulares = DB::table('modular_courses')->where('status', 'publicado')->count();
 
-            $categorias = DB::query()->fromSub($this->paineisExibiveis(), 'b')
+            $categorias = DB::query()->fromSub($this->cardsCursos(0), 'b')
                 ->join('category_courses as cc', 'cc.course_id', '=', 'b.course_id')
                 ->join('categories as cat', 'cat.id', '=', 'cc.category_id')
                 ->where('cat.status', 'able')
                 ->whereNotIn('cat.title', self::CATEGORIAS_EXCLUIDAS)
-                ->selectRaw('cat.slug, cat.title, COUNT(DISTINCT b.item_id) AS paineis')
+                ->selectRaw('cat.slug, cat.title, COUNT(DISTINCT b.tipo, b.item_id) AS paineis')
                 ->groupBy('cat.slug', 'cat.title')
                 ->orderBy('cat.title')
                 ->get()
                 ->map(fn ($c) => ['slug' => $c->slug, 'titulo' => $c->title, 'paineis' => (int) $c->paineis])
                 ->all();
 
-            $semCategoria = DB::query()->fromSub($this->paineisExibiveis(), 'b')
+            $semCategoria = DB::query()->fromSub($this->cardsCursos(0), 'b')
                 ->whereNotExists(fn ($q) => $this->existsCategoriaValida($q))
                 ->count();
 
+            $minisserie = (int) ($porTipo['minisserie'] ?? 0);
+            $gravado    = (int) ($porTipo['gravado'] ?? 0);
+            $livre      = (int) ($porTipo['livre'] ?? 0);
+
             return [
-                'minisserie'    => (int) ($porTipo['minisserie'] ?? 0),
-                'gravado'       => (int) ($porTipo['gravado'] ?? 0),
-                'paineis'       => (int) ($porTipo['minisserie'] ?? 0) + (int) ($porTipo['gravado'] ?? 0),
+                'minisserie'    => $minisserie,
+                'gravado'       => $gravado,
+                'livre'         => $livre,
+                'paineis'       => $minisserie + $gravado + $livre, // cards de curso (sem as apostilas)
                 'modular'       => $modulares,
                 'categorias'    => $categorias,
                 'sem_categoria' => $semCategoria,
@@ -244,18 +255,63 @@ class AssinanteCatalogoService
             ->whereColumn('e.classes_id', 'e.classe_vencedora');
     }
 
-    /** Painéis exibíveis + coluna `vistos` do usuário, com os filtros aplicados. */
-    private function paineisFiltrados(array $f, int $userId): Builder
+    /**
+     * Cards de curso (minissérie, gravado e livre) com a coluna `vistos` do usuário.
+     * Colunas na ordem do UNION com modularesFiltrados():
+     *   tipo, item_id, classes_id, course_id, slug, turma, painel, data_ref, aulas,
+     *   primeiro_video_id, numero, repeticoes, paineis, vistos
+     *
+     * Regra por TURMA: `max_aulas` = maior nº de aulas entre os painéis exibíveis da turma.
+     *  - minissérie: 1 card por painel, sempre;
+     *  - gravado com max_aulas = 1: 1 card por painel ("Curso Modular");
+     *  - gravado com max_aulas > 1: 1 card por turma ("Curso Livre Aprofundado"), agregando
+     *    todos os painéis exibíveis (item_id/primeiro_video_id = primeiro painel, na ordem
+     *    do player; aulas = soma; vistos = vídeos da turma já vistos pelo usuário).
+     */
+    private function cardsCursos(int $userId): Builder
     {
         $uid = (int) $userId; // inteiro embutido de propósito: evita binding dentro de UNION
 
-        $q = DB::query()->fromSub($this->paineisExibiveis(), 'b')
+        $classificado = DB::query()->fromSub($this->paineisExibiveis(), 'e')
+            ->selectRaw('e.*, MAX(e.aulas) OVER (PARTITION BY e.classes_id) AS max_aulas');
+
+        $porPainel = DB::query()->fromSub($classificado, 'b')
+            ->where(fn ($q) => $q->where('b.tipo', 'minisserie')->orWhere('b.max_aulas', 1))
             ->selectRaw("
                 b.tipo, b.item_id, b.classes_id, b.course_id, b.slug, b.turma, b.painel,
                 b.data_ref, b.aulas, b.primeiro_video_id, b.numero, b.repeticoes,
+                1 AS paineis,
                 (SELECT COUNT(DISTINCT v.video_id) FROM views_minisseries v
                   WHERE v.id_user = {$uid} AND v.panel_id = b.item_id) AS vistos
             ");
+
+        $porTurma = DB::query()->fromSub($classificado, 'b')
+            ->where('b.tipo', 'gravado')
+            ->where('b.max_aulas', '>', 1)
+            ->groupBy('b.classes_id', 'b.course_id', 'b.slug', 'b.turma')
+            ->selectRaw("
+                'livre' AS tipo,
+                CAST(SUBSTRING_INDEX(GROUP_CONCAT(b.item_id ORDER BY b.numero), ',', 1) AS UNSIGNED) AS item_id,
+                b.classes_id, b.course_id, b.slug, b.turma,
+                NULL AS painel,
+                MAX(b.data_ref) AS data_ref,
+                SUM(b.aulas) AS aulas,
+                CAST(SUBSTRING_INDEX(GROUP_CONCAT(b.primeiro_video_id ORDER BY b.numero), ',', 1) AS UNSIGNED) AS primeiro_video_id,
+                1 AS numero, 1 AS repeticoes,
+                COUNT(*) AS paineis,
+                (SELECT COUNT(DISTINCT v.video_id) FROM views_minisseries v
+                  JOIN panels px ON px.id = v.panel_id AND px.status = 'able'
+                  JOIN video_lessons vl ON vl.id = v.video_id AND vl.link IS NOT NULL AND vl.link <> ''
+                  WHERE v.id_user = {$uid} AND px.classes_id = b.classes_id) AS vistos
+            ");
+
+        return $porPainel->unionAll($porTurma);
+    }
+
+    /** Cards de curso com os filtros aplicados. */
+    private function cursosFiltrados(array $f, int $userId): Builder
+    {
+        $q = DB::query()->fromSub($this->cardsCursos($userId), 'b')->select('b.*');
 
         if ($f['tipo'] !== '') {
             $q->where('b.tipo', $f['tipo']);
@@ -268,11 +324,7 @@ class AssinanteCatalogoService
         }
 
         if ($f['assistido']) {
-            $q->whereExists(function ($sub) use ($uid) {
-                $sub->select(DB::raw(1))->from('views_minisseries as v')
-                    ->whereColumn('v.panel_id', 'b.item_id')
-                    ->where('v.id_user', $uid);
-            });
+            $q->where('b.vistos', '>', 0);
         }
 
         return $q;
@@ -296,6 +348,7 @@ class AssinanteCatalogoService
                 NULL               AS primeiro_video_id,
                 1                  AS numero,
                 1                  AS repeticoes,
+                1                  AS paineis,
                 0                  AS vistos
             ");
 
@@ -315,9 +368,9 @@ class AssinanteCatalogoService
         $incluiModulares = ($f['tipo'] === '' || $f['tipo'] === 'modular') && $f['categoria'] === '';
 
         if ($incluiPaineis && $incluiModulares) {
-            $base = $this->paineisFiltrados($f, $userId)->unionAll($this->modularesFiltrados($f, $modularesVistos));
+            $base = $this->cursosFiltrados($f, $userId)->unionAll($this->modularesFiltrados($f, $modularesVistos));
         } elseif ($incluiPaineis) {
-            $base = $this->paineisFiltrados($f, $userId);
+            $base = $this->cursosFiltrados($f, $userId);
         } else {
             $base = $this->modularesFiltrados($f, $modularesVistos);
         }
@@ -400,6 +453,15 @@ class AssinanteCatalogoService
             $titulo      = $row->turma;
             $url         = route('ava.modulares.show', $row->slug);
             $assistido   = in_array($row->turma, $modularesVistos, true);
+        } elseif ($tipo === 'livre') {
+            // Card da TURMA inteira: abre na primeira aula do primeiro painel (contexto de painel).
+            $categorias  = $categoriasPorCurso[$row->course_id] ?? [];
+            $chaveCat    = $categorias[0]['titulo'] ?? 'Sem categoria';
+            $painelLabel = (int) $row->paineis . ' ' . ((int) $row->paineis === 1 ? 'curso' : 'cursos');
+            $titulo      = trim((string) $row->turma);
+            $url         = route('player.video', [$row->slug, $row->primeiro_video_id])
+                . '?' . http_build_query(['painel' => $row->item_id, 'voltar' => self::voltarAtual()]);
+            $assistido   = (int) $row->vistos > 0;
         } else {
             $categorias  = $categoriasPorCurso[$row->course_id] ?? [];
             $chaveCat    = $categorias[0]['titulo'] ?? 'Sem categoria';
@@ -420,6 +482,7 @@ class AssinanteCatalogoService
             'turma'        => $row->turma,
             'painel'       => $row->painel,
             'numero'      => (int) $row->numero,
+            'paineis'     => (int) ($row->paineis ?? 1),
             'aulas'       => (int) $row->aulas,
             'vistos'      => (int) $row->vistos,
             'assistido'   => $assistido,

@@ -64,6 +64,7 @@
         <li><b>{{ $meta['paineis'] + $meta['modular'] }}</b> itens no catálogo</li>
         <li><b>{{ $meta['minisserie'] }}</b> Cursos Minissérie</li>
         <li><b>{{ $meta['gravado'] }}</b> Cursos Modulares</li>
+        <li><b>{{ $meta['livre'] }}</b> Cursos Livres Aprofundados</li>
         <li><b>{{ $meta['modular'] }}</b> Apostilas e Materiais Pós-Graduação com resumo, cartões e prova</li>
         <li>Seu progresso fica guardado — você continua de onde parou.</li>
       </ul>

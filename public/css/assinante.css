@@ -139,6 +139,14 @@ body .app .main .scroll { background: var(--as-bg); }
 }
 .as-badge--minisserie { color:#8ED0FF; }
 .as-badge--gravado    { color:#FFD08A; }
+.as-badge--livre      { color:#C9B3FF; }
+/* Card de turma inteira (Curso Livre Aprofundado): "pilha" atrás da arte. */
+.as-card--livre { margin-top:6px; }
+.as-card--livre::before, .as-card--livre::after {
+  content:""; position:absolute; left:10px; right:10px; top:-4px; height:8px; z-index:0;
+  border:1px solid var(--as-line-2); border-bottom:0; border-radius:var(--as-r) var(--as-r) 0 0; background:var(--as-bg-2);
+}
+.as-card--livre::after { left:5px; right:5px; top:-2px; }
 .as-badge--modular    { color:#7EE8C4; }
 .as-badge--visto      { background:rgba(0,136,244,.75); border-color:transparent; }
 .as-badge--concluido  { background:rgba(43,217,161,.8); color:#04231a; border-color:transparent; }
