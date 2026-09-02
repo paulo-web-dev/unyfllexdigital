@@ -25,6 +25,7 @@ use App\Http\Controllers\Ava\PerfilController;
 use App\Http\Controllers\Ava\PlayerController;
 use App\Http\Controllers\Ava\SubscriptionAreaController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CursoController;
 use App\Http\Controllers\CursoLandingController;
@@ -49,6 +50,10 @@ Route::post('/contato', [PageController::class, 'contatoEnviar'])->name('contato
 Route::get('/redirect', [PageController::class, 'redirect'])->name('redirect');
 Route::get('/view/minisseries/{slug}', [CursoLandingController::class, 'show'])->name('curso.show');
 Route::get('/lp/licitacoes/{slug}', [CursoLandingController::class, 'showLicitacoes'])->name('lp.licitacoes');
+
+// Validação pública do certificado por painel (código de autenticidade = panel_certificates.token)
+Route::get('/certificado/validar', [CertificadoController::class, 'validar'])->name('certificado.validar');
+Route::get('/certificado/validar/{token}', [CertificadoController::class, 'validar'])->name('certificado.validar.token')->where('token', '[A-Za-z0-9]{1,40}');
 
 // Blog
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');

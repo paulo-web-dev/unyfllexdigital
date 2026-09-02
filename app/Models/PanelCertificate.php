@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Um por (student_id, panel_id); `aluno`, `titulo` e `concluido_em` são
  * congelados na emissão (renomear turma/painel depois não muda o certificado).
- * `token` fica reservado para a futura página pública de validação (pendência).
+ * `token` é o "Código de autenticidade" impresso no certificado, consultado
+ * pela página pública /certificado/validar/{token} (CertificadoController).
  * Tabela criada por database/panel_certificates.sql.
  */
 class PanelCertificate extends Model

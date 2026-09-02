@@ -101,7 +101,7 @@
 
       <p class="rodape">
         Unyflex Digital — digital.unyflex.com.br
-        @if($token) · Código de autenticidade: {{ $token }} @endif
+        @if($token) · Código de autenticidade: {{ $token }} · Valide em {{ preg_replace('#^https?://#', '', route('certificado.validar')) }} @endif
       </p>
     </div>
   </div>

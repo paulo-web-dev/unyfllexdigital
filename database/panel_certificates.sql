@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS panel_certificates (
     id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     student_id   BIGINT UNSIGNED NOT NULL,
     panel_id     BIGINT UNSIGNED NOT NULL,
-    token        CHAR(40)        NOT NULL, -- para a futura página pública de validação (pendência)
+    token        CHAR(40)        NOT NULL, -- código de autenticidade; página pública /certificado/validar/{token}
     aluno        VARCHAR(255)    NOT NULL, -- nome congelado na emissão
     titulo       VARCHAR(255)    NOT NULL, -- "turma — painel" congelado na emissão
     horas        INT UNSIGNED    NOT NULL DEFAULT 12,
