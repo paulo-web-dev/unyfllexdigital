@@ -13,23 +13,22 @@ use Illuminate\Database\Eloquent\Model;
  * pela página pública /certificado/validar/{token} (CertificadoController).
  * Tabela criada por database/panel_certificates.sql.
  *
- * Regras (2026-09): libera só com melhor nota >= 70% na prova do painel.
- * Carga horária por tipo da turma: minissérie 12h; turma gravada
- * ("Curso Livre Aprofundado") 20h.
+ * Regras (2026-09-02): libera só com melhor nota >= 70% na prova do painel; vale
+ * para painel de minissérie ("Curso Minissérie") e de turma gravada só de painéis
+ * de 1 aula ("Curso Modular"), sempre 12h. Turma gravada com algum painel de mais
+ * de 1 aula ("Curso Livre Aprofundado") NÃO emite por painel: o certificado é da
+ * turma inteira (ClassCertificate, 20h).
  */
 class PanelCertificate extends Model
 {
-    /** Fração mínima de acertos na prova para liberar o certificado. */
+    /** Fração mínima de acertos na prova para liberar o certificado (painel e turma). */
     public const NOTA_MINIMA = 0.7;
 
-    /** Carga horária (horas) do painel de minissérie. */
-    public const HORAS_MINISSERIE = 12;
+    /** Carga horária (horas) do certificado por painel. */
+    public const HORAS_PAINEL = 12;
 
-    /** Carga horária (horas) do painel de turma gravada ("Curso Livre Aprofundado"). */
-    public const HORAS_GRAVADO = 20;
-
-    /** @deprecated use horasPara(); mantido para leituras antigas. */
-    public const HORAS = self::HORAS_MINISSERIE;
+    /** @deprecated use HORAS_PAINEL; mantido para leituras antigas. */
+    public const HORAS = self::HORAS_PAINEL;
 
     protected $table = 'panel_certificates';
 
@@ -46,12 +45,6 @@ class PanelCertificate extends Model
     ];
 
     protected $casts = ['concluido_em' => 'date'];
-
-    /** Carga horária do certificado conforme o tipo da turma (classes.express). */
-    public static function horasPara(Classes $classe): int
-    {
-        return (string) $classe->express === '1' ? self::HORAS_MINISSERIE : self::HORAS_GRAVADO;
-    }
 
     public function panel()
     {

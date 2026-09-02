@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Ava;
 
 use App\Http\Controllers\Controller;
 use App\Models\Classes;
+use App\Models\ClassCertificate;
 use App\Models\Panel;
 use App\Models\PanelCertificate;
 use App\Models\Subscription;
@@ -27,30 +28,35 @@ class SubscriptionAreaController extends Controller
     }
 
     /**
-     * "Meus certificados": todos os certificados emitidos pelo aluno (panel_certificates),
+     * "Meus certificados": certificados por painel (panel_certificates: minissérie e
+     * Curso Modular, 12h) e por turma (class_certificates: Curso Livre Aprofundado, 20h),
      * cada um abrindo a página de impressão do player (que revalida os critérios).
-     * Sem a tabela (database/panel_certificates.sql), a lista fica vazia — sem erro.
+     * Sem alguma das tabelas, aquela parte da lista fica vazia — sem erro.
      */
     public function certificados()
     {
         $user = auth()->user();
 
         try {
-            $certs = PanelCertificate::where('student_id', $user->student_id)
-                ->orderByDesc('concluido_em')->orderByDesc('id')
-                ->get();
+            $certs = PanelCertificate::where('student_id', $user->student_id)->get();
         } catch (\Illuminate\Database\QueryException $e) {
             $certs = collect();
+        }
+        try {
+            $certsTurma = ClassCertificate::where('student_id', $user->student_id)->get();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $certsTurma = collect();
         }
 
         $paineis = $certs->isEmpty()
             ? collect()
             : Panel::whereIn('id', $certs->pluck('panel_id'))->get()->keyBy('id');
-        $turmas = $paineis->isEmpty()
+        $idsTurmas = $paineis->pluck('classes_id')->merge($certsTurma->pluck('classes_id'))->unique()->filter();
+        $turmas = $idsTurmas->isEmpty()
             ? collect()
-            : Classes::whereIn('id', $paineis->pluck('classes_id'))->get()->keyBy('id');
+            : Classes::whereIn('id', $idsTurmas)->get()->keyBy('id');
 
-        $certificados = $certs->map(function (PanelCertificate $c) use ($paineis, $turmas) {
+        $porPainel = $certs->map(function (PanelCertificate $c) use ($paineis, $turmas) {
             $painel = $paineis[$c->panel_id] ?? null;
             $turma = $painel ? ($turmas[$painel->classes_id] ?? null) : null;
 
@@ -67,6 +73,27 @@ class SubscriptionAreaController extends Controller
                 'urlValidar' => route('certificado.validar.token', $c->token),
             ];
         });
+
+        $porTurma = $certsTurma->map(function (ClassCertificate $c) use ($turmas) {
+            $turma = $turmas[$c->classes_id] ?? null;
+
+            return (object) [
+                'id' => $c->id,
+                'numero' => 'T'.str_pad((string) $c->id, 5, '0', STR_PAD_LEFT),
+                'titulo' => $c->titulo,
+                'horas' => (int) $c->horas,
+                'concluidoEm' => $c->concluido_em,
+                'emitidoEm' => $c->created_at,
+                'token' => $c->token,
+                'tipo' => 'livre',
+                'url' => $turma ? route('player.certificado.turma', $turma->slug) : null,
+                'urlValidar' => route('certificado.validar.token', $c->token),
+            ];
+        });
+
+        $certificados = $porPainel->concat($porTurma)
+            ->sortByDesc(fn ($c) => [$c->concluidoEm?->timestamp ?? 0, $c->emitidoEm?->timestamp ?? 0])
+            ->values();
 
         return view('assinante.certificados', compact('certificados'));
     }

@@ -99,6 +99,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/cursos', [CursosAvaController::class, 'index'])->name('ava.cursos');
     Route::get('/dashboard/player/{slug}', [PlayerController::class, 'show'])->name('player');
     Route::post('/dashboard/player/{id}/concluir', [PlayerController::class, 'concluir'])->name('player.concluir');
+    // Certificado da TURMA (Curso Livre Aprofundado, 20h): aprovação em todas as provas dos
+    // painéis. Registrada ANTES de player.video ({slug}/{videoId}) para não ser capturada por ela.
+    Route::get('/dashboard/player/{slug}/certificado-turma', [PlayerController::class, 'certificadoTurma'])->name('player.certificado.turma');
     Route::get('/dashboard/perfil', [PerfilController::class, 'index'])->name('perfil');
     Route::post('/dashboard/perfil', [PerfilController::class, 'update'])->name('perfil.update');
     Route::get('/dashboard/modulares', [ModularStudyController::class, 'index'])->name('ava.modulares');
@@ -116,8 +119,8 @@ Route::middleware('auth')->group(function () {
     // matrícula checked na turma OU assinatura vigente.
     Route::post('/dashboard/player/{slug}/prova/{painelId}/resultado', [PlayerController::class, 'provaResultado'])->name('player.prova.resultado')->whereNumber('painelId');
 
-    // Certificado do painel: melhor nota >= 70% na prova (minissérie 12h, gravada 20h).
-    // Mesma autorização da prova; critérios revalidados no controller.
+    // Certificado do PAINEL (minissérie e Curso Modular, 12h): melhor nota >= 70% na prova.
+    // Mesma autorização da prova; critérios revalidados no controller. Curso Livre não emite por painel.
     Route::get('/dashboard/player/{slug}/certificado/{painelId}', [PlayerController::class, 'certificado'])->name('player.certificado')->whereNumber('painelId');
 });
 Route::get('/busca', [SearchController::class, 'index'])->name('busca');

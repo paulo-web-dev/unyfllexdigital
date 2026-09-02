@@ -1,7 +1,7 @@
--- Certificados por painel ("Curso Modular" da área do assinante) — regras 2026-09:
--- melhor nota >= 70% na prova do painel; carga horária pelo tipo da turma
--- (minissérie 12h, turma gravada 20h — a aplicação grava `horas` explicitamente,
--- o DEFAULT abaixo não é usado); 1 certificado por (aluno, painel).
+-- Certificados por PAINEL (minissérie e "Curso Modular" da área do assinante) — regras
+-- 2026-09-02: melhor nota >= 70% na prova do painel; 12h (a aplicação grava `horas`
+-- explicitamente); 1 certificado por (aluno, painel). O "Curso Livre Aprofundado"
+-- não emite por painel: certificado da turma em class_certificates.sql (20h).
 --
 -- Idempotente. A aplicação funciona ANTES de rodar este script: sem a tabela o
 -- certificado ainda renderiza, apenas não fica registrado (sem token).

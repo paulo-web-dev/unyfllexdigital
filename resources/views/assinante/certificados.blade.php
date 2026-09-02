@@ -41,10 +41,10 @@
     <p>Para emitir o certificado de um curso:</p>
     <ol>
       <li>Abra o curso no catálogo e vá até a aba <strong>Prova</strong>.</li>
-      <li>Acerte pelo menos <strong>70%</strong> das questões (pode refazer quantas vezes quiser).</li>
+      <li>Acerte pelo menos <strong>70%</strong> das questões (pode refazer quantas vezes quiser). No Curso Livre Aprofundado, aprove a prova de cada curso da turma.</li>
       <li>Clique em <strong>Emitir certificado</strong>. Ele aparece aqui e pode ser impresso ou salvo em PDF.</li>
     </ol>
-    <p class="as-muted" style="margin-top:14px;">Cursos Minissérie valem 12 horas; Cursos Livres Aprofundados, 20 horas.</p>
+    <p class="as-muted" style="margin-top:14px;">Cursos Minissérie e Cursos Modulares valem 12 horas por curso. No Curso Livre Aprofundado o certificado é da turma inteira, 20 horas, após aprovação em todas as provas.</p>
     <div style="margin-top:18px;"><a href="{{ route('assinante.home') }}" class="as-btn as-btn--primary">Ir para o catálogo</a></div>
   </div>
 @else
@@ -53,7 +53,7 @@
       <div class="as-perfil__card as-certcard">
         <div class="as-certcard__topo">
           @if($c->tipo)
-            <span class="as-badge as-badge--{{ $c->tipo }}">{{ $c->tipo === 'minisserie' ? 'Curso Minissérie' : 'Curso Livre Aprofundado' }}</span>
+            <span class="as-badge as-badge--{{ $c->tipo }}">{{ \App\Services\AssinanteCatalogoService::TIPOS_BADGE[$c->tipo] ?? $c->tipo }}</span>
           @else
             <span class="as-badge">Certificado</span>
           @endif

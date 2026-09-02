@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClassCertificate;
 use App\Models\PanelCertificate;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -27,11 +28,18 @@ class CertificadoController extends Controller
             return redirect()->route('certificado.validar.token', substr($codigo, 0, 40));
         }
 
+        // Certificado por painel (panel_certificates) ou por turma (class_certificates):
+        // mesmo token, mesma página. Tabela ausente = não encontrado.
         $cert = null;
         try {
             $cert = PanelCertificate::where('token', $token)->first();
         } catch (QueryException $e) {
-            // Tabela panel_certificates ainda não criada — trata como não encontrado.
+        }
+        if (! $cert) {
+            try {
+                $cert = ClassCertificate::where('token', $token)->first();
+            } catch (QueryException $e) {
+            }
         }
 
         // A collation da tabela é case-insensitive; o código é case-sensitive.

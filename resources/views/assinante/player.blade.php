@@ -130,9 +130,26 @@
           </div>
         </div>
 
-        {{-- Certificado: melhor nota >= mínimo na prova (carga horária pelo tipo da turma).
-             Aprovado nesta sessão, o JS revela o botão sem recarregar. --}}
-        @if($certificado)
+        {{-- Certificado. Curso Livre Aprofundado: certificado da TURMA (20h) com progresso
+             "X de Y provas aprovadas" — sem botão por painel. Demais: certificado do painel (12h).
+             Aprovado nesta sessão, o JS atualiza progresso/botão sem recarregar. --}}
+        @if($certTurma)
+          <div class="as-cert" id="pl-cert-turma"
+               data-minimo="{{ $certTurma['minimo'] }}" data-total="{{ $certTurma['total'] }}"
+               data-aprovadas="{{ $certTurma['aprovadas'] }}" data-ja="{{ in_array($painel->id, $certTurma['aprovadasIds']) ? 1 : 0 }}"
+               style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07);">
+            <p class="as-player__eyebrow" style="margin:0 0 8px;">Certificado do Curso Livre Aprofundado · {{ $certTurma['horas'] }}h</p>
+            <div class="as-player__prog" style="margin-bottom:10px;">
+              <div class="as-player__prog-bar" style="width:160px;"><i id="pl-ct-bar" style="width:{{ $certTurma['total'] ? (int) round($certTurma['aprovadas'] / $certTurma['total'] * 100) : 0 }}%"></i></div>
+              <span id="pl-ct-label">{{ $certTurma['aprovadas'] }} de {{ $certTurma['total'] }} provas aprovadas</span>
+            </div>
+            <a href="{{ $certTurma['url'] }}" id="pl-ct-link" class="as-btn as-btn--primary" @unless($certTurma['aprovado']) hidden @endunless>Emitir certificado da turma ({{ $certTurma['horas'] }}h)</a>
+            <p class="as-muted" id="pl-ct-falta" style="margin:0;" @if($certTurma['aprovado']) hidden @endif>
+              O certificado é da turma inteira: aprove a prova de cada curso (mínimo 70%).
+              @if($certTurma['pendentes']) Faltam: {{ implode(' · ', $certTurma['pendentes']) }}. @endif
+            </p>
+          </div>
+        @elseif($certificado)
           <div class="as-cert" id="pl-cert" data-minimo="{{ $certificado['minimo'] }}" style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07);">
             <a href="{{ $certificado['url'] }}" id="pl-cert-link" class="as-btn as-btn--primary" @unless($certificado['aprovado']) hidden @endunless>Emitir certificado ({{ $certificado['horas'] }}h)</a>
             <p class="as-muted" id="pl-cert-falta" style="margin:0;" @if($certificado['aprovado']) hidden @endif>
@@ -427,6 +444,24 @@
             certLink.hidden = false;
             const falta = document.getElementById('pl-cert-falta');
             if (falta) falta.hidden = true;
+          }
+          // Curso Livre: esta prova aprovada pela 1ª vez soma no progresso da turma.
+          const ct = document.getElementById('pl-cert-turma');
+          if (r && r.ok && ct && ct.dataset.ja !== '1' && r.score >= parseInt(ct.dataset.minimo, 10)) {
+            ct.dataset.ja = '1';
+            const total = parseInt(ct.dataset.total, 10);
+            const apr = Math.min(total, parseInt(ct.dataset.aprovadas, 10) + 1);
+            ct.dataset.aprovadas = String(apr);
+            const lbl = document.getElementById('pl-ct-label');
+            const bar = document.getElementById('pl-ct-bar');
+            if (lbl) lbl.textContent = apr + ' de ' + total + ' provas aprovadas';
+            if (bar) bar.style.width = (total ? Math.round(apr / total * 100) : 0) + '%';
+            if (apr >= total) {
+              const link = document.getElementById('pl-ct-link');
+              const falta = document.getElementById('pl-ct-falta');
+              if (link) link.hidden = false;
+              if (falta) falta.hidden = true;
+            }
           }
         })
         .catch(() => { saved.textContent = '(não consegui registrar a nota)'; saved.hidden = false; });
