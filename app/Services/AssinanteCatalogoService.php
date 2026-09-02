@@ -25,7 +25,10 @@ use Illuminate\Support\Str;
  * agora designa o painel de gravado. Não confundir ao mexer nos rótulos.
  *
  * Regras (decididas com o produto em 2026-08):
- *  - Turmas elegíveis: minissérie (express='1', able) e gravado (unyflex=1, express='0', able).
+ *  - Turmas elegíveis: minissérie (express='1', able) e gravado (unyflex=1, express='0', able),
+ *    exceto as listadas em assinante_catalogo_ocultos (database/assinante_catalogo_ocultos.sql):
+ *    edições gravadas duplicadas de uma minissérie de mesmo nome. Só apresentação — matrícula,
+ *    views, provas e o player de quem já acessa a turma não mudam. Sem a tabela, nada é ocultado.
  *  - Só entram painéis able com pelo menos uma video_lesson com link não vazio.
  *  - Deduplicação entre turmas por (course_id, título do painel): fica o da turma mais recente.
  *  - Título do card: "{turma} — {painel}". Painel sem título (vazio ou "-") ou com título
@@ -63,8 +66,9 @@ class AssinanteCatalogoService
         'aulas'    => 'Mais aulas',
     ];
 
-    private const CACHE_META = 'assinante.catalogo.meta.v2';
-    private const CACHE_TTL  = 600; // 10 min
+    private const CACHE_META    = 'assinante.catalogo.meta.v3';
+    private const CACHE_OCULTOS = 'assinante.catalogo.ocultos.v1';
+    private const CACHE_TTL     = 600; // 10 min
 
     // ══════════════════════════════════════════════════════════════════════
     // Entrada
@@ -169,10 +173,14 @@ class AssinanteCatalogoService
         $aulas    = "(SELECT COUNT(*)   FROM video_lessons vl WHERE vl.panel_id = p.id AND vl.link IS NOT NULL AND vl.link <> '')";
         $primeiro = "(SELECT MIN(vl.id) FROM video_lessons vl WHERE vl.panel_id = p.id AND vl.link IS NOT NULL AND vl.link <> '')";
 
+        // Inteiros embutidos (sem binding): esta query vira subselect dentro de UNION.
+        $ocultos = $this->ocultos();
+
         return DB::table('panels as p')
             ->join('classes as c', 'c.id', '=', 'p.classes_id')
             ->where('p.status', 'able')
             ->where('c.status', 'able')
+            ->when($ocultos, fn ($q) => $q->whereRaw('c.id NOT IN (' . implode(',', $ocultos) . ')'))
             ->where(function ($q) {
                 $q->where('c.express', '1')
                   ->orWhere(fn ($q2) => $q2->where('c.unyflex', 1)->where('c.express', '0'));
@@ -192,6 +200,26 @@ class AssinanteCatalogoService
                 ROW_NUMBER() OVER (PARTITION BY p.classes_id ORDER BY p.start_time, p.id) AS numero,
                 COUNT(*)     OVER (PARTITION BY p.classes_id, LOWER(TRIM(p.title)))       AS repeticoes
             ");
+    }
+
+    /**
+     * Turmas ocultas do catálogo (assinante_catalogo_ocultos). Cache curto para a
+     * edição no phpMyAdmin refletir em até 1 min; sem a tabela, lista vazia.
+     *
+     * @return int[]
+     */
+    protected function ocultos(): array
+    {
+        return Cache::remember(self::CACHE_OCULTOS, 60, function () {
+            try {
+                return DB::table('assinante_catalogo_ocultos')
+                    ->pluck('classes_id')
+                    ->map(fn ($v) => (int) $v)
+                    ->all();
+            } catch (\Illuminate\Database\QueryException $e) {
+                return [];
+            }
+        });
     }
 
     /**
