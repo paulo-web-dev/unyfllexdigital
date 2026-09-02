@@ -14,19 +14,19 @@ use Illuminate\Support\Str;
  * Catálogo da área do assinante.
  *
  * Unidade do catálogo (o "card"):
- *  - PAINEL (panels) para minisséries e para turmas gravadas só com painéis de 1 aula;
- *  - TURMA (classes) inteira para turmas gravadas com algum painel de mais de 1 aula;
+ *  - PAINEL (panels) para minisséries e para TODOS os painéis de turmas gravadas;
+ *  - TURMA (classes) inteira, como card ADICIONAL, para turmas gravadas com algum painel
+ *    de mais de 1 aula (o painel continua aparecendo também como card individual);
  *  - CURSO para os itens de modular_courses (não têm painel).
  *
  * NOMENCLATURA DE PRODUTO (só apresentação — chaves/código/banco intocados):
  *  - painel de minissérie                         => "Curso Minissérie"         (tipo 'minisserie')
- *  - painel de turma gravada só de 1 aula         => "Curso Modular"            (tipo 'gravado')
+ *  - painel de turma gravada (qualquer nº de aulas)=> "Curso Modular"           (tipo 'gravado')
  *  - turma gravada com algum painel de >1 aula    => "Curso Livre Aprofundado"  (tipo 'livre')
  *  - modular_courses                              => "Apostilas e Materiais Pós-Graduação" (tipo 'modular')
- * Regra por TURMA (2026-09-02): basta um painel com mais de 1 aula para a turma inteira
- * virar um card único de Curso Livre, com todos os seus painéis dentro (inclusive os de
- * 1 aula). Atenção: o nome "Curso Modular" TROCOU de dono — antes designava
- * modular_courses, agora designa o painel de 1 aula. Não confundir ao mexer nos rótulos.
+ * Regra (2026-09-02, corrigida): os cards de turma SOMAM aos de painel, não os substituem.
+ * Atenção: o nome "Curso Modular" TROCOU de dono — antes designava modular_courses, agora
+ * designa o painel de turma gravada. Não confundir ao mexer nos rótulos.
  *
  * Regras (decididas com o produto em 2026-08):
  *  - Turmas elegíveis: minissérie (express='1', able) e gravado (unyflex=1, express='0', able),
@@ -72,7 +72,7 @@ class AssinanteCatalogoService
         'aulas'    => 'Mais aulas',
     ];
 
-    private const CACHE_META    = 'assinante.catalogo.meta.v4';
+    private const CACHE_META    = 'assinante.catalogo.meta.v5';
     private const CACHE_OCULTOS = 'assinante.catalogo.ocultos.v1';
     private const CACHE_TTL     = 600; // 10 min
 
@@ -261,12 +261,11 @@ class AssinanteCatalogoService
      *   tipo, item_id, classes_id, course_id, slug, turma, painel, data_ref, aulas,
      *   primeiro_video_id, numero, repeticoes, paineis, vistos
      *
-     * Regra por TURMA: `max_aulas` = maior nº de aulas entre os painéis exibíveis da turma.
-     *  - minissérie: 1 card por painel, sempre;
-     *  - gravado com max_aulas = 1: 1 card por painel ("Curso Modular");
-     *  - gravado com max_aulas > 1: 1 card por turma ("Curso Livre Aprofundado"), agregando
-     *    todos os painéis exibíveis (item_id/primeiro_video_id = primeiro painel, na ordem
-     *    do player; aulas = soma; vistos = vídeos da turma já vistos pelo usuário).
+     * `max_aulas` = maior nº de aulas entre os painéis exibíveis da turma.
+     *  - TODO painel exibível (minissérie ou gravado) é 1 card ("Curso Minissérie"/"Curso Modular");
+     *  - turma gravada com max_aulas > 1 ganha, ALÉM disso, 1 card de turma ("Curso Livre
+     *    Aprofundado") agregando todos os painéis exibíveis (item_id/primeiro_video_id =
+     *    primeiro painel, na ordem do player; aulas = soma; vistos = vídeos da turma já vistos).
      */
     private function cardsCursos(int $userId): Builder
     {
@@ -276,7 +275,6 @@ class AssinanteCatalogoService
             ->selectRaw('e.*, MAX(e.aulas) OVER (PARTITION BY e.classes_id) AS max_aulas');
 
         $porPainel = DB::query()->fromSub($classificado, 'b')
-            ->where(fn ($q) => $q->where('b.tipo', 'minisserie')->orWhere('b.max_aulas', 1))
             ->selectRaw("
                 b.tipo, b.item_id, b.classes_id, b.course_id, b.slug, b.turma, b.painel,
                 b.data_ref, b.aulas, b.primeiro_video_id, b.numero, b.repeticoes,

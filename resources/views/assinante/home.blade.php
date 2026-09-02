@@ -12,7 +12,7 @@
   <div>
     <h1>Seu acesso completo</h1>
     <p>Cada card é um <strong style="color:var(--as-fg-2);">Curso Minissérie</strong>, um <strong style="color:var(--as-fg-2);">Curso Modular</strong>, um <strong style="color:var(--as-fg-2);">Curso Livre Aprofundado</strong> ou uma <strong style="color:var(--as-fg-2);">Apostila / Material de Pós-Graduação</strong>. Como assinante, você tem acesso a tudo.</p>
-    <p class="as-note">Cursos Modulares são cursos curtos de uma aula. Cursos Livres Aprofundados reúnem vários cursos de uma mesma turma, com aulas e materiais próprios.</p>
+    <p class="as-note">Cada curso de uma turma gravada é um Curso Modular. O Curso Livre Aprofundado é a turma inteira, reunindo todos os seus cursos em sequência.</p>
   </div>
   <div class="as-kpis">
     <div class="as-kpi as-kpi--total"><b>{{ $meta['paineis'] + $meta['modular'] }}</b><span>itens no catálogo</span></div>
