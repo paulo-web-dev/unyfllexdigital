@@ -292,6 +292,35 @@ class PlayerController extends Controller
         // Cápsula ativa acabou de ser registrada no show(); conta como vista.
         $feitas = array_values(array_unique(array_merge($viewsIds, [(int) $capsula['video_id']])));
 
+        // Nomenclatura de produto (mesma regra do catálogo, só apresentação): minissérie;
+        // turma gravada com algum painel de mais de 1 aula = "Curso Livre Aprofundado";
+        // turma gravada só de painéis de 1 aula = "Curso Modular".
+        $aulasPorPainel = $panels->mapWithKeys(fn ($p) => [$p->id => $p->video_lesson->filter(fn ($v) => filled($v->link))->count()]);
+        $tipoTurma = $classe->express
+            ? 'Curso Minissérie'
+            : ($aulasPorPainel->max() > 1 ? 'Curso Livre Aprofundado' : 'Curso Modular');
+
+        // Índice de painéis da turma (salto direto), com progresso por painel.
+        $indice = [];
+        foreach ($panels as $i => $p) {
+            $vids = $p->video_lesson->filter(fn ($v) => filled($v->link))->values();
+            if ($vids->isEmpty()) {
+                continue;
+            }
+            $ids = $vids->pluck('id')->map(fn ($v) => (int) $v);
+            $atual = (int) $p->id === (int) $painel->id;
+            $tituloP = trim((string) $p->title);
+            $indice[] = [
+                'id' => (int) $p->id,
+                'numero' => $i + 1,
+                'titulo' => ($tituloP === '' || $tituloP === '-') ? 'Curso '.($i + 1) : $tituloP,
+                'aulas' => $ids->count(),
+                'vistas' => $ids->intersect($atual ? $feitas : $viewsIds)->count(),
+                'atual' => $atual,
+                'url' => route('player.video', [$classe->slug, $vids->first()->id]).'?'.http_build_query(array_filter(['painel' => $p->id, 'voltar' => $voltar])),
+            ];
+        }
+
         $materiais = $painel->material->map(fn ($m) => [
             'id' => (int) $m->id,
             'type' => (string) $m->type,
@@ -355,6 +384,8 @@ class PlayerController extends Controller
             'tentativasProva' => $tentativasProva,
             'melhorProva' => $melhorProva,
             'certificado' => $certificado,
+            'tipoTurma' => $tipoTurma,
+            'indice' => $indice,
         ]);
     }
 

@@ -261,6 +261,31 @@ body .app .main .scroll { background: var(--as-bg); }
 .as-player__panelcard h3 { font-size:15px; font-weight:800; color:var(--as-fg); margin:0 0 4px; line-height:1.3; }
 .as-player__panelcard .as-muted { margin:0; font-size:12px; }
 
+/* Índice dos cursos (painéis) da turma na lateral do player */
+.as-indice { border-bottom:1px solid var(--as-line); background:var(--as-bg); }
+.as-indice summary {
+  list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--as-fg-3);
+}
+.as-indice summary::-webkit-details-marker { display:none; }
+.as-indice summary:hover { color:var(--as-fg); }
+.as-indice summary svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:2.2; flex:0 0 12px; transition:transform .2s; }
+.as-indice[open] summary svg { transform:rotate(180deg); }
+.as-indice ol { list-style:none; margin:0; padding:0 0 6px; max-height:36vh; overflow-y:auto; }
+.as-indice a {
+  display:flex; align-items:center; gap:10px; padding:7px 16px 7px 14px; text-decoration:none; color:var(--as-fg-2);
+  font-size:12.5px; border-left:2px solid transparent; transition:background .15s;
+}
+.as-indice a:hover { background:rgba(255,255,255,.03); color:#fff; }
+.as-indice a.is-atual { border-left-color:var(--as-blue); background:linear-gradient(90deg, rgba(0,136,244,.14), transparent); color:#fff; font-weight:600; }
+.as-indice__num { font-family:ui-monospace, monospace; font-size:10px; color:var(--as-fg-4); flex:0 0 18px; }
+.as-indice__tit { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.as-indice__prog { flex:0 0 auto; display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--as-fg-4); font-variant-numeric:tabular-nums; }
+.as-indice__bar { width:34px; height:3px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; }
+.as-indice__bar i { display:block; height:100%; background:linear-gradient(90deg, var(--as-blue), var(--as-blue-2)); }
+.as-indice a.is-done .as-indice__prog { color:#2BD9A1; }
+.as-indice a.is-done .as-indice__bar i { background:#2BD9A1; }
+
 .as-aulas { list-style:none; margin:0; padding:6px 0; overflow-y:auto; flex:1; }
 .as-aula { display:flex; gap:10px; align-items:flex-start; padding:10px 14px; cursor:pointer; border-left:2px solid transparent; border-bottom:1px solid var(--as-line); transition:background .15s; }
 .as-aula:hover { background:rgba(255,255,255,.03); }

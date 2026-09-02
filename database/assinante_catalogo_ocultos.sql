@@ -32,3 +32,9 @@ INSERT IGNORE INTO assinante_catalogo_ocultos (classes_id, motivo, created_at) V
     (2245, 'Duplicata da minissérie 2166 "Ouvidoria, e-SIC  Portal e LGPD" (course_id 803)',             NOW()),
     (1690, 'Duplicata da minissérie 2226 "Reforma Tributária" (course_id 911, minissérie em 923)',       NOW()),
     (1847, 'Duplicata da minissérie 2087 "Controle Interno" (course_id 907, minissérie em 981)',         NOW());
+
+-- Duas turmas GRAVADAS com o mesmo nome (2026-09-02): fica a 1634 (2024, course_id 784,
+-- conteúdo todo sobre as plataformas); sai a 1333 (2023, course_id 852, metade dos
+-- painéis é de tesouraria/SIM-AM). Zero views nas duas; matrículas mantêm o acesso.
+INSERT IGNORE INTO assinante_catalogo_ocultos (classes_id, motivo, created_at) VALUES
+    (1333, 'Duplicata da gravada 1634 "Plataformas do Pregão" (course_id 852, edição 2023)', NOW());

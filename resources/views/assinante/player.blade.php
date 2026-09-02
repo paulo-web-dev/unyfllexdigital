@@ -27,8 +27,8 @@
       Voltar ao catálogo
     </a>
     <div class="as-player__crumb">
-      {{-- Nomenclatura de produto: a turma gravada inteira é o "Curso Livre Aprofundado". --}}
-      <span class="as-player__crumb-turma">{{ $classe->express ? '' : 'Curso Livre Aprofundado: ' }}{{ $classe->title }}</span>
+      {{-- Nomenclatura de produto (regra do catálogo): minissérie, Curso Modular ou Curso Livre Aprofundado. --}}
+      <span class="as-player__crumb-turma">{{ $tipoTurma === 'Curso Minissérie' ? '' : $tipoTurma . ': ' }}{{ $classe->title }}</span>
       <span class="as-player__crumb-sep">·</span>
       <span>Curso {{ $numero }} de {{ $totalPaineis }}</span>
     </div>
@@ -153,6 +153,31 @@
         <p class="as-muted">{{ $totalAulas }} {{ $totalAulas === 1 ? 'aula' : 'aulas' }} @if(count($materiais)) · {{ count($materiais) }} {{ count($materiais) === 1 ? 'material' : 'materiais' }} @endif</p>
       </div>
 
+      {{-- Índice dos cursos (painéis) da turma: salto direto, com progresso por curso. --}}
+      @if(count($indice) > 1)
+        @php $concluidos = count(array_filter($indice, fn ($p) => $p['vistas'] >= $p['aulas'])); @endphp
+        <details class="as-indice" {{ $tipoTurma === 'Curso Livre Aprofundado' ? 'open' : '' }}>
+          <summary>
+            <span>{{ $tipoTurma === 'Curso Modular' ? 'Outros cursos desta turma' : 'Cursos ' . ($tipoTurma === 'Curso Minissérie' ? 'desta minissérie' : 'deste Curso Livre') }} · {{ $concluidos }}/{{ count($indice) }}</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <ol>
+            @foreach($indice as $p)
+              <li>
+                <a href="{{ $p['url'] }}" class="{{ $p['atual'] ? 'is-atual' : '' }} {{ $p['vistas'] >= $p['aulas'] ? 'is-done' : '' }}" title="{{ $p['titulo'] }}" @if($p['atual']) aria-current="page" @endif>
+                  <span class="as-indice__num">{{ str_pad($p['numero'], 2, '0', STR_PAD_LEFT) }}</span>
+                  <span class="as-indice__tit">{{ $p['titulo'] }}</span>
+                  <span class="as-indice__prog">
+                    <span class="as-indice__bar"><i style="width:{{ $p['aulas'] ? min(100, (int) round($p['vistas'] / $p['aulas'] * 100)) : 0 }}%"></i></span>
+                    {{ $p['vistas'] }}/{{ $p['aulas'] }}
+                  </span>
+                </a>
+              </li>
+            @endforeach
+          </ol>
+        </details>
+      @endif
+
       <ol class="as-aulas" id="pl-aulas">
         @foreach($aulas as $i => $aula)
           @php $ativa = $aula->id === $capsula['video_id']; $feita = in_array($aula->id, $feitas); @endphp
@@ -172,13 +197,13 @@
 
       <div class="as-player__side-foot">
         @if($proximo)
-          <p class="as-muted">Próximo curso {{ $classe->express ? 'desta minissérie' : 'deste Curso Livre Aprofundado' }}</p>
+          <p class="as-muted">Próximo curso {{ $tipoTurma === 'Curso Minissérie' ? 'desta minissérie' : ($tipoTurma === 'Curso Modular' ? 'desta turma' : 'deste Curso Livre Aprofundado') }}</p>
           <a class="as-player__nextpanel" href="{{ $proximo['url'] }}">
             <span class="as-player__eyebrow">Curso {{ $proximo['numero'] }}</span>
             <strong>{{ $proximo['titulo'] }}</strong>
           </a>
         @else
-          <p class="as-muted">Este é o último curso {{ $classe->express ? 'desta minissérie' : 'deste Curso Livre Aprofundado' }}.</p>
+          <p class="as-muted">Este é o último curso {{ $tipoTurma === 'Curso Minissérie' ? 'desta minissérie' : ($tipoTurma === 'Curso Modular' ? 'desta turma' : 'deste Curso Livre Aprofundado') }}.</p>
           <a class="as-btn as-btn--ghost" href="{{ $urlVoltar }}">Voltar ao catálogo</a>
         @endif
       </div>
