@@ -14,13 +14,27 @@
     <p>Cada card é um <strong style="color:var(--as-fg-2);">Curso Minissérie</strong>, um <strong style="color:var(--as-fg-2);">Curso Modular</strong>, um <strong style="color:var(--as-fg-2);">Curso Livre Aprofundado</strong> ou uma <strong style="color:var(--as-fg-2);">Apostila / Material de Pós-Graduação</strong>. Como assinante, você tem acesso a tudo.</p>
     <p class="as-note">Cada curso de uma turma gravada é um Curso Modular. O Curso Livre Aprofundado é a turma inteira, reunindo todos os seus cursos em sequência.</p>
   </div>
-  <div class="as-kpis">
-    <div class="as-kpi as-kpi--total"><b>{{ $meta['paineis'] + $meta['modular'] }}</b><span>itens no catálogo</span></div>
-    <div class="as-kpi"><b>{{ $meta['minisserie'] }}</b><span>cursos minissérie</span></div>
-    <div class="as-kpi"><b>{{ $meta['gravado'] }}</b><span>cursos modulares</span></div>
-    <div class="as-kpi"><b>{{ $meta['livre'] }}</b><span>cursos livres aprofundados</span></div>
-    <div class="as-kpi"><b>{{ $meta['modular'] }}</b><span>apostilas e materiais pós-graduação</span></div>
-  </div>
+  {{-- Cada quadrado é um atalho: clicar já filtra o catálogo por tipo (o total limpa o filtro). --}}
+  @php
+    $kpis = [
+      ['tipo' => '',           'n' => $meta['paineis'] + $meta['modular'], 'rotulo' => 'itens no catálogo'],
+      ['tipo' => 'minisserie', 'n' => $meta['minisserie'],                'rotulo' => 'cursos minissérie'],
+      ['tipo' => 'gravado',    'n' => $meta['gravado'],                   'rotulo' => 'cursos modulares'],
+      ['tipo' => 'livre',      'n' => $meta['livre'],                     'rotulo' => 'cursos livres aprofundados'],
+      ['tipo' => 'modular',    'n' => $meta['modular'],                   'rotulo' => 'apostilas e materiais pós-graduação'],
+    ];
+  @endphp
+  <nav class="as-kpis" aria-label="Filtrar por tipo">
+    @foreach($kpis as $k)
+      @php $ativo = $filtros['tipo'] === $k['tipo']; @endphp
+      <a class="as-kpi {{ $k['tipo'] === '' ? 'as-kpi--total' : '' }} {{ $ativo ? 'is-active' : '' }}"
+         href="{{ request()->fullUrlWithQuery(['tipo' => $k['tipo'] === '' ? null : $k['tipo'], 'page' => null]) }}"
+         title="{{ $k['tipo'] === '' ? 'Ver todo o catálogo' : 'Mostrar só ' . $k['rotulo'] }}"
+         @if($ativo) aria-current="true" @endif>
+        <b>{{ $k['n'] }}</b><span>{{ $k['rotulo'] }}</span>
+      </a>
+    @endforeach
+  </nav>
 </div>
 
 @include('assinante.catalogo._filtros')

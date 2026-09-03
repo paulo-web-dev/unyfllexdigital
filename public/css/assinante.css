@@ -36,6 +36,13 @@ body .app .main .scroll { background: var(--as-bg); }
 .as-kpi b { font-size:20px; font-weight:800; color:var(--as-fg); line-height:1; }
 .as-kpi span { font-size:11px; color:var(--as-fg-3); letter-spacing:.04em; text-transform:uppercase; }
 .as-kpi--total b { color:var(--as-blue-2); }
+/* KPI clicável (catálogo): vira atalho do filtro por tipo */
+a.as-kpi { text-decoration:none; cursor:pointer; transition:border-color .15s, background .15s, transform .15s; }
+a.as-kpi:hover { border-color:var(--as-line-2); background:var(--as-bg-2); transform:translateY(-1px); }
+a.as-kpi:hover span { color:var(--as-fg-2); }
+a.as-kpi.is-active { border-color:rgba(0,136,244,.55); background:rgba(0,136,244,.12); }
+a.as-kpi.is-active b { color:var(--as-blue-2); }
+a.as-kpi.is-active span { color:var(--as-fg-2); }
 .as-note { font-size:12px; color:var(--as-fg-4); margin:8px 0 0; }
 
 /* ── Aviso (session warning) ────────────────────────────────────────── */
