@@ -64,7 +64,8 @@
       <div class="as-form__field as-form__field--full"><label for="p-nome">Nome completo</label><input id="p-nome" class="as-in" type="text" name="nome" value="{{ old('nome') }}" required maxlength="120"></div>
       <div class="as-form__field"><label for="p-email">E-mail (login)</label><input id="p-email" class="as-in" type="email" name="email" value="{{ old('email') }}" required maxlength="180"></div>
       <div class="as-form__field"><label for="p-cpf">CPF</label><input id="p-cpf" class="as-in" type="text" name="cpf" value="{{ old('cpf') }}" required inputmode="numeric" placeholder="000.000.000-00"></div>
-      <div class="as-form__field as-form__field--full"><label for="p-cargo">Cargo (opcional)</label><input id="p-cargo" class="as-in" type="text" name="cargo" value="{{ old('cargo') }}" maxlength="120"></div>
+      <div class="as-form__field"><label for="p-telefone">Celular com DDD</label><input id="p-telefone" class="as-in" type="tel" name="telefone" value="{{ old('telefone') }}" required maxlength="25" inputmode="tel" autocomplete="tel" placeholder="(49) 99999-0000"></div>
+      <div class="as-form__field"><label for="p-cargo">Cargo (opcional)</label><input id="p-cargo" class="as-in" type="text" name="cargo" value="{{ old('cargo') }}" maxlength="120"></div>
     </div>
     <div class="as-form__acoes"><button type="submit" class="as-btn as-btn--primary">Cadastrar ponto focal</button></div>
     <p class="as-muted" style="margin:10px 0 0;">Se o e-mail já tiver conta na Unyflex, ela é vinculada como ponto focal (sem criar outra). Senha inicial de conta nova: o CPF.</p>

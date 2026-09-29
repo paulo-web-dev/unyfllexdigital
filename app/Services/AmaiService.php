@@ -2,15 +2,19 @@
 
 namespace App\Services;
 
+use App\Mail\AmaiNovoCadastro;
 use App\Models\AccessLog;
 use App\Models\AmaiVinculo;
 use App\Models\Student;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\ViewsMinisserie;
+use App\Rules\CelularBrasil;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -172,7 +176,8 @@ class AmaiService
             throw ValidationException::withMessages(['focal' => 'Você só pode cadastrar usuários no seu próprio município.']);
         }
 
-        return DB::transaction(function () use ($ator, $atorVinculo, $focal, $dados) {
+        $recadastro = false;
+        $vinculo = DB::transaction(function () use ($ator, $atorVinculo, $focal, $dados, &$recadastro) {
             // Trava o ponto focal para a checagem de cota não sofrer corrida.
             $focalLock = AmaiVinculo::whereKey($focal->id)->lockForUpdate()->first();
             $vagas = $this->vagas($focalLock);
@@ -199,11 +204,15 @@ class AmaiService
                 'removed_by'     => null,
             ];
             if ($existente) {
+                $recadastro = true;
                 $existente->fill($attrs)->save();
                 return $existente;
             }
             return AmaiVinculo::create($attrs + ['user_id' => $user->id]);
         });
+
+        $this->avisarCadastro($vinculo, $ator, $atorVinculo, $recadastro);
+        return $vinculo;
     }
 
     /** Remove um usuário: encerra a assinatura AMAI (cancelado) e marca o vínculo. Não apaga histórico. */
@@ -228,7 +237,8 @@ class AmaiService
             throw ValidationException::withMessages(['municipio' => 'Este município já tem ponto focal ativo. Remova-o antes de cadastrar outro.']);
         }
 
-        return DB::transaction(function () use ($master, $dados) {
+        $recadastro = false;
+        $vinculo = DB::transaction(function () use ($master, $dados, &$recadastro) {
             $user = $this->garantirConta($dados);
             $existente = AmaiVinculo::where('user_id', $user->id)->first();
             if ($existente && ! $existente->removed_at) {
@@ -246,11 +256,15 @@ class AmaiService
                 'removed_by'     => null,
             ];
             if ($existente) {
+                $recadastro = true;
                 $existente->fill($attrs)->save();
                 return $existente;
             }
             return AmaiVinculo::create($attrs + ['user_id' => $user->id]);
         });
+
+        $this->avisarCadastro($vinculo, $master, $this->vinculoDe($master), $recadastro);
+        return $vinculo;
     }
 
     /** Master: remove um ponto focal (encerra a assinatura dele; usuários dele continuam ativos). */
@@ -285,6 +299,8 @@ class AmaiService
     /**
      * Garante students + users para a pessoa (reaproveita conta existente pelo e-mail ou CPF).
      * Senha inicial = CPF só números (padrão do sistema, igual ao checkout).
+     * Telefone (obrigatório no formulário) vai normalizado para users.telefone e students.phone,
+     * sobrescrevendo o anterior: é o dado mais recente, conferido por quem cadastrou.
      */
     private function garantirConta(array $d): User
     {
@@ -292,6 +308,10 @@ class AmaiService
         $cpf   = preg_replace('/\D/', '', $d['cpf'] ?? '');
         $nome  = trim($d['nome']);
         $cargo = trim((string) ($d['cargo'] ?? '')) ?: null;
+        $tel   = CelularBrasil::normalizar($d['telefone'] ?? null);
+        if (! $tel) {
+            throw ValidationException::withMessages(['telefone' => 'Informe um celular válido com DDD, ex.: (49) 99999-0000.']);
+        }
 
         $user = User::where('email', $email)->first();
 
@@ -303,9 +323,11 @@ class AmaiService
                 throw ValidationException::withMessages(['cpf' => 'Já existe uma conta com este e-mail e outro CPF. Confira os dados.']);
             }
             if (! $user->student_id) {
-                $student = Student::where('cpf', $cpf)->first() ?: $this->criarStudent($nome, $email, $cpf, $cargo);
+                $student = Student::where('cpf', $cpf)->first() ?: $this->criarStudent($nome, $email, $cpf, $cargo, $tel);
                 $user->student_id = $student->id;
             }
+            Student::whereKey($user->student_id)->update(['phone' => $tel]);
+            $user->telefone = $tel;
             if (! $user->cpf) {
                 $user->cpf = $cpf;
             }
@@ -322,7 +344,9 @@ class AmaiService
             throw ValidationException::withMessages(['cpf' => 'Este CPF já está cadastrado com outro e-mail. Use o e-mail da conta existente.']);
         }
         if (! $student) {
-            $student = $this->criarStudent($nome, $email, $cpf, $cargo);
+            $student = $this->criarStudent($nome, $email, $cpf, $cargo, $tel);
+        } else {
+            $student->forceFill(['phone' => $tel])->save();
         }
 
         return User::create([
@@ -331,18 +355,20 @@ class AmaiService
             'cpf'        => $cpf,
             'password'   => Hash::make($cpf),
             'student_id' => $student->id,
+            'telefone'   => $tel,
             'funcao'     => $cargo,
             'setor'      => 'AMAI',
             'power'      => 1,
         ]);
     }
 
-    private function criarStudent(string $nome, string $email, string $cpf, ?string $cargo): Student
+    private function criarStudent(string $nome, string $email, string $cpf, ?string $cargo, string $tel): Student
     {
         return Student::create([
             'name'       => $nome,
             'email'      => $email,
             'cpf'        => $cpf,
+            'phone'      => $tel,
             'password'   => Hash::make($cpf),
             'status'     => 'able',
             'minisserie' => '1',
@@ -382,6 +408,45 @@ class AmaiService
         }
         Subscription::where('student_id', $user->student_id)->amai()->where('status', 'ativo')
             ->update(['status' => 'cancelado', 'end_date' => now()->toDateString(), 'updated_at' => now()]);
+    }
+
+    /**
+     * Aviso por e-mail (config amai.aviso_cadastro_para) depois do commit do cadastro.
+     * Nunca lança: falha de SMTP só vai para o log, o cadastro já está gravado.
+     */
+    private function avisarCadastro(AmaiVinculo $v, User $ator, ?AmaiVinculo $atorVinculo, bool $recadastro): void
+    {
+        try {
+            $para = config('amai.aviso_cadastro_para', []);
+            if (! $para) {
+                Log::warning('[AMAI] Aviso de cadastro não enviado: AMAI_AVISO_CADASTRO_PARA vazio', ['vinculo_id' => $v->id]);
+                return;
+            }
+
+            $u = $v->user;
+            $papelAtor = match ($atorVinculo?->papel) {
+                AmaiVinculo::MASTER      => 'master AMAI',
+                AmaiVinculo::PONTO_FOCAL => 'ponto focal de ' . $atorVinculo->municipio,
+                default                  => 'gestão AMAI',
+            };
+
+            Mail::to($para)->send(new AmaiNovoCadastro([
+                'nome'           => $u->name,
+                'email'          => $u->email,
+                'telefone'       => CelularBrasil::formatar($u->telefone),
+                'municipio'      => (string) $v->municipio,
+                'papel'          => $v->isPontoFocal() ? 'Ponto focal' : 'Usuário',
+                'cadastrado_por' => "{$ator->name} ({$ator->email}) — {$papelAtor}",
+                'data_hora'      => now('America/Sao_Paulo')->format('d/m/Y H:i') . ' (horário de Brasília)',
+                'recadastro'     => $recadastro,
+            ]));
+        } catch (\Throwable $e) {
+            Log::error('[AMAI] Falha ao enviar aviso de cadastro: ' . $e->getMessage(), [
+                'vinculo_id' => $v->id,
+                'user_id'    => $v->user_id,
+                'ator_id'    => $ator->id,
+            ]);
+        }
     }
 
     /** Validade dos usuários = validade da assinatura do ponto focal; senão 1 ano. */

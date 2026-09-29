@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Amai;
 
 use App\Http\Controllers\Controller;
 use App\Models\AmaiVinculo;
+use App\Rules\CelularBrasil;
 use App\Services\AmaiService;
 use Illuminate\Http\Request;
 
@@ -64,9 +65,11 @@ class GestaoController extends Controller
             'nome'     => ['required', 'string', 'max:120'],
             'email'    => ['required', 'email', 'max:180'],
             'cpf'      => ['required', 'regex:/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/'],
+            'telefone' => ['required', 'string', 'max:25', new CelularBrasil],
             'cargo'    => ['nullable', 'string', 'max:120'],
         ], [
-            'cpf.regex' => 'CPF inválido (11 dígitos).',
+            'cpf.regex'         => 'CPF inválido (11 dígitos).',
+            'telefone.required' => 'Informe o celular com DDD.',
         ]);
 
         $focal = $this->focalAlvo($request, $eu, (int) $dados['focal_id']);
@@ -123,8 +126,9 @@ class GestaoController extends Controller
             'nome'      => ['required', 'string', 'max:120'],
             'email'     => ['required', 'email', 'max:180'],
             'cpf'       => ['required', 'regex:/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/'],
+            'telefone'  => ['required', 'string', 'max:25', new CelularBrasil],
             'cargo'     => ['nullable', 'string', 'max:120'],
-        ], ['cpf.regex' => 'CPF inválido (11 dígitos).']);
+        ], ['cpf.regex' => 'CPF inválido (11 dígitos).', 'telefone.required' => 'Informe o celular com DDD.']);
 
         $v = $this->amai->cadastrarPontoFocal($request->user(), $dados);
 

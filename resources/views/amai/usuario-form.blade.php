@@ -42,7 +42,11 @@
       <label for="f-cpf">CPF</label>
       <input id="f-cpf" class="as-in" type="text" name="cpf" value="{{ old('cpf') }}" required inputmode="numeric" placeholder="000.000.000-00">
     </div>
-    <div class="as-form__field as-form__field--full">
+    <div class="as-form__field">
+      <label for="f-telefone">Celular com DDD</label>
+      <input id="f-telefone" class="as-in" type="tel" name="telefone" value="{{ old('telefone') }}" required maxlength="25" inputmode="tel" autocomplete="tel" placeholder="(49) 99999-0000">
+    </div>
+    <div class="as-form__field">
       <label for="f-cargo">Cargo (opcional)</label>
       <input id="f-cargo" class="as-in" type="text" name="cargo" value="{{ old('cargo') }}" maxlength="120">
     </div>
