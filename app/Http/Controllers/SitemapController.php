@@ -5,13 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\BlogPost;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Services\AssinaturaVitrineService;
 
 class SitemapController extends Controller
 {
-    /** /sitemap.xml — inclui o blog, categorias, tags e posts publicados. */
+    /** /sitemap.xml — inclui a vitrine da assinatura (e suas categorias) e o blog: categorias, tags e posts publicados. */
     public function index()
     {
         $urls = [];
+
+        // vitrine da Assinatura Premium
+        $urls[] = ['loc' => route('assinatura.home'), 'changefreq' => 'weekly', 'priority' => '0.9'];
+        $urls[] = ['loc' => route('assinatura.planos'), 'changefreq' => 'monthly', 'priority' => '0.9'];
+        $urls[] = ['loc' => route('assinatura.categorias'), 'changefreq' => 'weekly', 'priority' => '0.8'];
+        foreach (app(AssinaturaVitrineService::class)->categorias() as $cat) {
+            $urls[] = ['loc' => $cat->url, 'changefreq' => 'weekly', 'priority' => '0.7'];
+        }
 
         // raiz do blog
         $urls[] = ['loc' => route('blog.index'), 'changefreq' => 'daily', 'priority' => '0.8'];

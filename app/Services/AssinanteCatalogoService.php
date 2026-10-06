@@ -117,6 +117,23 @@ class AssinanteCatalogoService
         return $itens;
     }
 
+    /**
+     * Catálogo inteiro (sem filtros, ordem "recentes", sem dados de usuário) numa única query.
+     * Usado pela vitrine pública (AssinaturaVitrineService), que cacheia o resultado.
+     */
+    public function todos(): \Illuminate\Support\Collection
+    {
+        $f = ['busca' => '', 'tipo' => '', 'categoria' => '', 'ordem' => 'recentes', 'assistido' => false];
+
+        $rows = $this->consultaUnificada($f, 0, [])->get();
+
+        $categoriasPorCurso = $this->categoriasPorCurso(
+            $rows->pluck('course_id')->filter()->unique()->values()->all()
+        );
+
+        return $rows->map(fn ($row) => $this->montarItem($row, $categoriasPorCurso, []));
+    }
+
     /** IDs dos painéis exibidos no catálogo (após dedup e filtro de aulas). Usado pela geração de provas. */
     public function idsPaineisExibiveis(): array
     {
@@ -130,44 +147,56 @@ class AssinanteCatalogoService
     /** Contadores globais (em cards) e lista de categorias para o filtro. Cacheado. */
     public function meta(): array
     {
-        return Cache::remember(self::CACHE_META, self::CACHE_TTL, function () {
-            $porTipo = DB::query()->fromSub($this->cardsCursos(0), 'b')
-                ->selectRaw('b.tipo, COUNT(*) AS qtd')
-                ->groupBy('b.tipo')
-                ->pluck('qtd', 'tipo');
+        return Cache::remember(self::CACHE_META, self::CACHE_TTL, fn () => $this->calcularMeta());
+    }
 
-            $modulares = DB::table('modular_courses')->where('status', 'publicado')->count();
+    /** Recalcula meta() e regrava o cache (aquecimento: vitrine:aquecer-cache). */
+    public function renovarMeta(): array
+    {
+        $meta = $this->calcularMeta();
+        Cache::put(self::CACHE_META, $meta, self::CACHE_TTL);
 
-            $categorias = DB::query()->fromSub($this->cardsCursos(0), 'b')
-                ->join('category_courses as cc', 'cc.course_id', '=', 'b.course_id')
-                ->join('categories as cat', 'cat.id', '=', 'cc.category_id')
-                ->where('cat.status', 'able')
-                ->whereNotIn('cat.title', self::CATEGORIAS_EXCLUIDAS)
-                ->selectRaw('cat.slug, cat.title, COUNT(DISTINCT b.tipo, b.item_id) AS paineis')
-                ->groupBy('cat.slug', 'cat.title')
-                ->orderBy('cat.title')
-                ->get()
-                ->map(fn ($c) => ['slug' => $c->slug, 'titulo' => $c->title, 'paineis' => (int) $c->paineis])
-                ->all();
+        return $meta;
+    }
 
-            $semCategoria = DB::query()->fromSub($this->cardsCursos(0), 'b')
-                ->whereNotExists(fn ($q) => $this->existsCategoriaValida($q))
-                ->count();
+    private function calcularMeta(): array
+    {
+        $porTipo = DB::query()->fromSub($this->cardsCursos(0), 'b')
+            ->selectRaw('b.tipo, COUNT(*) AS qtd')
+            ->groupBy('b.tipo')
+            ->pluck('qtd', 'tipo');
 
-            $minisserie = (int) ($porTipo['minisserie'] ?? 0);
-            $gravado    = (int) ($porTipo['gravado'] ?? 0);
-            $livre      = (int) ($porTipo['livre'] ?? 0);
+        $modulares = DB::table('modular_courses')->where('status', 'publicado')->count();
 
-            return [
-                'minisserie'    => $minisserie,
-                'gravado'       => $gravado,
-                'livre'         => $livre,
-                'paineis'       => $minisserie + $gravado + $livre, // cards de curso (sem as apostilas)
-                'modular'       => $modulares,
-                'categorias'    => $categorias,
-                'sem_categoria' => $semCategoria,
-            ];
-        });
+        $categorias = DB::query()->fromSub($this->cardsCursos(0), 'b')
+            ->join('category_courses as cc', 'cc.course_id', '=', 'b.course_id')
+            ->join('categories as cat', 'cat.id', '=', 'cc.category_id')
+            ->where('cat.status', 'able')
+            ->whereNotIn('cat.title', self::CATEGORIAS_EXCLUIDAS)
+            ->selectRaw('cat.slug, cat.title, COUNT(DISTINCT b.tipo, b.item_id) AS paineis')
+            ->groupBy('cat.slug', 'cat.title')
+            ->orderBy('cat.title')
+            ->get()
+            ->map(fn ($c) => ['slug' => $c->slug, 'titulo' => $c->title, 'paineis' => (int) $c->paineis])
+            ->all();
+
+        $semCategoria = DB::query()->fromSub($this->cardsCursos(0), 'b')
+            ->whereNotExists(fn ($q) => $this->existsCategoriaValida($q))
+            ->count();
+
+        $minisserie = (int) ($porTipo['minisserie'] ?? 0);
+        $gravado    = (int) ($porTipo['gravado'] ?? 0);
+        $livre      = (int) ($porTipo['livre'] ?? 0);
+
+        return [
+            'minisserie'    => $minisserie,
+            'gravado'       => $gravado,
+            'livre'         => $livre,
+            'paineis'       => $minisserie + $gravado + $livre, // cards de curso (sem as apostilas)
+            'modular'       => $modulares,
+            'categorias'    => $categorias,
+            'sem_categoria' => $semCategoria,
+        ];
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -475,6 +504,7 @@ class AssinanteCatalogoService
             'tipo'         => $tipo,
             'tipo_label'   => self::TIPOS_BADGE[$tipo] ?? $tipo,
             'id'           => (int) $row->item_id,
+            'classes_id'   => $row->classes_id !== null ? (int) $row->classes_id : null, // capa na vitrine pública
             'titulo'       => $titulo,
             'painel_label' => $painelLabel,
             'turma'        => $row->turma,

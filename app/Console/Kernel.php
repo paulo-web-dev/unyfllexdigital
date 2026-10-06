@@ -12,7 +12,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Vitrine /assinatura: regrava os caches (TTL 60 min) a cada 50 min.
+        // Cron não tem "a cada 50 min" ('*/50' = minutos 0 e 50, com intervalo de 10 min entre eles);
+        // por isso roda a cada minuto e só passa quando o minuto da época é múltiplo de 50.
+        $schedule->command('vitrine:aquecer-cache')
+            ->everyMinute()
+            ->when(fn () => intdiv(time(), 60) % 50 === 0)
+            ->withoutOverlapping(30)
+            ->runInBackground();
     }
 
     /**

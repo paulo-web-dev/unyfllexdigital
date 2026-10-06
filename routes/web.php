@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SocialArtReviewController;
 use App\Http\Controllers\Admin\SocialGeneratorController;
 use App\Http\Controllers\Admin\SocialPostController;
 use App\Http\Controllers\Admin\SubscriptionController;
+use App\Http\Controllers\AssinaturaVitrineController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Ava\CursosAvaController;
 use App\Http\Controllers\Ava\ModularStudyController;
@@ -72,6 +73,12 @@ Route::post('/webhooks/asaas', [WebhookController::class, 'asaas'])->name('webho
 // ACESSO PÓS — mantida por compatibilidade com links antigos. Nome próprio para não colidir
 // com a rota autenticada 'player' (route('player') deve resolver /dashboard/player/{slug}).
 Route::get('/dashboard/playerpos/{slug}', [PlayerController::class, 'show'])->name('player.pos');
+
+// ── Vitrine pública da Assinatura Premium (órgãos públicos; conversão pelo WhatsApp) ──
+Route::get('/assinatura', [AssinaturaVitrineController::class, 'home'])->name('assinatura.home');
+Route::get('/assinatura/planos', [AssinaturaVitrineController::class, 'planos'])->name('assinatura.planos');
+Route::get('/assinatura/categorias', [AssinaturaVitrineController::class, 'categorias'])->name('assinatura.categorias');
+Route::get('/assinatura/categorias/{slug}', [AssinaturaVitrineController::class, 'categoria'])->name('assinatura.categoria')->where('slug', '[a-z0-9-]+');
 
 // ---- Landing page publica + captura de lead ----
 Route::get('/guia-licitacoes', [GuiaLicitacoesController::class, 'landing'])->name('guia.landing');
