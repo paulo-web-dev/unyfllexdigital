@@ -90,6 +90,7 @@ return [
         ':apostilas apostilas e materiais de pós-graduação',
         'Certificados ilimitados com carga horária',
         'Novos cursos incluídos durante a vigência',
+        'Transmissões ao vivo incluídas [CONFIRMAR]',
         'Faculdade credenciada pelo MEC',
         'Aceita nota de empenho e emite NF para órgão público',
     ],
@@ -103,6 +104,25 @@ return [
         'carga'    => ['icone' => 'award',          'texto' => 'Certificado com carga horária'],
         'catalogo' => ['icone' => 'library',        'texto' => ':cursos cursos no catálogo'],
         'vigencia' => ['icone' => 'sparkles',       'texto' => 'Novos cursos incluídos durante a vigência'],
+        'aovivo'   => ['icone' => 'radio',          'texto' => 'Transmissões ao vivo'],
+    ],
+
+    // Selos do hero da home (no máximo 3, uma linha). Os demais aparecem nos planos e na contratação.
+    'selos_hero' => ['mec', 'carga', 'aovivo'],
+
+    // Badge do card de curso na vitrine (por tipo do catálogo).
+    'badges' => [
+        'minisserie' => 'Curso Minissérie',
+        'gravado'    => 'Curso Modular',
+        'livre'      => 'Curso Livre Aprofundado',
+        'modular'    => 'Apostila',
+    ],
+
+    // ── "Por dentro da plataforma" (home e planos) ─────────────────────────
+    // Vazio = a seção não aparece. largura/altura evitam salto de layout enquanto a imagem carrega.
+    'plataforma_imagens' => [
+        ['url' => 'https://unyflex.com.br/storage/fav/homeassinatura.jpeg',    'legenda' => 'Área do assinante',      'largura' => 1365, 'altura' => 595], // [CONFIRMAR] legenda
+        ['url' => 'https://unyflex.com.br/storage/fav/auladiretoaoponto.jpeg', 'legenda' => 'Aulas diretas ao ponto', 'largura' => 1365, 'altura' => 588], // [CONFIRMAR] legenda
     ],
 
     // ── Categorias ──────────────────────────────────────────────────────────

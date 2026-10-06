@@ -1,36 +1,41 @@
 {{--
-  Card de curso da vitrine. `curso` = item de AssinaturaVitrineService::cards().
-  "Ver curso" leva à página da categoria (âncora do card); a conversão é sempre o WhatsApp.
+  Card de curso da vitrine, gerado (sem capa): degradê da categoria + textura + ícone em marca d'água.
+  `curso` = item de AssinaturaVitrineService::cards(). O card inteiro leva a "Ver curso"
+  (página da categoria, na âncora do card; `link` vazio = âncora na própria página).
+  Conversão: um único CTA "Assinar" no WhatsApp, com o nome do curso na mensagem.
 --}}
 @props(['curso', 'link' => null])
 @php
     $c = $curso;
     $ancora = 'curso-' . $c['tipo'] . '-' . $c['id'];
-    $detalhe = $c['tipo'] === 'modular'
-        ? 'Apostila e materiais'
-        : ($c['tipo'] === 'livre'
-            ? $c['paineis'] . ' cursos · ' . $c['aulas'] . ' aulas'
-            : $c['aulas'] . ' ' . ($c['aulas'] === 1 ? 'aula' : 'aulas'));
+    $icones = config('assinatura_vitrine.icones_categoria', []);
+    $slugIcone = $c['tipo'] === 'modular' ? config('assinatura_vitrine.categoria_apostilas.slug') : ($c['categorias'][0] ?? '');
+    $icone = $icones[$slugIcone] ?? 'book-open';
+    $badge = config('assinatura_vitrine.badges.' . $c['tipo'], $c['tipo_label']);
+    $detalhe = match ($c['tipo']) {
+        'modular' => 'Apostila e materiais',
+        'livre'   => $c['paineis'] . ' cursos · ' . $c['aulas'] . ' aulas',
+        default   => $c['aulas'] . ' ' . ($c['aulas'] === 1 ? 'aula' : 'aulas'),
+    };
 @endphp
-<article {{ $attributes->merge(['class' => 'vt-card']) }} id="{{ $ancora }}">
-  <div class="vt-card-capa" style="{{ $c['estilo'] }}">
-    @if($c['capa'])
-      <img src="{{ $c['capa'] }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">
-    @endif
-    <span class="vt-card-tipo">{{ $c['tipo_label'] }}</span>
-  </div>
+<article {{ $attributes->merge(['class' => 'vt-card vt-card--' . $c['tipo']]) }} id="{{ $ancora }}" style="{{ $c['estilo'] }}">
+  <a href="{{ $link }}#{{ $ancora }}" class="vt-card-alvo" aria-label="Ver curso: {{ $c['titulo'] }}"></a>
+  <i data-lucide="{{ $icone }}" class="vt-card-marca" aria-hidden="true"></i>
+
+  <span class="vt-card-tipo">{{ $badge }}</span>
+
   <div class="vt-card-corpo">
-    <span class="vt-card-cat">{{ $c['categoria'] }}</span>
-    <h3 class="vt-card-titulo" title="{{ $c['titulo'] }}">{{ $c['titulo'] }}</h3>
-    <span class="vt-card-meta"><i data-lucide="play-circle"></i>{{ $detalhe }}</span>
-  </div>
-  <div class="vt-card-acoes">
-    @if($link)
-      <a href="{{ $link }}#{{ $ancora }}" class="vt-card-link">Ver curso</a>
+    @if($c['turma'])
+      <span class="vt-card-turma" title="{{ $c['turma'] }}">{{ $c['turma'] }}</span>
     @endif
-    <x-vitrine.whatsapp class="vt-card-wa" :mensagem="\App\Services\AssinaturaVitrineService::mensagem('curso', ['curso' => $c['titulo']])"
-        :content-name="'Curso: ' . \Illuminate\Support\Str::limit($c['titulo'], 80)" aria-label="Quero para minha equipe">
-      <i data-lucide="message-circle"></i><span>Quero para minha equipe</span>
+    <h3 class="vt-card-titulo" title="{{ $c['titulo_principal'] }}">{{ $c['titulo_principal'] }}</h3>
+  </div>
+
+  <div class="vt-card-rodape">
+    <span class="vt-card-meta"><i data-lucide="play-circle"></i><span>{{ $detalhe }}</span></span>
+    <x-vitrine.whatsapp class="vt-card-assinar" :mensagem="\App\Services\AssinaturaVitrineService::mensagem('curso', ['curso' => $c['titulo']])"
+        :content-name="'Curso: ' . \Illuminate\Support\Str::limit($c['titulo'], 80)">
+      <i data-lucide="message-circle"></i>Assinar
     </x-vitrine.whatsapp>
   </div>
 </article>

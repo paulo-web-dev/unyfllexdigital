@@ -78,6 +78,7 @@
   @include('vitrine.partials.comparativo')
   @include('vitrine.partials.calculadora')
   @include('vitrine.partials.como-contratar')
+  @include('vitrine.partials.plataforma')
   @include('vitrine.partials.faq')
   @include('vitrine.partials.cta-final', ['titulo' => 'Pronto para capacitar a sua equipe?', 'botao' => 'Solicitar proposta', 'contentName' => 'Planos: CTA final'])
 @endsection

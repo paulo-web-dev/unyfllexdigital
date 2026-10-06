@@ -25,7 +25,7 @@ use Illuminate\Support\Str;
  */
 class AssinaturaVitrineService
 {
-    private const CACHE_CARDS = 'assinatura.vitrine.cards.v1';
+    private const CACHE_CARDS = 'assinatura.vitrine.cards.v3';
     private const CACHE_META  = 'assinatura.vitrine.meta.v1';
 
     public function __construct(private AssinanteCatalogoService $catalogo)
@@ -81,6 +81,7 @@ class AssinaturaVitrineService
         return [
             'cursos'           => $cursos,
             'cursos_marketing' => self::numeroMarketing($cursos),
+            'cursos_centena'   => number_format(intdiv($cursos, 100) * 100, 0, ',', '.'), // hero: 460 => Mais de 400
             'apostilas'        => $apostilas,
             'categorias'       => count($meta['categorias']),
             'custo_por_curso'  => $cursos > 0 ? $individual / $cursos : null,
@@ -209,16 +210,8 @@ class AssinaturaVitrineService
         return $this->categorias()
             ->sortByDesc('cursos')
             ->map(function ($cat) use ($cards, $limite) {
-                $porTurma = [];
-                $itens = $this->cardsDaCategoria($cards, $cat->slug)
-                    // No máximo 2 cards por turma: evita uma faixa inteira com a mesma capa.
-                    ->filter(function ($c) use (&$porTurma) {
-                        $k = $c['classes_id'] ?? 'm' . $c['id'];
-                        $porTurma[$k] = ($porTurma[$k] ?? 0) + 1;
-                        return $porTurma[$k] <= 2;
-                    })
-                    ->take($limite)
-                    ->values();
+                // Os primeiros da lista intercalada da categoria (a mesma ordem da página dela).
+                $itens = $this->cardsDaCategoria($cards, $cat->slug)->take($limite)->values();
 
                 return (object) ['categoria' => $cat, 'itens' => $itens];
             })
@@ -248,15 +241,46 @@ class AssinaturaVitrineService
     private function cardsDaCategoria(Collection $cards, string $slug): Collection
     {
         if ($slug === config('assinatura_vitrine.categoria_apostilas.slug')) {
-            return $cards->where('tipo', 'modular')->values();
+            return self::intercalar($cards->where('tipo', 'modular')->values());
         }
 
-        return $cards->filter(fn ($c) => in_array($slug, $c['categorias'], true))->values();
+        return self::intercalar($cards->filter(fn ($c) => in_array($slug, $c['categorias'], true))->values());
     }
 
     /**
-     * Catálogo inteiro reduzido ao que a vitrine exibe, com a capa. Uma query para os cards
+     * Reordena para que dois cards vizinhos não sejam da mesma turma (ex.: Curso Modular e
+     * Curso Livre Aprofundado da mesma turma), mantendo a ordem por data (mais recentes primeiro).
+     * Em cada posição entra o card mais recente ainda não usado cuja turma seja diferente da do
+     * card anterior; a turma só se repete quando não há outra opção. Não remove nenhum card
+     * (a contagem da categoria continua batendo).
+     */
+    private static function intercalar(Collection $cards): Collection
+    {
+        $fila = $cards->all(); // já em ordem de data (AssinanteCatalogoService::todos, "recentes")
+        $saida = [];
+        $anterior = null;
+
+        while ($fila) {
+            $escolhido = array_key_first($fila); // sem alternativa: repete a turma
+            if ($anterior !== null) {
+                foreach ($fila as $k => $c) {
+                    if ($c['grupo'] !== $anterior['grupo']) {
+                        $escolhido = $k;
+                        break;
+                    }
+                }
+            }
+            $anterior = $saida[] = $fila[$escolhido];
+            unset($fila[$escolhido]);
+        }
+
+        return collect($saida);
+    }
+
+    /**
+     * Catálogo inteiro reduzido ao que a vitrine exibe. Uma query para os cards
      * (AssinanteCatalogoService::todos) + uma para as capas das turmas + uma para as das apostilas.
+     * A capa fica guardada para uso futuro: o card atual é gerado (degradê + ícone) e não a exibe.
      */
     private function cards(): Collection
     {
@@ -277,6 +301,11 @@ class AssinaturaVitrineService
 
         return $itens->map(fn ($i) => [
             'tipo'       => $i->tipo,
+            // Card de painel: o painel é o título e a turma vai acima. Turma inteira e apostila: só o título.
+            'titulo_principal' => self::ePainel($i->tipo) ? $i->painel_label : trim((string) $i->turma),
+            'turma'        => self::ePainel($i->tipo) ? trim((string) $i->turma) : null,
+            'grupo'        => $i->classes_id ? 't' . $i->classes_id : 'm' . $i->id,
+            'chave_titulo' => Str::lower(Str::ascii(trim(self::ePainel($i->tipo) ? $i->painel_label : (string) $i->turma))),
             'tipo_label' => $i->tipo_label,
             'id'         => $i->id,
             'classes_id' => $i->classes_id,
@@ -290,6 +319,11 @@ class AssinaturaVitrineService
                 ? ($capasModulares[$i->id] ?? null)
                 : (isset($fotos[$i->classes_id]) ? $base . rawurlencode($fotos[$i->classes_id]) : null),
         ])->all();
+    }
+
+    private static function ePainel(string $tipo): bool
+    {
+        return in_array($tipo, ['minisserie', 'gravado'], true);
     }
 
     /** modular_course_id => URL da capa pronta mais recente. Sem a tabela, nenhuma capa. */

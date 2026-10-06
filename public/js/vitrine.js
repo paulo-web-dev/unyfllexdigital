@@ -272,7 +272,101 @@
     calcular();
   }
 
+  // ── "Por dentro da plataforma": miniaturas + lightbox ─────────────────────
+  var SVG = {
+    fechar: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    ant: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    prox: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
+  function plataforma() {
+    var raiz = document.querySelector('[data-vt-plat]');
+    if (!raiz) return;
+
+    var telas = Array.prototype.slice.call(raiz.querySelectorAll('.vt-plat-tela'));
+    var minis = Array.prototype.slice.call(raiz.querySelectorAll('[data-vt-tela]'));
+    var imagens = telas.map(function (t) {
+      var img = t.querySelector('img');
+      return { src: img.getAttribute('src'), legenda: img.getAttribute('alt') };
+    });
+
+    function ativar(i) {
+      telas.forEach(function (t, k) { t.classList.toggle('ativa', k === i); });
+      minis.forEach(function (m, k) {
+        m.classList.toggle('ativa', k === i);
+        m.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      });
+    }
+
+    minis.forEach(function (m) {
+      m.addEventListener('click', function () { ativar(Number(m.getAttribute('data-vt-tela'))); });
+    });
+
+    // Lightbox: criado sob demanda, um só por página.
+    var lb, lbImg, lbLegenda, atual = 0, focoAnterior = null;
+
+    function montar() {
+      lb = document.createElement('div');
+      lb.className = 'vt-lb';
+      lb.hidden = true;
+      lb.setAttribute('role', 'dialog');
+      lb.setAttribute('aria-modal', 'true');
+      lb.setAttribute('aria-label', 'Telas da plataforma');
+      lb.innerHTML =
+        '<button type="button" class="vt-lb-btn vt-lb-fechar" aria-label="Fechar">' + SVG.fechar + '</button>' +
+        (imagens.length > 1
+          ? '<button type="button" class="vt-lb-btn vt-lb-ant" aria-label="Imagem anterior">' + SVG.ant + '</button>' +
+            '<button type="button" class="vt-lb-btn vt-lb-prox" aria-label="Próxima imagem">' + SVG.prox + '</button>'
+          : '') +
+        '<img alt=""><p class="vt-lb-legenda"></p>';
+      document.body.appendChild(lb);
+      lbImg = lb.querySelector('img');
+      lbLegenda = lb.querySelector('.vt-lb-legenda');
+
+      lb.addEventListener('click', function (e) {
+        if (e.target.closest('.vt-lb-fechar') || e.target === lb) return fechar();
+        if (e.target.closest('.vt-lb-ant')) return mostrar(atual - 1);
+        if (e.target.closest('.vt-lb-prox')) return mostrar(atual + 1);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (lb.hidden) return;
+        if (e.key === 'Escape') fechar();
+        else if (e.key === 'ArrowLeft') mostrar(atual - 1);
+        else if (e.key === 'ArrowRight') mostrar(atual + 1);
+      });
+    }
+
+    function mostrar(i) {
+      atual = (i + imagens.length) % imagens.length;
+      lbImg.src = imagens[atual].src;
+      lbImg.alt = imagens[atual].legenda;
+      lbLegenda.textContent = imagens[atual].legenda + (imagens.length > 1 ? '  ·  ' + (atual + 1) + '/' + imagens.length : '');
+      ativar(atual);
+    }
+
+    function abrir(i) {
+      if (!lb) montar();
+      focoAnterior = document.activeElement;
+      mostrar(i);
+      lb.hidden = false;
+      document.body.classList.add('vt-lb-aberto');
+      lb.querySelector('.vt-lb-fechar').focus();
+    }
+
+    function fechar() {
+      lb.hidden = true;
+      document.body.classList.remove('vt-lb-aberto');
+      if (focoAnterior) focoAnterior.focus();
+    }
+
+    raiz.addEventListener('click', function (e) {
+      var z = e.target.closest('[data-vt-zoom]');
+      if (z) abrir(Number(z.getAttribute('data-vt-zoom')));
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    plataforma();
     icones();
     menu();
     carrosseis();

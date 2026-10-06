@@ -5,23 +5,26 @@
 
 @section('content')
   {{-- Hero --}}
-  <section class="vt-hero">
+  <section class="vt-hero vt-hero--home">
     <div class="vt-wrap vt-hero-in">
-      <p class="vt-eyebrow">Assinatura Premium Unyflex · para câmaras e prefeituras</p>
-      <h1 class="vt-h1">Capacitação contínua para toda a sua equipe, <span class="vt-grad">em uma única contratação</span></h1>
-      <p class="vt-lead">
-        {{ $resumo['cursos_marketing'] }} cursos de gestão pública, licitações, controle interno, legislativo e mais,
-        com certificado, por 12 meses. O seu órgão contrata uma vez e capacita os servidores o ano inteiro.
+      <h1 class="vt-h1">Assinatura Unyflex <span class="vt-grad">Premium</span></h1>
+      <p class="vt-hero-sub">Mais de {{ $resumo['cursos_centena'] }} cursos e transmissões ao vivo</p>
+      <p class="vt-hero-preco">
+        <span class="vt-hero-preco-por">por apenas</span>
+        <strong>{{ \App\Services\AssinaturaVitrineService::brl(config('assinatura_vitrine.planos.individual.preco'), 0) }}</strong>
+        <span class="vt-hero-preco-unid">/ano por usuário</span>
       </p>
       <div class="vt-hero-ctas">
-        <x-vitrine.whatsapp class="vt-btn vt-btn-primary vt-btn-lg" content-name="Hero: Solicitar proposta">
-          <i data-lucide="message-circle"></i>Solicitar proposta
+        <x-vitrine.whatsapp class="vt-btn vt-btn-primary vt-btn-lg" content-name="Hero: Assinar agora">
+          <i data-lucide="message-circle"></i>Assinar agora
         </x-vitrine.whatsapp>
         <a href="{{ route('assinatura.planos') }}" class="vt-btn vt-btn-ghost vt-btn-lg">Ver planos</a>
       </div>
-      <x-vitrine.selos />
+      <x-vitrine.selos :itens="config('assinatura_vitrine.selos_hero')" class="vt-selos--hero" />
     </div>
   </section>
+
+  @include('vitrine.partials.plataforma')
 
   {{-- Âncora resumida --}}
   @include('vitrine.partials.ancora', ['compacta' => true])
